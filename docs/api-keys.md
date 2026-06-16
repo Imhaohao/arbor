@@ -22,6 +22,7 @@ or in the Convex dashboard.
 | `ARBOR_MAX_OUTPUT_TOKENS`, `ARBOR_AGENT_MAX_OUTPUT_TOKENS`, `ARBOR_JUDGE_MAX_OUTPUT_TOKENS`, `ARBOR_SUGGESTER_MAX_OUTPUT_TOKENS` | Both | Optional | Global and per-purpose output-token caps. |
 | `HIVE_EMBEDDINGS_FORCE_LOCAL` | Both | Optional | Set `true` to force deterministic local-hash embeddings for dev/CI. |
 | `ARBOR_HIVE_DEFAULT` | Both | Optional | Set `true` to route new tasks through the hive DAG planner by default. Use `workflow_mode: "legacy"` to opt out per task. |
+| `ARBOR_MIN_BID_RESPONSES` | Convex | Optional | Min number of bid responses per auction (1-50). When live bidders fall short, `solicitBids` backfills non-awardable standby bids (demo-lane weight, priced just above budget) so the auction always shows market interest. Unset/0 disables backfill. |
 
 > Operational note (2026-06-13): `ANTHROPIC_API_KEY` is documented as required
 > above but is NOT currently set on the Convex deployment (`npx convex env list`

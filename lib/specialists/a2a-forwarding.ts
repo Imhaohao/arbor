@@ -56,18 +56,31 @@ interface A2AArtifact {
   parts: A2AMessagePart[];
 }
 
-export interface A2ATask {
-  id: string;
-  kind: "task";
-  status: A2ATaskStatus;
-  artifacts: A2AArtifact[];
+export interface A2AMessage {
+  kind?: "message";
+  role?: string;
+  parts?: A2AMessagePart[];
+  messageId?: string;
+  contextId?: string;
+  taskId?: string;
   metadata?: Record<string, unknown>;
 }
+
+export interface A2ATask {
+  id: string;
+  kind?: "task";
+  status: A2ATaskStatus;
+  artifacts: A2AArtifact[];
+  contextId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+type A2AResult = A2ATask | A2AMessage | Record<string, unknown>;
 
 interface JsonRpcOk {
   jsonrpc: string;
   id?: string | number | null;
-  result: A2ATask;
+  result: A2AResult;
 }
 
 // ─── constants ────────────────────────────────────────────────────────────
@@ -97,6 +110,115 @@ function nextRpcId(): string {
   return `arbor-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function textFromParts(parts: unknown): string {
+  if (!Array.isArray(parts)) return "";
+  for (const part of parts) {
+    if (isRecord(part) && typeof part.text === "string" && part.text.trim()) {
+      return part.text;
+    }
+  }
+  return "";
+}
+
+function taskCandidate(result: A2AResult): unknown {
+  return isRecord(result) && "task" in result ? result.task : result;
+}
+
+function normalizeTaskResult(result: A2AResult): A2ATask | null {
+  const candidate = taskCandidate(result);
+  if (!isRecord(candidate)) return null;
+
+  const status = candidate.status;
+  const isTask =
+    candidate.kind === "task" ||
+    (isRecord(status) && typeof status.state === "string");
+  if (!isTask || !isRecord(status) || typeof status.state !== "string") {
+    return null;
+  }
+
+  return {
+    ...(candidate as Omit<A2ATask, "artifacts" | "status">),
+    kind: "task",
+    id:
+      typeof candidate.id === "string" && candidate.id
+        ? candidate.id
+        : typeof candidate.taskId === "string" && candidate.taskId
+          ? candidate.taskId
+          : nextRpcId(),
+    status: status as unknown as A2ATaskStatus,
+    artifacts: Array.isArray(candidate.artifacts)
+      ? (candidate.artifacts as A2AArtifact[])
+      : [],
+    metadata: isRecord(candidate.metadata) ? candidate.metadata : undefined,
+  };
+}
+
+function metadataFromResult(result: A2AResult): Record<string, unknown> {
+  const task = normalizeTaskResult(result);
+  if (task?.metadata) return task.metadata;
+  if (isRecord(result) && isRecord(result.metadata)) return result.metadata;
+  return {};
+}
+
+function idFromResult(result: A2AResult): string | undefined {
+  const task = normalizeTaskResult(result);
+  if (task?.id) return task.id;
+  if (!isRecord(result)) return undefined;
+  const wrapped = isRecord(result.message) ? result.message : undefined;
+  for (const candidate of [result, wrapped]) {
+    if (!candidate) continue;
+    for (const key of ["taskId", "id", "messageId", "contextId"]) {
+      const value = candidate[key];
+      if (typeof value === "string" && value.trim()) return value;
+    }
+  }
+  return undefined;
+}
+
+function extractTextFromResult(result: A2AResult): string {
+  const task = normalizeTaskResult(result);
+  if (task) return extractText(task);
+  if (!isRecord(result)) return "";
+  if (result.kind === "message") return textFromParts(result.parts);
+  const wrapped = isRecord(result.message) ? result.message : undefined;
+  return textFromParts(wrapped?.parts) || textFromParts(result.parts);
+}
+
+function looksLikeDecline(text: string): boolean {
+  const lower = text.toLowerCase();
+  return [
+    "i don't help",
+    "i cannot help",
+    "i can't help",
+    "cannot complete",
+    "can't complete",
+    "outside my",
+    "outside our",
+    "not supported",
+    "unsupported",
+    "not able to",
+    "unable to",
+  ].some((phrase) => lower.includes(phrase));
+}
+
+function taskSummary(prompt: string): string {
+  return prompt
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180);
+}
+
+function budgetCeiling(prompt: string): number | undefined {
+  const match = prompt.match(/Budget ceiling:\s*\$?([0-9]+(?:\.[0-9]+)?)/i);
+  if (!match) return undefined;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 async function postJsonRpc(
   endpoint: string,
   method: string,
@@ -123,12 +245,15 @@ async function postJsonRpc(
     const text = await res.text().catch(() => "(no body)");
     throw new Error(`A2A ${method} returned HTTP ${res.status}: ${text.slice(0, 200)}`);
   }
-  const json = (await res.json()) as { error?: { message: string }; result?: A2ATask };
+  const json = (await res.json()) as {
+    error?: { message: string };
+    result?: A2AResult;
+  };
   if (json.error) {
     throw new Error(`A2A JSON-RPC error: ${json.error.message}`);
   }
-  if (!json.result || json.result.kind !== "task") {
-    throw new Error(`A2A response missing result.kind="task"`);
+  if (!("result" in json) || json.result === undefined || json.result === null) {
+    throw new Error(`A2A response missing result`);
   }
   return json as JsonRpcOk;
 }
@@ -148,9 +273,13 @@ export async function pollUntilTerminal(
       POLL_TIMEOUT_MS,
       authHeaders,
     );
-    const state = rpc.result.status.state;
+    const task = normalizeTaskResult(rpc.result);
+    if (!task) {
+      throw new Error(`A2A tasks/get response was not task-shaped`);
+    }
+    const state = task.status.state;
     if (state === "completed" || state === "failed") {
-      return rpc.result;
+      return task;
     }
     // submitted / working → keep polling
   }
@@ -161,14 +290,14 @@ export async function pollUntilTerminal(
 export function extractText(task: A2ATask): string {
   for (const artifact of task.artifacts ?? []) {
     for (const part of artifact.parts ?? []) {
-      if ((part.kind === "text" || part.type === "text") && part.text) {
+      if (typeof part.text === "string" && part.text.trim()) {
         return part.text;
       }
     }
   }
   // fall back to status message parts
   for (const part of task.status.message?.parts ?? []) {
-    if ((part.kind === "text" || part.type === "text") && part.text) {
+    if (typeof part.text === "string" && part.text.trim()) {
       return part.text;
     }
   }
@@ -197,12 +326,19 @@ export function makeA2aForwardingSpecialist(
     prompt: string,
     taskType: string,
   ): Promise<{ claim: string; source: "llm" | "baseline" }> {
-    // Never author plans for discovered third-party agents — and never pay
-    // for an LLM call per dead corpus endpoint. Drafting is reserved for
-    // Arbor's own static roster; third parties must speak for themselves.
+    // Never pay for an LLM call per discovered corpus endpoint. For those
+    // agents, use a deterministic, labeled card-derived plan so live but
+    // message-only A2A responders can still participate in the auction without
+    // pretending the remote agent authored the plan.
     if (config.discovered) {
+      const capabilities = config.capabilities.slice(0, 4).join(", ");
+      const summary = taskSummary(prompt) || taskType;
       return {
-        claim: `${config.display_name} via A2A at ${endpoint}`,
+        claim:
+          `1. Check the request "${summary}" against ${config.display_name}'s declared A2A capabilities (${capabilities || "general A2A response"}). ` +
+          `2. Call the live A2A endpoint and use the closest matching capability to collect a text or structured response for this task. ` +
+          `3. Return the useful result plus any limitation if the agent can only cover part of the request.\n\n` +
+          `[Plan drafted by Arbor from ${config.display_name}'s agent card — endpoint verified live; plan not authored by the remote agent.]`,
         source: "baseline",
       };
     }
@@ -229,6 +365,15 @@ export function makeA2aForwardingSpecialist(
       claim: `${config.display_name} via A2A at ${endpoint}`,
       source: "baseline",
     };
+  }
+
+  function fallbackBidPrice(prompt: string): number {
+    const ceiling = budgetCeiling(prompt);
+    if (!ceiling || !config.discovered) return config.cost_baseline;
+    // Imported A2A corpus rows often have a conservative placeholder baseline.
+    // If the live agent did not quote a cost, keep the fallback under the
+    // buyer's ceiling so the responder can still compete.
+    return Math.max(0.01, Number(Math.min(config.cost_baseline, ceiling * 0.8).toFixed(2)));
   }
 
   return {
@@ -292,20 +437,27 @@ export function makeA2aForwardingSpecialist(
           "a2a-bid",
         );
         // If the remote completed and gave us a numeric cost in metadata, use it.
-        const meta = rpc.result.metadata ?? {};
+        const meta = metadataFromResult(rpc.result);
         const remoteCost =
           typeof meta.cost_estimate === "number" ? meta.cost_estimate : null;
+        const bidPrice = remoteCost ?? fallbackBidPrice(prompt);
         // Prefer the remote agent's own reply text as the plan. extractText
         // falls back to JSON.stringify(status) — a "{"-prefixed string is not
         // a plan, so treat it as missing and draft a labeled one instead.
-        const remotePlan = extractText(rpc.result).trim();
+        const remotePlan = extractTextFromResult(rpc.result).trim();
+        if (remotePlan && looksLikeDecline(remotePlan)) {
+          return {
+            decline: true,
+            reason: remotePlan.slice(0, 220),
+          };
+        }
         const hasRemotePlan =
           remotePlan.length >= 40 && !remotePlan.startsWith("{");
         const drafted = hasRemotePlan
           ? null
           : await draftPlanFromCard(prompt, taskType);
         const bid: BidPayload = {
-          bid_price: remoteCost ?? config.cost_baseline,
+          bid_price: bidPrice,
           capability_claim: hasRemotePlan
             ? remotePlan.slice(0, 700)
             : drafted!.claim,
@@ -323,7 +475,7 @@ export function makeA2aForwardingSpecialist(
         if (reason.startsWith("A2A JSON-RPC error")) {
           const drafted = await draftPlanFromCard(prompt, taskType);
           return {
-            bid_price: config.cost_baseline,
+            bid_price: fallbackBidPrice(prompt),
             capability_claim: drafted.claim,
             estimated_seconds: 30,
             plan_source: drafted.source,
@@ -388,7 +540,8 @@ export function makeA2aForwardingSpecialist(
       // events, artifact hash) — same audit trail as MCP-forwarding runners.
       const recorder = context?.toolRecorder;
 
-      let taskId: string;
+      let taskId: string | undefined;
+      let finalTask: A2ATask | undefined;
       try {
         const send = () =>
           postJsonRpc(
@@ -424,13 +577,39 @@ export function makeA2aForwardingSpecialist(
               send,
               (rpc) => ({
                 ok: true,
-                result_preview: `task ${rpc.result.id} state=${rpc.result.status.state}`,
-                external_session_id: rpc.result.id,
-                external_task_id: rpc.result.id,
+                result_preview: extractTextFromResult(rpc.result).slice(0, 300),
+                external_session_id: idFromResult(rpc.result),
+                external_task_id: idFromResult(rpc.result),
               }),
             )
           : await send();
-        taskId = sendRpc.result.id;
+        const initialTask = normalizeTaskResult(sendRpc.result);
+        if (initialTask) {
+          const state = initialTask.status.state;
+          const terminal =
+            state === "completed" || state === "failed" || state === "canceled";
+          if (terminal) {
+            finalTask = initialTask;
+          } else {
+            taskId = initialTask.id;
+          }
+        } else {
+          const replyText = extractTextFromResult(sendRpc.result).trim();
+          if (replyText) {
+            const responseId = idFromResult(sendRpc.result) ?? nextRpcId();
+            const provenance: SpecialistProvenance = {
+              tier: toPublicTier(config.tier),
+              live_tools_called: true,
+              transport: "a2a",
+              proof_level: "agent_session",
+              external_session_id: responseId,
+              external_task_id: responseId,
+              endpoint,
+            };
+            return { output: replyText, provenance };
+          }
+          throw new Error("A2A response was neither task-shaped nor message-shaped");
+        }
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
         const provenance: SpecialistProvenance = {
@@ -448,53 +627,57 @@ export function makeA2aForwardingSpecialist(
 
       // Poll until terminal state. Recorded as a single tasks/get leg whose
       // outcome reflects the remote task's terminal state.
-      let finalTask: A2ATask;
-      try {
-        const poll = () =>
-          withTimeout(
-            pollUntilTerminal(endpoint, taskId, authHeaders),
-            POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS + POLL_TIMEOUT_MS + 2_000,
-            "a2a-poll",
-          );
-        finalTask = recorder
-          ? await recorder.record(
-              {
-                agent_id: config.agent_id,
-                phase: "execute",
-                transport: "a2a",
-                provider: config.sponsor,
-                endpoint,
-                method: "tasks/get",
-                tool_name: "tasks/get",
-                call_id: taskId,
-              },
-              poll,
-              (t) => ({
-                ok: t.status.state === "completed",
-                result_preview: extractText(t).slice(0, 300),
-                error_message:
-                  t.status.state === "failed"
-                    ? extractText(t).slice(0, 300)
-                    : undefined,
-                external_session_id: taskId,
-                external_task_id: taskId,
-              }),
-            )
-          : await poll();
-      } catch (err) {
-        const reason = err instanceof Error ? err.message : String(err);
-        const provenance: SpecialistProvenance = {
-          tier: toPublicTier(config.tier),
-          live_tools_called: false,
-          transport: "a2a",
-          proof_level: "none",
-          external_task_id: taskId,
-          fallback_reason: `poll timeout or error: ${reason.slice(0, 300)}`,
-          endpoint,
-        };
-        const output: SpecialistOutput =
-          `[FALLBACK — A2A endpoint unreachable]\n\nTask ${taskId} did not complete: ${reason}`;
-        return { output, provenance };
+      if (!finalTask) {
+        if (!taskId) {
+          throw new Error("A2A task id missing after message/send");
+        }
+        try {
+          const poll = () =>
+            withTimeout(
+              pollUntilTerminal(endpoint, taskId, authHeaders),
+              POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS + POLL_TIMEOUT_MS + 2_000,
+              "a2a-poll",
+            );
+          finalTask = recorder
+            ? await recorder.record(
+                {
+                  agent_id: config.agent_id,
+                  phase: "execute",
+                  transport: "a2a",
+                  provider: config.sponsor,
+                  endpoint,
+                  method: "tasks/get",
+                  tool_name: "tasks/get",
+                  call_id: taskId,
+                },
+                poll,
+                (t) => ({
+                  ok: t.status.state === "completed",
+                  result_preview: extractText(t).slice(0, 300),
+                  error_message:
+                    t.status.state === "failed"
+                      ? extractText(t).slice(0, 300)
+                      : undefined,
+                  external_session_id: taskId,
+                  external_task_id: taskId,
+                }),
+              )
+            : await poll();
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : String(err);
+          const provenance: SpecialistProvenance = {
+            tier: toPublicTier(config.tier),
+            live_tools_called: false,
+            transport: "a2a",
+            proof_level: "none",
+            external_task_id: taskId,
+            fallback_reason: `poll timeout or error: ${reason.slice(0, 300)}`,
+            endpoint,
+          };
+          const output: SpecialistOutput =
+            `[FALLBACK — A2A endpoint unreachable]\n\nTask ${taskId} did not complete: ${reason}`;
+          return { output, provenance };
+        }
       }
 
       // Terminal state reached. Check success vs failure.

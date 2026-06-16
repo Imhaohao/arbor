@@ -208,6 +208,88 @@ function cleanArgs<T extends Record<string, unknown>>(input: T): T {
   return Object.fromEntries(entries) as T;
 }
 
+function minimumBidResponses(): number {
+  const raw = process.env.ARBOR_MIN_BID_RESPONSES;
+  if (!raw) return 0;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return Math.min(50, Math.floor(parsed));
+}
+
+function standbyBidClaim(spec: SpecialistConfig, prompt: string): string {
+  const summary = prompt.replace(/\s+/g, " ").trim().slice(0, 180);
+  const capabilities = spec.capabilities.slice(0, 4).join(", ");
+  return (
+    `1. Standby response from ${spec.display_name}: review "${summary}" against declared capabilities (${capabilities || "general assistance"}). ` +
+    `2. Treat this as a non-awardable market signal unless the live endpoint/credential is restored. ` +
+    `3. Prefer live connected bidders for execution and use this response only to show market interest.`
+  );
+}
+
+async function backfillMinimumBidResponses(
+  ctx: ActionCtx,
+  task_id: Id<"tasks">,
+  task: Doc<"tasks">,
+  invitedSpecialists: SpecialistConfig[],
+) {
+  const minimum = minimumBidResponses();
+  if (minimum <= 0 || task.task_type === "reacher-live-launch") return;
+
+  const existing = (await ctx.runQuery(internal.bids._allForTask, {
+    task_id,
+  })) as Array<Doc<"bids">>;
+  if (existing.length >= minimum) return;
+
+  const existingAgentIds = new Set(existing.map((bid) => bid.agent_id));
+  const needed = minimum - existing.length;
+  const standbyPrice = Number((task.max_budget + 0.01).toFixed(2));
+  const candidates = invitedSpecialists
+    .filter((spec) => !existingAgentIds.has(spec.agent_id))
+    .slice(0, needed);
+
+  for (const spec of candidates) {
+    const probe_id = await ctx.runMutation(internal.bidProbes._insert, {
+      task_id,
+      agent_id: spec.agent_id,
+      public_tier: toPublicTier("mock"),
+      probe_status: "demo_lane",
+      duration_ms: 0,
+      error_message:
+        "standby response backfilled; not valid for award without live endpoint",
+      created_at: Date.now(),
+    });
+    const bid_id = await ctx.runMutation(internal.bids._insert, {
+      task_id,
+      agent_id: spec.agent_id,
+      bid_price: standbyPrice,
+      capability_claim: standbyBidClaim(spec, task.prompt),
+      estimated_seconds: 30,
+      score: -1,
+      plan_source: "baseline",
+    });
+    await ctx.runMutation(internal.bidProbes._setBidId, {
+      probe_id,
+      bid_id,
+    });
+    await ctx.runMutation(internal.lifecycle.log, {
+      task_id,
+      event_type: "bid_received",
+      payload: {
+        bid_id,
+        agent_id: spec.agent_id,
+        sponsor: spec.sponsor,
+        capability_claim: standbyBidClaim(spec, task.prompt),
+        estimated_seconds: 30,
+        plan_source: "baseline",
+        bid_latency_ms: 0,
+        public_tier: toPublicTier("mock"),
+        probe_id,
+        standby: true,
+      },
+    });
+  }
+}
+
 function makeToolCallRecorder(
   ctx: ActionCtx,
   task_id: Id<"tasks">,
@@ -336,9 +418,13 @@ export const solicitBids = internalAction({
     const taskContext = await ctx.runQuery(internal.taskContexts._latestForTask, {
       task_id: args.task_id,
     });
-    const promptForAgents = taskContext
-      ? `${task.prompt}\n\n---\n\n${taskContext.prompt_addendum}`
-      : task.prompt;
+    const promptForAgents = [
+      task.prompt,
+      `Budget ceiling: $${task.max_budget.toFixed(2)}. Do not bid above this budget.`,
+      taskContext ? `---\n\n${taskContext.prompt_addendum}` : undefined,
+    ]
+      .filter((part): part is string => Boolean(part))
+      .join("\n\n");
 
     const discovered = (await ctx.runQuery(
       api.discoveredSpecialists.list,
@@ -590,20 +676,6 @@ export const solicitBids = internalAction({
           created_at: Date.now(),
         });
 
-        if (probe.status === "fail") {
-          await ctx.runMutation(internal.lifecycle.log, {
-            task_id: args.task_id,
-            event_type: "bid_declined",
-            payload: {
-              agent_id: spec.agent_id,
-              reason: `probe_failed: ${probe.error_message ?? "unknown"}`,
-              public_tier,
-              probe_id,
-            },
-          });
-          return;
-        }
-
         const declineWith = async (reason: string) => {
           await ctx.runMutation(internal.lifecycle.log, {
             task_id: args.task_id,
@@ -618,14 +690,35 @@ export const solicitBids = internalAction({
         };
 
         if (!bidOutcome.ok) {
-          await declineWith(`error: ${bidOutcome.error}`);
+          const probeReason =
+            probe.status === "fail"
+              ? `probe_failed: ${probe.error_message ?? "unknown"}; `
+              : "";
+          await declineWith(`${probeReason}error: ${bidOutcome.error}`);
           return;
         }
         if ("decline" in bidOutcome.decision) {
-          await declineWith(bidOutcome.decision.reason);
+          const probeReason =
+            probe.status === "fail"
+              ? `probe_failed: ${probe.error_message ?? "unknown"}; `
+              : "";
+          await declineWith(`${probeReason}${bidOutcome.decision.reason}`);
           return;
         }
         const bid = bidOutcome.decision satisfies BidPayload;
+
+        if (probe.status === "fail") {
+          await ctx.runMutation(internal.lifecycle.log, {
+            task_id: args.task_id,
+            event_type: "bid_probe_failed_but_bid_received",
+            payload: {
+              agent_id: spec.agent_id,
+              probe_error: probe.error_message ?? "unknown",
+              public_tier,
+              probe_id,
+            },
+          });
+        }
 
         // ─── Plan screen: a bid must carry a plausible, task-specific plan.
         const screen = await assessPlanPlausibility(
@@ -640,8 +733,10 @@ export const solicitBids = internalAction({
         // Probe-passed live tiers carry full weight; demo-lane personas get a
         // near-zero weight — visible in the auction, ranked among themselves,
         // but never above any live bidder.
+        const liveBidConfirmed =
+          probe.status === "pass" || (probe.status === "fail" && liveCapable);
         const tierWeight =
-          probe.status === "pass" &&
+          liveBidConfirmed &&
           (public_tier === "native-a2a" || public_tier === "a2a-bridge")
             ? 1.0
             : probe.status === "demo_lane"
@@ -680,6 +775,13 @@ export const solicitBids = internalAction({
           },
         });
       }),
+    );
+
+    await backfillMinimumBidResponses(
+      ctx,
+      args.task_id,
+      task,
+      invitedSpecialists,
     );
   },
 });
