@@ -1,0 +1,62 @@
+{
+  "dry_run": true,
+  "runs": 2,
+  "pass_rate": 1,
+  "assertions_pass_rate": 1,
+  "live_count": 1,
+  "fallback_count": 1,
+  "live_fraction": 0.5,
+  "seeded_bug_catch_rate": 1,
+  "p50_latency_ms": 14200,
+  "p95_latency_ms": 14200,
+  "run_results": [
+    {
+      "run_index": 0,
+      "task_id": "synthetic-live-001",
+      "latency_ms": 14200,
+      "terminal_status": "complete",
+      "assertions_passed": 9,
+      "all_assertions_passed": true,
+      "assertion_detail": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "agent_id": "github-pr-review",
+      "live": true,
+      "seeded_bug_caught": true,
+      "result_text": "The `getOrFetch` method has a critical bug: the `await` keyword is missing before the `fetch()` call. This means the stored value is a Promise<T> rather than the resolved T, breaking all callers.",
+      "error": null
+    },
+    {
+      "run_index": 1,
+      "task_id": "synthetic-fallback-002",
+      "latency_ms": 8900,
+      "terminal_status": "complete",
+      "assertions_passed": 9,
+      "all_assertions_passed": true,
+      "assertion_detail": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "agent_id": "arbor-baseline",
+      "live": false,
+      "seeded_bug_caught": true,
+      "result_text": "[Arbor baseline] Code review of lib/cache/ttlCache.ts: Line 27 in getOrFetch is missing an await before fetch(). Without await the Promise object is stored as the cache value and returned directly to callers, causing subtle type errors at runtime.",
+      "error": null
+    }
+  ]
+}

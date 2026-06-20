@@ -80,6 +80,7 @@ export const _insertNodes = internalMutation({
         success_criteria: node.success_criteria,
         task_class: node.task_class,
         status: "pending",
+        revision_count: 0,
         updated_at: now,
       });
     }
@@ -163,6 +164,34 @@ export const _claimNodeRetryOpen = internalMutation({
   },
 });
 
+// 4c. Atomically claim a FAILED node for the arbor-baseline backstop. Flips
+// failed -> executing in a single transaction so that, even if advance schedules
+// the backstop more than once (it runs on every settle), exactly one backstop
+// invocation does the model work; duplicates read a node that is no longer
+// "failed" and no-op. The backstop sets the node to complete (or back to failed
+// with an attributable reason) when it finishes.
+export const _claimNodeForBackstop = internalMutation({
+  args: {
+    dag_id: v.id("hive_dags"),
+    node_id: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args): Promise<boolean> => {
+    const node = await ctx.db
+      .query("hive_nodes")
+      .withIndex("by_dag_and_node_id", (q) =>
+        q.eq("dag_id", args.dag_id).eq("node_id", args.node_id),
+      )
+      .first();
+    if (!node || node.status !== "failed") return false;
+    await ctx.db.patch(node._id, {
+      status: "executing",
+      updated_at: Date.now(),
+    });
+    return true;
+  },
+});
+
 // 5. Get a DAG by id (or null).
 export const _getDag = internalQuery({
   args: { dag_id: v.id("hive_dags") },
@@ -199,6 +228,7 @@ const nodeDocValidator = v.object({
   assigned_agent_id: v.optional(v.string()),
   output_text: v.optional(v.string()),
   eval_score: v.optional(v.number()),
+  revision_count: v.optional(v.number()),
   updated_at: v.number(),
 });
 
@@ -249,6 +279,7 @@ export const _patchNode = internalMutation({
     output_text: v.optional(v.string()),
     eval_score: v.optional(v.number()),
     task_class: v.optional(v.string()),
+    revision_count: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
@@ -269,9 +300,38 @@ export const _patchNode = internalMutation({
     if (args.output_text !== undefined) patch.output_text = args.output_text;
     if (args.eval_score !== undefined) patch.eval_score = args.eval_score;
     if (args.task_class !== undefined) patch.task_class = args.task_class;
+    if (args.revision_count !== undefined) {
+      patch.revision_count = args.revision_count;
+    }
 
     await ctx.db.patch(node._id, patch);
     return null;
+  },
+});
+
+// 8b. Return a completed node to the ready queue after evaluator critique.
+// The revision counter is monotonic and the status guard makes the claim
+// idempotent when evaluator delivery is retried.
+export const _requestNodeRevision = internalMutation({
+  args: {
+    dag_id: v.id("hive_dags"),
+    node_id: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args): Promise<boolean> => {
+    const node = await ctx.db
+      .query("hive_nodes")
+      .withIndex("by_dag_and_node_id", (q) =>
+        q.eq("dag_id", args.dag_id).eq("node_id", args.node_id),
+      )
+      .unique();
+    if (!node || node.status !== "complete") return false;
+    await ctx.db.patch(node._id, {
+      status: "ready",
+      revision_count: (node.revision_count ?? 0) + 1,
+      updated_at: Date.now(),
+    });
+    return true;
   },
 });
 

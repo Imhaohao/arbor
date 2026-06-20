@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { assembleNodeContext, formatEntriesForPrompt } from "./context-store";
+import {
+  assembleBlackboardPointers,
+  assembleNodeContext,
+  formatEntriesForPrompt,
+} from "./context-store";
 
 function run() {
   // Empty input returns "".
@@ -122,6 +126,26 @@ function run() {
   });
   const occurrences = deduped.split("\n").filter((l) => l.includes("ONLY_ONCE"));
   assert.equal(occurrences.length, 1, "shared entry_id de-duplicated to one line");
+
+  const pointers = assembleBlackboardPointers({
+    dagId: "dag-1",
+    format: "toon",
+    entries: [
+      {
+        entry_id: "entry-1",
+        namespace: "review",
+        agent_id: "reviewer",
+        kind: "critique",
+        confidence: 0.8,
+        content: "Tighten the acceptance criteria.",
+        created_at: 1,
+        revision: 1,
+        content_format: "text",
+      },
+    ],
+  });
+  assert.match(pointers, /```toon/);
+  assert.match(pointers, /bb:\/\/dag-1\/review\/entry-1/);
 
   console.log("context-store tests passed");
 }

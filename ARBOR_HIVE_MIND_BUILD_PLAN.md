@@ -1736,3 +1736,99 @@ None.
 - Keep it terse and example-first per the global doc style; engineers scan, they do not read.
 - The single most common operational mistake this prevents: setting hive env vars only in `.env.local` and not on the Convex deployment, where `post`/planner/evaluator actually run. Call that out explicitly.
 - No emojis anywhere.
+
+---
+
+## Agent Task 23: Trustworthy completion on one verified task class (PR code review)
+
+**Delegate to:** Opus (executive) — cross-file: orchestrator + registry + new runner + schema; hard to undo. See the delegation table at the end of this task.
+**Parallelizable:** No
+**Depends on:** Agent Tasks 9-22 (hive runtime), `ANTHROPIC_API_KEY` set on the Convex deployment.
+
+### Context
+
+The hive loop is built but not trustworthy. A live hive E2E currently passes only 5/9 of the assertions in `scripts/hive-e2e.ts:96-119`. The failure is not a planner crash: the DAG plans and routes, but the child node draws zero accepted bids, so the root task fails (assertion `"root task did not fail"`, line 98), and `hive_node_settled` (line 105), `hive_evaluated` (line 109), `scratchpad has entries` (line 110), and `root result.text is non-empty` (line 111) never happen. That is exactly the 5/9.
+
+Two root causes:
+
+1. **Live bids get screened out.** `convex/auctions.ts:723-729` screens each bid's plan with `assessPlanPlausibility` (`auctions.ts:378-403`); off-task plans are `declineWith("implausible_plan: ...")`. Most discovered A2A agents additionally lack live keys and never bid live at all.
+2. **No Arbor-owned executor exists.** `lib/specialists/registry.ts` has no `real`-tier internal worker that can always take a generic node. When invited specialists decline, `convex/hiveOrchestrator.ts` does a bounded open-retry (`hive_node_retry_open`, ~line 251) and then emits `hive_dag_failed` (~line 138) with no deliverable.
+
+The product bar this task must hit (the "developer trusts Arbor" bar): **every posted task in the target class returns exactly one of two things, every time** — (a) a correct, judge-verified deliverable, or (b) an honest, attributable "could not complete it, here is why." Never a hang, never a silent `hive_dag_failed` with an empty result, never a mock result that looks live. Per `AGENTS.md`, synthesized/fallback output must stay visibly distinct from real tool-backed output.
+
+### Goal
+
+Pick **one narrow, high-frequency, machine-verifiable task class — automated PR code review** — and make its full loop **deterministically complete and fully attributable**, proven green at **9/9 on `npm run hive:e2e` across 20 consecutive real PR-review tasks**, with a committed reliability report. No node in the target class may ever terminate without a judged, honestly labeled deliverable.
+
+### Files to Create or Modify
+
+- `lib/specialists/arbor-baseline.ts` — create (a new `real`-tier internal runner that produces a plausible, judgeable deliverable for any node using the existing model layer).
+- `lib/specialists/registry.ts` — modify (register `arbor-baseline` in `SPECIALIST_RUNNERS` and append to `SPECIALISTS` so it joins every auction roster via `auctions.ts:431` WITHOUT editing `auctions.ts`; it bids last-resort and gated to the target class — see Implementation Steps).
+- `convex/schema.ts` — modify (additive: new `agent_readiness` table; no column drops/renames).
+- `convex/agentReadiness.ts` — create (CRUD + smoke-task status; separates transport readiness from bid fitness).
+- `convex/hiveOrchestrator.ts` — modify (no-bid backstop: ensure the node is taken by `arbor-baseline` rather than failing the DAG; keep the existing open-retry).
+- `app/dashboard/*` (the existing hive dashboard section) — modify (readiness filters: `ready | needs_key | protocol_mismatch | endpoint_down | mock_only`).
+- `eval/pr-review-reliability/` — create (PR-review fixture with a seeded planted bug + 20-run harness that emits a report: pass rate, live-vs-fallback split, seeded-bug catch rate, p50/p95).
+- `package.json` — modify (append the reliability harness + its test to the `test`/script chain).
+- `docs/api-keys.md` — modify (confirm `ANTHROPIC_API_KEY` on Convex; note any new flag such as `ARBOR_BASELINE_FALLBACK`).
+
+### Files to Leave Alone
+
+- `convex/auctions.ts` (including `assessPlanPlausibility`) — Agent-Task-12-only file; integrate via the new runner in `SPECIALISTS`, not by editing the screen.
+- `lib/specialists/mcp-forwarding.ts`, `lib/specialists/a2a-forwarding.ts`, existing specialist runner files, the Stripe routes, `vercel.json` — hard no-touch constraints.
+- `CLAUDE.md`, `AGENTS.md` — do not edit project instruction files.
+
+### Implementation Steps
+
+1. **Arbor-owned fallback executor.** Create `lib/specialists/arbor-baseline.ts` exporting a `real`-tier `SpecialistConfig` (`agent_id: "arbor-baseline"`, sponsor "Arbor") plus its runner. The runner calls the existing model layer (`lib/anthropic.ts` / `lib/openai.ts`) with the node's actual prompt to produce a deliverable AND a task-specific plan, so its bid clears `assessPlanPlausibility` unchanged. The deliverable text and bid `capability_claim` must label it as Arbor-owned (e.g. prefix `"[Arbor baseline]"`), never as an external tool.
+2. **Register, gated, last-resort.** In `lib/specialists/registry.ts`, add the runner to `SPECIALIST_RUNNERS` and append the config to `SPECIALISTS` so it appears in every auction roster (`auctions.ts:431`) with no change to `auctions.ts`. Gate its bidding to the target class for this rollout: only bid when the node matches the PR-review capability (or behind `ARBOR_BASELINE_FALLBACK=true`). Bid score must be strictly below any live specialist so it only wins when nothing live qualifies.
+3. **Readiness matrix.** Add the `agent_readiness` table (see schema below) and `convex/agentReadiness.ts` to record, per agent: transport probe status and bid/exec fitness as separate fields. Do NOT mark an agent globally bad for failing one task class. Add a one-shot smoke-task path that populates it.
+4. **No-bid backstop in the orchestrator.** In `convex/hiveOrchestrator.ts`, before any path that would emit `hive_dag_failed` for a target-class node, ensure `arbor-baseline` has been given the node (it normally wins the auction's last-resort slot; this is the belt-and-suspenders guarantee). Every terminal path — live win or fallback — must write a `scratchpad` diagnostic entry, a judge verdict, and a `reputation_dimensions` record with an attributable reason.
+5. **Verifiable scoring.** The PR-review judge must check the deliverable against the actual diff: it references real changed files/lines and catches a seeded planted bug in the fixture. "Verified" must be falsifiable, not vibes.
+6. **Reliability harness + report.** In `eval/pr-review-reliability/`, run 20 real PR-review tasks end to end, assert 9/9 each, and emit a committed report. Wire it so it cannot silently regress.
+
+### New Types and Schemas
+
+```ts
+// convex/schema.ts — additive
+agent_readiness: defineTable({
+  agent_id: v.string(),
+  source: v.string(),            // static | catalog | discovered | a2a
+  transport: v.string(),         // real | mcp-forwarding | a2a | mock
+  endpoint: v.optional(v.string()),
+  auth_mode: v.optional(v.string()),
+  required_key_env: v.optional(v.string()),
+  transport_status: v.string(),  // ready | needs_key | protocol_mismatch | endpoint_down | mock_only
+  last_bid_status: v.optional(v.string()),   // separate from transport
+  last_exec_status: v.optional(v.string()),
+  task_class: v.optional(v.string()),        // fitness is per-class, not global
+  updated_at: v.number(),
+}).index("by_agent_id", ["agent_id"])
+  .index("by_status", ["transport_status"]),
+```
+
+### Success Criteria
+
+- `npm run hive:e2e` for a PR-review task is **9/9**, run **20× consecutively**: **20/20 reach a terminal non-failed status with non-empty `result.text`** (assertions 98 + 111 never fail).
+- Of the 20, **>=18 deliverables are produced by a live tool-backed specialist**; any `arbor-baseline` fallbacks are rare and visibly labeled Arbor-owned in both the result and the dashboard.
+- **Zero silent failures:** every run writes scratchpad + judge verdict + reputation; every decline records an attributable reason from `agent_readiness`.
+- **Bounded latency:** no node exceeds the execution cap; the report records p50/p95 and the fallback rate.
+- A committed report under `eval/pr-review-reliability/` publishes: pass rate, live-vs-fallback split, seeded-bug catch rate, p50/p95.
+- `npm run typecheck` and `npx convex dev --once` are clean; `npm test` stays green.
+
+### Notes
+
+- The clean integration is registering `arbor-baseline` in `SPECIALISTS`: it then bids in every roster built at `auctions.ts:431` with no edit to the Agent-Task-12-only auction file. The orchestrator change is only a backstop.
+- Honest labeling is a hard requirement (`AGENTS.md`): the fallback must never appear to have live external tools it does not have. A high fallback rate is a signal to fix supply, not a feature to hide.
+- Set/confirm `ANTHROPIC_API_KEY` on Convex (`npx convex env set ANTHROPIC_API_KEY ...`); the planner, judge, and `arbor-baseline` all run there.
+- This task fixes the floor for ONE class only. Do not widen to more task classes or re-enable broad multi-node DAGs until PR-review is boringly green.
+- No emojis anywhere.
+
+### Delegation map (per AGENTS.md / global doctrine)
+
+| Sub-task | Owner |
+|---|---|
+| Orchestrator no-bid backstop, fallback runner design, cross-file wiring, money/score decisions | **Opus inline** |
+| `agent_readiness` table + `agentReadiness.ts` + dashboard query + smoke-task runner | **convex:convex-expert** subagent |
+| `eval/pr-review-reliability/` fixture + 20-run harness + report | **Sonnet** subagent (clear spec) |
+| `docs/api-keys.md` update + report prose | **Haiku** subagent |

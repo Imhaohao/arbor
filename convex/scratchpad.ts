@@ -8,12 +8,26 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import {
+  normalizeBlackboardNamespace,
+  type BlackboardKind,
+} from "../lib/hive/blackboard-core";
 
 const kindValidator = v.union(
   v.literal("observation"),
   v.literal("result"),
   v.literal("decision"),
   v.literal("question"),
+  v.literal("proposal"),
+  v.literal("critique"),
+  v.literal("artifact"),
+  v.literal("consensus"),
+);
+
+const contentFormatValidator = v.union(
+  v.literal("text"),
+  v.literal("json"),
+  v.literal("toon"),
 );
 
 const MAX_CONTENT_CHARS = 16_000;
@@ -31,7 +45,14 @@ const entryWithoutEmbeddingValidator = v.object({
   task_id: v.optional(v.id("tasks")),
   agent_id: v.string(),
   kind: kindValidator,
+  namespace: v.optional(v.string()),
   content: v.string(),
+  content_format: v.optional(contentFormatValidator),
+  content_type: v.optional(v.string()),
+  writer_did: v.optional(v.string()),
+  verified_writer: v.optional(v.boolean()),
+  supersedes_entry_id: v.optional(v.id("scratchpad_entries")),
+  revision: v.optional(v.number()),
   confidence: v.number(),
   embedding_model: v.optional(v.string()),
   created_at: v.number(),
@@ -53,20 +74,47 @@ export const _write = internalMutation({
     task_id: v.optional(v.id("tasks")),
     agent_id: v.string(),
     kind: kindValidator,
+    namespace: v.optional(v.string()),
     content: v.string(),
+    content_format: v.optional(contentFormatValidator),
+    content_type: v.optional(v.string()),
+    writer_did: v.optional(v.string()),
+    verified_writer: v.optional(v.boolean()),
+    supersedes_entry_id: v.optional(v.id("scratchpad_entries")),
+    revision: v.optional(v.number()),
     confidence: v.number(),
   },
   returns: v.id("scratchpad_entries"),
   handler: async (ctx, args): Promise<Id<"scratchpad_entries">> => {
     const confidence = Math.max(0, Math.min(1, args.confidence));
     const content = args.content.slice(0, MAX_CONTENT_CHARS);
+    const namespace = normalizeBlackboardNamespace(
+      args.namespace,
+      args.kind as BlackboardKind,
+    );
+    if (args.supersedes_entry_id) {
+      const prior = await ctx.db.get(args.supersedes_entry_id);
+      if (!prior || prior.dag_id !== args.dag_id) {
+        throw new Error("superseded entry must exist in the same DAG");
+      }
+      if ((args.revision ?? 0) <= (prior.revision ?? 0)) {
+        throw new Error("revision must increase when superseding an entry");
+      }
+    }
     return await ctx.db.insert("scratchpad_entries", {
       dag_id: args.dag_id,
       node_id: args.node_id,
       task_id: args.task_id,
       agent_id: args.agent_id,
       kind: args.kind,
+      namespace,
       content,
+      content_format: args.content_format ?? "text",
+      content_type: args.content_type ?? "text/plain",
+      writer_did: args.writer_did,
+      verified_writer: args.verified_writer ?? true,
+      supersedes_entry_id: args.supersedes_entry_id,
+      revision: args.revision ?? 0,
       confidence,
       created_at: Date.now(),
     });
@@ -147,14 +195,25 @@ export const _getEntry = internalQuery({
 // 7. PUBLIC: all entries for a DAG with the embedding vector stripped, so the
 //    1536-float arrays never cross the wire to the client.
 export const forDag = query({
-  args: { dag_id: v.id("hive_dags") },
+  args: {
+    dag_id: v.id("hive_dags"),
+    namespace: v.optional(v.string()),
+  },
   returns: v.array(entryWithoutEmbeddingValidator),
   handler: async (ctx, args): Promise<Array<EntryWithoutEmbedding>> => {
-    const rows = await ctx.db
-      .query("scratchpad_entries")
-      .withIndex("by_dag", (q) => q.eq("dag_id", args.dag_id))
-      .order("desc")
-      .take(FOR_DAG_LIMIT);
+    const rows = args.namespace
+      ? await ctx.db
+          .query("scratchpad_entries")
+          .withIndex("by_dag_and_namespace", (q) =>
+            q.eq("dag_id", args.dag_id).eq("namespace", args.namespace),
+          )
+          .order("desc")
+          .take(FOR_DAG_LIMIT)
+      : await ctx.db
+          .query("scratchpad_entries")
+          .withIndex("by_dag", (q) => q.eq("dag_id", args.dag_id))
+          .order("desc")
+          .take(FOR_DAG_LIMIT);
     return rows.map(stripEmbedding);
   },
 });

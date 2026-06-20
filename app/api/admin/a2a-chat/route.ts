@@ -13,7 +13,11 @@ import { NextRequest } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { jsonOk, corsPreflight } from "@/lib/http";
-import { SPECIALISTS } from "@/lib/specialists/registry";
+import {
+  SPECIALISTS,
+  specialistConfigFromPersisted,
+  specialistEnabled,
+} from "@/lib/specialists/registry";
 import { getAuthForEndpoint } from "@/lib/specialists/a2a-agent-card";
 import {
   pollUntilTerminal,
@@ -46,6 +50,9 @@ interface DiscoveredRow {
   cost_baseline: number;
   starting_reputation: number;
   one_liner: string;
+  tier?: SpecialistConfig["tier"];
+  openrouter_model_id?: string;
+  openrouter_api_key_env?: string;
   mcp_endpoint?: string;
   a2a_endpoint?: string;
   a2a_agent_card_url?: string;
@@ -64,28 +71,8 @@ async function listedSpecialists(): Promise<SpecialistConfig[]> {
       {},
     )) as DiscoveredRow[];
     discovered = rows
-      .map((r) => ({
-        agent_id: r.agent_id,
-        display_name: r.display_name,
-        sponsor: r.sponsor,
-        capabilities: r.capabilities,
-        system_prompt: r.system_prompt,
-        cost_baseline: r.cost_baseline,
-        starting_reputation: r.starting_reputation,
-        one_liner: r.one_liner,
-        tier: r.a2a_endpoint
-          ? ("a2a" as const)
-          : r.mcp_endpoint
-            ? ("mcp-forwarding" as const)
-            : ("mock" as const),
-        mcp_endpoint: r.mcp_endpoint,
-        a2a_endpoint: r.a2a_endpoint,
-        a2a_agent_card_url: r.a2a_agent_card_url,
-        a2a_api_key_env: r.a2a_api_key_env,
-        a2a_auth_mode: r.a2a_auth_mode,
-        discovered: true,
-        discovery_source: r.discovery_source,
-      }));
+      .map((row) => specialistConfigFromPersisted(row))
+      .filter((config) => specialistEnabled(config));
   } catch {
     // Convex unreachable -> registry-only list rather than a hard failure.
   }
@@ -103,6 +90,9 @@ function chatUnavailableReason(s: SpecialistConfig): string | undefined {
   if (s.mcp_endpoint) return "MCP specialist; not directly reachable over A2A.";
   if (s.tier === "a2a-bridge") {
     return "A2A bridge specialist; use auction flow rather than direct message/send.";
+  }
+  if (s.tier === "openrouter") {
+    return "OpenRouter model specialist; use the auction flow rather than direct A2A chat.";
   }
   if (s.tier === "mock") {
     return "Mock/persona specialist; no direct A2A endpoint configured.";

@@ -139,16 +139,34 @@ interface CatalogRanking {
   reason: string;
 }
 
+// Cap how many catalog entries the LLM ranker scores in one call. The catalog
+// has grown well past 80 entries; asking the model to score all of them blows
+// the output-token budget and the response truncates into invalid JSON. We
+// keyword-prefilter to a focused shortlist first, then let the LLM rank that.
+const CATALOG_RANK_SHORTLIST = 15;
+
 async function rankCatalog(
   query: string,
   taskType: string | undefined,
   entries: CatalogEntry[],
 ): Promise<CatalogRanking[]> {
+  // Prefilter large catalogs to the best keyword matches so the LLM prompt and
+  // its required output stay small enough to return complete, valid JSON.
+  let pool = entries;
+  if (entries.length > CATALOG_RANK_SHORTLIST) {
+    const keep = new Set(
+      keywordRankCatalog(query, entries)
+        .slice(0, CATALOG_RANK_SHORTLIST)
+        .map((r) => r.agent_id),
+    );
+    pool = entries.filter((e) => keep.has(e.agent_id));
+  }
+
   const userPrompt = [
     `User goal:\n${query.trim()}`,
     taskType ? `Workflow hint: ${taskType}` : null,
     "Catalog entries (real production MCP servers):",
-    entries
+    pool
       .map(
         (e) =>
           `- ${e.agent_id} (${e.sponsor}): ${e.one_liner}\n  capabilities: ${e.capabilities.join(", ")}\n  tags: ${e.domain_tags.join(", ")}`,
@@ -166,7 +184,7 @@ Include every entry exactly once. Do not invent agent_ids that aren't in the lis
     const data = await callOpenAIJSON<{ ranked: CatalogRanking[] }>({
       systemPrompt: sys,
       userPrompt,
-      maxTokens: 700,
+      maxTokens: 900,
       timeoutMs: 12_000,
       retries: 0,
       purpose: "suggester",
@@ -180,10 +198,10 @@ Include every entry exactly once. Do not invent agent_ids that aren't in the lis
           : "no rationale",
     }));
     return ranked
-      .filter((r) => entries.some((e) => e.agent_id === r.agent_id))
+      .filter((r) => pool.some((e) => e.agent_id === r.agent_id))
       .sort((a, b) => b.fit - a.fit);
   } catch {
-    return keywordRankCatalog(query, entries);
+    return keywordRankCatalog(query, pool);
   }
 }
 

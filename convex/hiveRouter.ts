@@ -19,7 +19,8 @@ import {
   perNodeBudget,
   shouldFallbackOpen,
 } from "../lib/hive/router-core";
-import { assembleNodeContext } from "../lib/hive/context-store";
+import { assembleBlackboardPointers } from "../lib/hive/context-store";
+import { ARBOR_FLOOR_AGENT_IDS } from "../lib/specialists/registry";
 
 const VALID_TASK_CLASSES = new Set([
   "reasoning",
@@ -74,6 +75,9 @@ export const routeNode = internalAction({
       );
       return null;
     }
+    const rootTask = await ctx.runQuery(internal.tasks._get, {
+      task_id: dag.root_task_id,
+    });
 
     // 1. Dependency outputs from the scratchpad: for each upstream node, take
     //    its most recent "result" entries (best-effort; never block routing).
@@ -86,6 +90,9 @@ export const routeNode = internalAction({
       confidence: number;
       content: string;
       created_at: number;
+      namespace?: string;
+      revision?: number;
+      content_format?: string;
     };
     const dependencyEntries: ContextEntry[] = [];
     for (const depId of node.depends_on) {
@@ -95,7 +102,7 @@ export const routeNode = internalAction({
           node_id: depId,
         });
         const results = rows
-          .filter((row) => row.kind === "result")
+          .filter((row) => row.kind === "result" || row.kind === "artifact")
           .slice(0, 2);
         for (const row of results) {
           dependencyEntries.push({
@@ -105,6 +112,9 @@ export const routeNode = internalAction({
             confidence: row.confidence,
             content: row.content,
             created_at: row.created_at,
+            namespace: row.namespace,
+            revision: row.revision,
+            content_format: row.content_format,
           });
         }
       } catch (err) {
@@ -119,6 +129,35 @@ export const routeNode = internalAction({
       .map((entry) => entry.content.slice(0, HINT_PREFIX_CHARS))
       .filter((line): line is string => Boolean(line && line.trim()));
 
+    // Consensus revisions must see their evaluator critique even if the async
+    // embedding has not landed yet. This indexed node read is deterministic.
+    const reviewEntries: ContextEntry[] = [];
+    try {
+      const rows = await ctx.runQuery(internal.scratchpad._forNode, {
+        dag_id: args.dag_id,
+        node_id: args.node_id,
+      });
+      for (const row of rows.filter((entry) => entry.kind === "critique").slice(0, 3)) {
+        reviewEntries.push({
+          entry_id: String(row._id),
+          agent_id: row.agent_id,
+          kind: row.kind,
+          confidence: row.confidence,
+          content: row.content,
+          created_at: row.created_at,
+          namespace: row.namespace,
+          revision: row.revision,
+          content_format: row.content_format,
+        });
+      }
+    } catch (err) {
+      console.warn(
+        `[hive-router] review context read failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+
     // Semantic recall over the whole DAG scratchpad (best-effort). The action
     // returns `entry` as `any`, so we narrow each hit to RecallEntry at map.
     type RecallEntry = {
@@ -128,6 +167,9 @@ export const routeNode = internalAction({
       confidence: number;
       content: string;
       created_at: number;
+      namespace?: string;
+      revision?: number;
+      content_format?: string;
     };
     let recall: Array<{ entry: unknown; score: number }> = [];
     try {
@@ -153,12 +195,15 @@ export const routeNode = internalAction({
         confidence: e.confidence,
         content: e.content,
         created_at: e.created_at,
+        namespace: e.namespace,
+        revision: e.revision,
+        content_format: e.content_format,
       };
     });
 
-    const sharedContext = assembleNodeContext({
-      dependencyEntries,
-      recallEntries,
+    const sharedContext = assembleBlackboardPointers({
+      dagId: String(args.dag_id),
+      entries: [...dependencyEntries, ...reviewEntries, ...recallEntries],
       maxChars: 4000,
     });
 
@@ -213,11 +258,23 @@ export const routeNode = internalAction({
           top_k: 6,
           min_reputation: 0.3,
           max_cost: budget,
+          model_gateway: rootTask.model_gateway,
         });
+    // Shortlisted auctions always also invite the Arbor-owned floor agents, so
+    // every node has a guaranteed plausible bidder on the FIRST auction (not
+    // only the open-retry). searchAgents filters by min_reputation 0.3, which
+    // excludes the 0.05-rep floors, so they must be appended explicitly. On a
+    // force_open / fallback-open round, invited is undefined and the whole
+    // roster (floors included) bids anyway.
     const invited =
       args.force_open || shouldFallbackOpen(candidates)
         ? undefined
-        : candidates.map((c) => c.agent_id);
+        : Array.from(
+            new Set([
+              ...candidates.map((c) => c.agent_id),
+              ...ARBOR_FLOOR_AGENT_IDS,
+            ]),
+          );
 
     // 4. Stable per-node step index: position of this node_id in the
     //    ascending-sorted list of all node_ids in the DAG.
@@ -233,8 +290,8 @@ export const routeNode = internalAction({
         : "") +
       `\n\nTask class: ${taskClass}` +
       (sharedContext
-        ? "\n\n---\nShared scratchpad (written by other agents in this hive " +
-          "task; verify before relying on low-confidence items):\n" +
+        ? "\n\n---\nAgentic blackboard context (follow bb:// pointers; verify " +
+          "low-confidence entries and address review critiques):\n" +
           sharedContext +
           "\n---"
         : "");

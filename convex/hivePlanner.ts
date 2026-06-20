@@ -18,6 +18,10 @@ import {
   topologicalLevels,
   type PlannedNode,
 } from "../lib/hive/dag";
+import {
+  didForAgent,
+  serializeBlackboardContent,
+} from "../lib/hive/blackboard-core";
 
 const SYSTEM_PROMPT =
   'You are the planner for a multi-agent marketplace. Decompose the user\'s goal into 1 to 8 task nodes forming a dependency DAG. Each node: { "id": "<short snake_case or kebab id>", "description": "<self-contained sub-task; the executing agent sees ONLY this description plus shared-scratchpad context, so include all needed detail>", "depends_on": ["<ids of nodes whose output this node needs>"], "success_criteria": "<one sentence: what makes this node\'s output acceptable>", "task_class": one of "reasoning"|"classification"|"extraction"|"generation" }. Nodes with empty depends_on run in parallel; prefer parallel structure over long chains. Do NOT pad: a simple goal is a single node. depends_on must reference only ids defined in this plan and never form a cycle. Output strict JSON only: { "nodes": [ ... ] }.';
@@ -36,7 +40,6 @@ export const planDag = internalAction({
     const task = await ctx.runQuery(internal.tasks._get, {
       task_id: args.task_id,
     });
-
     // 2 + 3. Single model call, then validate. Any throw or validation failure
     //         collapses to a single-node fallback. No retry/self-repair loop.
     let planned: PlannedNode[];
@@ -96,6 +99,42 @@ export const planDag = internalAction({
       hive_dag_id: dag_id,
     });
 
+    const goalEntry = await ctx.runMutation(internal.scratchpad._write, {
+      dag_id,
+      task_id: args.task_id,
+      agent_id: "hive-planner",
+      kind: "proposal",
+      namespace: "goal",
+      content: task.prompt,
+      content_format: "text",
+      content_type: "text/plain",
+      writer_did: didForAgent("hive-planner"),
+      verified_writer: true,
+      revision: 0,
+      confidence: fallbackReason === null ? 1 : 0.5,
+    });
+    const plan = serializeBlackboardContent({ data: { nodes: planned } });
+    const planEntry = await ctx.runMutation(internal.scratchpad._write, {
+      dag_id,
+      task_id: args.task_id,
+      agent_id: "hive-planner",
+      kind: "proposal",
+      namespace: "proposals",
+      content: plan.content,
+      content_format: plan.content_format,
+      content_type: plan.content_type,
+      writer_did: didForAgent("hive-planner"),
+      verified_writer: true,
+      revision: 0,
+      confidence: fallbackReason === null ? 1 : 0.5,
+    });
+    await ctx.scheduler.runAfter(0, internal.scratchpadActions.embedEntry, {
+      entry_id: goalEntry,
+    });
+    await ctx.scheduler.runAfter(0, internal.scratchpadActions.embedEntry, {
+      entry_id: planEntry,
+    });
+
     // Entry-point nodes (no dependencies) start "ready" so advance routes them.
     for (const n of planned) {
       if (n.depends_on.length === 0) {
@@ -120,6 +159,7 @@ export const planDag = internalAction({
         dag_id,
         node_count: planned.length,
         levels: topologicalLevels(planned),
+        fallback_used: fallbackReason !== null,
       },
     });
 

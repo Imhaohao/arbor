@@ -18,6 +18,9 @@ import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { makeFunctionReference } from "convex/server";
 import { readyNodes, type PlannedNode } from "../lib/hive/dag";
+import { isPrReviewTask } from "../lib/specialists/pr-review-detect";
+import { BACKSTOP_FAILED_PREFIX } from "./hiveBaselineBackstop";
+import { didForAgent } from "../lib/hive/blackboard-core";
 
 // Task 15 implements hiveEvaluator.evaluateDag. Referenced by string so this
 // file pushes cleanly before that module exists.
@@ -124,7 +127,31 @@ export const advance = internalAction({
       counts.pending + counts.ready + counts.auctioned + counts.executing;
     if (inFlight === 0) {
       if (counts.complete === 0) {
-        // Every node failed.
+        // No-bid backstop (Agent Task 23): before failing the DAG, give any
+        // failed PR-review node to arbor-baseline directly so it terminates with
+        // a judged, honestly-labeled deliverable instead of a silent
+        // hive_dag_failed. Skip nodes the backstop already tried and could not
+        // complete (output marked with BACKSTOP_FAILED_PREFIX) so a genuine
+        // model outage fails honestly rather than looping.
+        const backstopNode = nodes.find(
+          (node) =>
+            node.status === "failed" &&
+            !(node.output_text ?? "").startsWith(BACKSTOP_FAILED_PREFIX) &&
+            isPrReviewTask(
+              `${node.description}\n${node.success_criteria ?? ""}`,
+              node.task_class,
+            ),
+        );
+        if (backstopNode) {
+          await ctx.scheduler.runAfter(
+            0,
+            internal.hiveBaselineBackstop.runForFailedNode,
+            { dag_id: args.dag_id, node_id: backstopNode.node_id },
+          );
+          return null;
+        }
+
+        // Every node failed and no backstop applies.
         await ctx.runMutation(internal.hiveData._setDagStatus, {
           dag_id: args.dag_id,
           status: "failed",
@@ -287,8 +314,14 @@ export const onNodeSettled = internalAction({
         node_id: node.node_id,
         task_id: args.task_id,
         agent_id: agentId ?? "unknown",
-        kind: "result",
+        kind: "artifact",
+        namespace: "artifacts",
         content: truncatedOutput.slice(0, MAX_SCRATCHPAD_CHARS),
+        content_format: "text",
+        content_type: "text/plain",
+        writer_did: didForAgent(agentId ?? "unknown"),
+        verified_writer: true,
+        revision: node.revision_count ?? 0,
         confidence: qualityScore ?? 0.5,
       });
       await ctx.scheduler.runAfter(0, internal.scratchpadActions.embedEntry, {
@@ -305,11 +338,17 @@ export const onNodeSettled = internalAction({
         task_id: args.task_id,
         agent_id: agentId ?? "unknown",
         kind: "decision",
+        namespace: "decisions",
         content: `node ${node.node_id} executed by ${
           agentId ?? "unknown"
         } at price ${pricePaid ?? "n/a"}; judge quality ${
           qualityScore ?? "n/a"
         }`,
+        content_format: "text",
+        content_type: "text/plain",
+        writer_did: didForAgent("hive-control"),
+        verified_writer: true,
+        revision: node.revision_count ?? 0,
         confidence: 1.0,
       });
       await ctx.scheduler.runAfter(0, internal.scratchpadActions.embedEntry, {

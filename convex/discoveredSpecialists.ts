@@ -30,6 +30,19 @@ const SPECIALIST_FIELDS = {
   cost_baseline: v.number(),
   starting_reputation: v.number(),
   one_liner: v.string(),
+  tier: v.optional(
+    v.union(
+      v.literal("real"),
+      v.literal("mcp-forwarding"),
+      v.literal("a2a"),
+      v.literal("a2a-bridge"),
+      v.literal("openrouter"),
+      v.literal("mock"),
+      v.literal("disabled"),
+    ),
+  ),
+  openrouter_model_id: v.optional(v.string()),
+  openrouter_api_key_env: v.optional(v.string()),
   discovered_for: v.string(),
   discovery_source: v.optional(
     v.union(
@@ -166,4 +179,3 @@ export const upsert = mutation({
     return { id, agent_id: args.agent_id, created_at, updated: false };
   },
 });
-

@@ -6,11 +6,13 @@
  */
 
 import { NextResponse } from "next/server";
+import { serializeAgentData, type AgentFormat } from "./toon";
 
 export const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Mcp-Session-Id, Authorization",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Accept, Mcp-Session-Id, Authorization, X-Arbor-Agent, X-Arbor-Timestamp, X-Arbor-Nonce, X-Arbor-Signature",
   "Access-Control-Max-Age": "86400",
 };
 
@@ -27,6 +29,30 @@ export function jsonError(message: string, status = 400, code?: string) {
     { error: { message, code: code ?? errorCodeForStatus(status) } },
     { status, headers: CORS_HEADERS },
   );
+}
+
+export function requestedAgentFormat(req: { url: string; headers: Headers }): AgentFormat {
+  const requested = new URL(req.url).searchParams.get("format")?.toLowerCase();
+  if (requested === "toon") return "toon";
+  return req.headers.get("accept")?.includes("text/toon") ? "toon" : "json";
+}
+
+export function structuredOk(
+  data: unknown,
+  format: AgentFormat,
+  status = 200,
+): Response {
+  if (format === "json") return jsonOk(data, status);
+  const serialized = serializeAgentData(data, { override: "toon" });
+  return new Response(serialized.text, {
+    status,
+    headers: {
+      ...CORS_HEADERS,
+      "content-type": `${serialized.media_type}; charset=utf-8`,
+      "x-arbor-format": serialized.format,
+      "x-arbor-token-savings-estimate": String(serialized.saved_pct),
+    },
+  });
 }
 
 function errorCodeForStatus(status: number): string {

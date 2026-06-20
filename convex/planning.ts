@@ -4,7 +4,7 @@ import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { SPECIALISTS } from "../lib/specialists/registry";
+import { getSpecialists } from "../lib/specialists/registry";
 import { MCP_CATALOG } from "../lib/specialists/catalog";
 import { callOpenAI, callOpenAIJSON } from "../lib/openai";
 import { BID_WINDOW_SECONDS } from "./tasks";
@@ -76,7 +76,7 @@ export const decompose = internalAction({
     }
 
     const roster = [
-      ...SPECIALISTS.map((s) => ({
+      ...getSpecialists(task.model_gateway).map((s) => ({
         agent_id: s.agent_id,
         sponsor: s.sponsor,
         one_liner: s.one_liner,

@@ -23,6 +23,8 @@
  * this entry on demand; capabilities surface in suggest scoring.
  */
 
+import { POPULAR_MCP_CATALOG } from "./catalog-popular";
+
 export interface CatalogEntry {
   agent_id: string;
   display_name: string;
@@ -42,7 +44,12 @@ export interface CatalogEntry {
   cost_baseline: number;
 }
 
-export const MCP_CATALOG: CatalogEntry[] = [
+/**
+ * The hand-curated core ten. Exported so the router-bench can rank against the
+ * exact pool its GOLD labels + distractors were authored for, independent of
+ * the broader popular-catalog expansion folded into MCP_CATALOG below.
+ */
+export const CORE_MCP_CATALOG: CatalogEntry[] = [
   {
     agent_id: "stripe-payments",
     display_name: "stripe-payments",
@@ -296,4 +303,14 @@ export const MCP_CATALOG: CatalogEntry[] = [
     homepage_url: "https://figma.com/",
     cost_baseline: 0.45,
   },
+];
+
+/**
+ * Full catalog = the hand-curated core ten + 75 popular remote MCP servers
+ * (see ./catalog-popular.ts). Both flow through the same discovery →
+ * suggester → planning paths and the tier:"mcp-forwarding" runner.
+ */
+export const MCP_CATALOG: CatalogEntry[] = [
+  ...CORE_MCP_CATALOG,
+  ...POPULAR_MCP_CATALOG,
 ];

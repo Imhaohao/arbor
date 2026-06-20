@@ -31,6 +31,13 @@ function TierBadge({ provenance }: { provenance?: SpecialistProvenance }) {
   if (!provenance) return null;
   const { tier, live_tools_called } = provenance;
   const count = provenance.successful_tool_call_count ?? 0;
+  if (tier === "model-backed") {
+    return (
+      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200">
+        MODEL BACKED
+      </span>
+    );
+  }
   if (tier === "a2a-bridge") {
     return (
       <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">

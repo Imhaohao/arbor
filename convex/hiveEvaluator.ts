@@ -12,11 +12,17 @@ import {
   type EvaluatorResult,
   type NodeEvaluation,
 } from "../lib/hive/evaluator-core";
+import { decideConsensus } from "../lib/hive/consensus-core";
+import {
+  didForAgent,
+  serializeBlackboardContent,
+} from "../lib/hive/blackboard-core";
 
 const LOW_CONFIDENCE_THRESHOLD = 0.55;
 const CONFLICT_TIE_EPSILON = 0.05;
 const OUTPUT_MAX_CHARS = 6000;
 const SCRATCHPAD_DIGEST_LIMIT = 15;
+const MAX_CONSENSUS_REVISIONS = 2;
 
 const SYSTEM_PROMPT = `You are the chief evaluator for a multi-agent hive DAG.
 Score each node output against that node's success criteria and the original goal.
@@ -76,6 +82,7 @@ function buildUserPrompt(args: {
     success_criteria?: string;
     assigned_agent_id?: string;
     output_text?: string;
+    revision_count?: number;
   }>;
   scratchpad: string;
 }): string {
@@ -85,6 +92,7 @@ function buildUserPrompt(args: {
 Description: ${node.description}
 Success criteria: ${node.success_criteria ?? "(none provided)"}
 Assigned agent: ${node.assigned_agent_id ?? "unknown"}
+Revision: ${node.revision_count ?? 0}/${MAX_CONSENSUS_REVISIONS}
 Output:
 ${truncate(node.output_text, OUTPUT_MAX_CHARS) || "(no output)"}`,
     )
@@ -94,7 +102,7 @@ ${truncate(node.output_text, OUTPUT_MAX_CHARS) || "(no output)"}`,
     `Original goal:\n${args.goal}`,
     "Node outputs:",
     nodeBlocks,
-    "Shared scratchpad digest:",
+    "Agentic blackboard digest:",
     args.scratchpad || "(empty)",
   ].join("\n\n");
 }
@@ -211,7 +219,6 @@ export const evaluateDag = internalAction({
       internal.scratchpad._forDag,
       { dag_id: args.dag_id },
     );
-
     let evaluatorResult: EvaluatorResult;
     let fallbackReason: string | null = null;
     try {
@@ -247,11 +254,19 @@ export const evaluateDag = internalAction({
       })),
       CONFLICT_TIE_EPSILON,
     );
-    const escalated = confidence < LOW_CONFIDENCE_THRESHOLD || ties.length > 0;
-    const escalationReason =
-      ties.length > 0
-        ? `Conflicting node outputs have scores within ${CONFLICT_TIE_EPSILON}.`
-        : `DAG confidence ${confidence.toFixed(2)} is below ${LOW_CONFIDENCE_THRESHOLD}.`;
+    const rejected = evaluatorResult.node_evaluations.filter(
+      (evaluation) => evaluation.verdict === "reject",
+    );
+    let consensusDecision = decideConsensus({
+      evaluations: evaluatorResult.node_evaluations,
+      nodes,
+      confidence,
+      tieCount: ties.length,
+      fallbackUsed: fallbackReason !== null,
+      lowConfidenceThreshold: LOW_CONFIDENCE_THRESHOLD,
+      maxRevisions: MAX_CONSENSUS_REVISIONS,
+      tieEpsilon: CONFLICT_TIE_EPSILON,
+    });
 
     for (const ev of evaluatorResult.node_evaluations) {
       await ctx.runMutation(internal.hiveData._insertEvaluation, {
@@ -264,12 +279,86 @@ export const evaluateDag = internalAction({
         conflicts_with: ev.conflicts_with,
         judge_model: CLAUDE_PLANNER_MODEL,
       });
+
+      const node = nodes.find((candidate) => candidate.node_id === ev.node_id);
+      const critique = serializeBlackboardContent({
+        data: {
+          node_id: ev.node_id,
+          verdict: ev.verdict,
+          score: ev.score,
+          reasoning: ev.reasoning,
+          conflicts_with: ev.conflicts_with ?? [],
+          revision: node?.revision_count ?? 0,
+        },
+      });
+      const critiqueId = await ctx.runMutation(internal.scratchpad._write, {
+        dag_id: args.dag_id,
+        node_id: ev.node_id,
+        task_id: node?.task_id,
+        agent_id: "hive-evaluator",
+        kind: "critique",
+        namespace: `review/${ev.node_id.toLowerCase()}`,
+        content: critique.content,
+        content_format: critique.content_format,
+        content_type: critique.content_type,
+        writer_did: didForAgent("hive-evaluator"),
+        verified_writer: true,
+        revision: node?.revision_count ?? 0,
+        confidence: ev.score,
+      });
+      await ctx.scheduler.runAfter(0, internal.scratchpadActions.embedEntry, {
+        entry_id: critiqueId,
+      });
     }
+
+    if (consensusDecision.action === "revise") {
+      const revised: string[] = [];
+      for (const nodeId of consensusDecision.node_ids) {
+        const claimed = await ctx.runMutation(
+          internal.hiveData._requestNodeRevision,
+          { dag_id: args.dag_id, node_id: nodeId },
+        );
+        if (claimed) revised.push(nodeId);
+      }
+      if (revised.length > 0) {
+        await ctx.runMutation(internal.hiveData._setDagStatus, {
+          dag_id: args.dag_id,
+          status: "running",
+        });
+        await ctx.runMutation(internal.lifecycle.log, {
+          task_id: dag.root_task_id,
+          event_type: "hive_consensus_revision_requested",
+          payload: {
+            dag_id: args.dag_id,
+            nodes: revised,
+            confidence,
+            max_revisions: MAX_CONSENSUS_REVISIONS,
+          },
+        });
+        await ctx.scheduler.runAfter(0, internal.hiveOrchestrator.advance, {
+          dag_id: args.dag_id,
+        });
+        return {
+          dag_id: args.dag_id,
+          confidence,
+          escalated: false,
+          node_count: nodes.length,
+        };
+      }
+      consensusDecision = {
+        action: "escalate",
+        reason: "Evaluator requested revision but no completed node could be reclaimed.",
+      };
+    }
+
+    const escalated = consensusDecision.action === "escalate";
+    const escalationReason = consensusDecision.reason;
+
     await ctx.runMutation(internal.hiveData._insertEvaluation, {
       dag_id: args.dag_id,
       agent_id: "hive-evaluator",
       score: confidence,
-      verdict: confidence >= LOW_CONFIDENCE_THRESHOLD ? "accept" : "reject",
+      verdict: escalated ? "reject" : "accept",
       reasoning:
         fallbackReason !== null
           ? `Fallback synthesis used: ${fallbackReason}`
@@ -321,12 +410,42 @@ export const evaluateDag = internalAction({
         },
       },
       judge_verdict: {
-        verdict: confidence >= LOW_CONFIDENCE_THRESHOLD ? "accept" : "reject",
+        verdict: escalated ? "reject" : "accept",
         reasoning: escalated
           ? escalationReason
           : "Hive DAG outputs synthesized and accepted.",
         quality_score: confidence,
       },
+    });
+
+    const consensus = serializeBlackboardContent({
+      data: {
+        state: escalated ? "blocked" : "reached",
+        confidence,
+        accepted_nodes: evaluatorResult.node_evaluations
+          .filter((evaluation) => evaluation.verdict === "accept")
+          .map((evaluation) => evaluation.node_id),
+        rejected_nodes: rejected.map((evaluation) => evaluation.node_id),
+        conflicts: evaluatorResult.conflicts,
+        final_answer: evaluatorResult.final_answer,
+      },
+    });
+    const consensusId = await ctx.runMutation(internal.scratchpad._write, {
+      dag_id: args.dag_id,
+      task_id: dag.root_task_id,
+      agent_id: "hive-control",
+      kind: "consensus",
+      namespace: "consensus",
+      content: consensus.content,
+      content_format: consensus.content_format,
+      content_type: consensus.content_type,
+      writer_did: didForAgent("hive-control"),
+      verified_writer: true,
+      revision: Math.max(0, ...nodes.map((node) => node.revision_count ?? 0)),
+      confidence,
+    });
+    await ctx.scheduler.runAfter(0, internal.scratchpadActions.embedEntry, {
+      entry_id: consensusId,
     });
 
     if (escalated) {
@@ -369,6 +488,7 @@ export const evaluateDag = internalAction({
         confidence,
         ties,
         escalated,
+        fallback_used: fallbackReason !== null,
       },
     });
 

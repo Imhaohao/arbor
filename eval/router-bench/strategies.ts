@@ -14,14 +14,16 @@
  * real IP, exactly as the council warned.
  */
 
-import { MCP_CATALOG, type CatalogEntry } from "../../lib/specialists/catalog";
+import { CORE_MCP_CATALOG, type CatalogEntry } from "../../lib/specialists/catalog";
 import { suggestSpecialists } from "../../lib/specialists/suggest";
 import type { SpecialistConfig } from "../../lib/types";
 import { embed, cosine, type Vec } from "./embed";
 
-export const POOL: CatalogEntry[] = MCP_CATALOG;
+// The bench's GOLD labels + distractors are tuned to the curated core ten, so
+// rank against that pool — not the full popular-catalog expansion (85 entries).
+export const POOL: CatalogEntry[] = CORE_MCP_CATALOG;
 
-const CATALOG_IDS = new Set(MCP_CATALOG.map((e) => e.agent_id));
+const CATALOG_IDS = new Set(CORE_MCP_CATALOG.map((e) => e.agent_id));
 
 /** Minimal CatalogEntry → SpecialistConfig so distractors can be ranked by the
  *  real router (suggestSpecialists folds MCP_CATALOG in automatically, so we

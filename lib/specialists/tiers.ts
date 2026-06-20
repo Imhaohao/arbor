@@ -16,6 +16,7 @@ export function toPublicTier(internal: InternalSpecialistTier): SpecialistTier {
     case "a2a-bridge":     return "a2a-bridge";
     case "real":           return "a2a-bridge";
     case "mcp-forwarding": return "a2a-bridge";
+    case "openrouter":     return "model-backed";
     case "mock":           return "not-a2a-yet";
     case "disabled":       return "disabled";
   }

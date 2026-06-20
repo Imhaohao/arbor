@@ -57,6 +57,7 @@ export const post = mutation({
     repo_context: v.optional(v.string()),
     source_hints: v.optional(v.array(v.string())),
     workflow_mode: v.optional(v.string()),
+    model_gateway: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -108,6 +109,7 @@ export const post = mutation({
       bid_window_closes_at: closesAt,
       product_context_profile_id: profile?._id,
       workflow_mode: hive ? "hive" : undefined,
+      model_gateway: cleanOptional(args.model_gateway),
     });
 
     const orchestrationContext = buildOrchestrationContext({
@@ -209,6 +211,7 @@ export const _createChild = internalMutation({
       parent_task_id: args.parent_task_id,
       step_index: args.step_index,
       product_context_profile_id: parent.product_context_profile_id,
+      model_gateway: parent.model_gateway,
     });
     const parentContext = await ctx.db
       .query("task_contexts")

@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import type { HiveAgentRegistration } from "../lib/hive/registry-core";
-import { SPECIALISTS } from "../lib/specialists/registry";
+import { getSpecialists } from "../lib/specialists/registry";
 import { MCP_CATALOG } from "../lib/specialists/catalog";
 
 const CALL_DELAY_MS = 200;
@@ -60,6 +60,8 @@ type OptionalStringKey =
   | "a2a_endpoint"
   | "a2a_agent_card_url"
   | "a2a_api_key_env"
+  | "openrouter_model_id"
+  | "openrouter_api_key_env"
   | "homepage_url";
 
 /** Only attach an optional string field when it has a real value. */
@@ -73,7 +75,9 @@ function withOptional(
 }
 
 function fromSpecialists(): HiveAgentRegistration[] {
-  return SPECIALISTS.map((cfg) => {
+  // Persist the curated OpenRouter roster even when the global switch is off.
+  // Runtime search/auction gates decide whether a task may see these rows.
+  return getSpecialists("openrouter").map((cfg) => {
     const reg: HiveAgentRegistration = {
       agent_id: cfg.agent_id,
       display_name: cfg.display_name,
@@ -84,8 +88,11 @@ function fromSpecialists(): HiveAgentRegistration[] {
       system_prompt: cfg.system_prompt || "",
       cost_baseline: cfg.cost_baseline ?? 0.5,
       starting_reputation: cfg.starting_reputation ?? DEFAULT_REPUTATION,
+      tier: cfg.tier,
       fetch_tools: false,
     };
+    withOptional(reg, "openrouter_model_id", cfg.openrouter_model_id);
+    withOptional(reg, "openrouter_api_key_env", cfg.openrouter_api_key_env);
     withOptional(reg, "mcp_endpoint", cfg.mcp_endpoint);
     withOptional(reg, "mcp_api_key_env", cfg.mcp_api_key_env);
     withOptional(reg, "a2a_endpoint", cfg.a2a_endpoint);
@@ -126,6 +133,9 @@ interface DiscoveredRow {
   cost_baseline: number;
   starting_reputation: number;
   one_liner: string;
+  tier?: HiveAgentRegistration["tier"];
+  openrouter_model_id?: string;
+  openrouter_api_key_env?: string;
   mcp_endpoint?: string;
   mcp_api_key_env?: string;
   a2a_endpoint?: string;
@@ -147,8 +157,11 @@ function fromDiscovered(rows: DiscoveredRow[]): HiveAgentRegistration[] {
       system_prompt: row.system_prompt || "",
       cost_baseline: row.cost_baseline ?? 0.5,
       starting_reputation: row.starting_reputation ?? DEFAULT_REPUTATION,
+      tier: row.tier,
       fetch_tools: false,
     };
+    withOptional(reg, "openrouter_model_id", row.openrouter_model_id);
+    withOptional(reg, "openrouter_api_key_env", row.openrouter_api_key_env);
     withOptional(reg, "mcp_endpoint", row.mcp_endpoint);
     withOptional(reg, "mcp_api_key_env", row.mcp_api_key_env);
     withOptional(reg, "a2a_endpoint", row.a2a_endpoint);

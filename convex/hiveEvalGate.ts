@@ -6,13 +6,14 @@ import { internal } from "./_generated/api";
 import {
   getRunner,
   registerDiscoveredSpecialist,
+  specialistConfigFromPersisted,
 } from "../lib/specialists/registry";
 import { callClaudeJSON, CLAUDE_FAST_MODEL } from "../lib/anthropic";
+import { formatStructuredBlock } from "../lib/toon";
 import type {
   AgentId,
   BidPayload,
   ProbeResult,
-  SpecialistConfig,
   SpecialistDecision,
 } from "../lib/types";
 
@@ -57,52 +58,6 @@ async function withTimeout<T>(
 
 function isDecline(decision: SpecialistDecision): boolean {
   return "decline" in decision && decision.decline === true;
-}
-
-function toSpecialistConfig(row: {
-  agent_id: string;
-  display_name: string;
-  sponsor: string;
-  capabilities: string[];
-  system_prompt: string;
-  cost_baseline: number;
-  starting_reputation: number;
-  one_liner: string;
-  mcp_endpoint?: string;
-  mcp_api_key_env?: string;
-  a2a_endpoint?: string;
-  a2a_agent_card_url?: string;
-  a2a_api_key_env?: string;
-  a2a_auth_mode?: "none" | "card";
-  homepage_url?: string;
-  discovery_source?: "catalog" | "registry" | "synthesized" | "a2a";
-  discovered_for?: string;
-}): SpecialistConfig {
-  return {
-    agent_id: row.agent_id as AgentId,
-    display_name: row.display_name,
-    sponsor: row.sponsor,
-    capabilities: row.capabilities,
-    system_prompt: row.system_prompt,
-    cost_baseline: row.cost_baseline,
-    starting_reputation: row.starting_reputation,
-    one_liner: row.one_liner,
-    mcp_endpoint: row.mcp_endpoint,
-    mcp_api_key_env: row.mcp_api_key_env,
-    a2a_endpoint: row.a2a_endpoint,
-    a2a_agent_card_url: row.a2a_agent_card_url,
-    a2a_api_key_env: row.a2a_api_key_env,
-    a2a_auth_mode: row.a2a_auth_mode,
-    homepage_url: row.homepage_url,
-    discovered: true,
-    discovery_source: row.discovery_source,
-    discovered_for: row.discovered_for,
-    tier: row.a2a_endpoint
-      ? "a2a"
-      : row.mcp_endpoint
-        ? "mcp-forwarding"
-        : "mock",
-  };
 }
 
 function baseReport(): EvalReport {
@@ -152,10 +107,10 @@ async function gradeClaim(capabilityClaim: string): Promise<{
       retries: 0,
       systemPrompt:
         "You are a strict registration evaluator. Return JSON only with pass and reason. Pass only if the claim addresses third-party payments API integration specifically, contains at least two concrete steps, and is not a generic capability pitch.",
-      userPrompt: JSON.stringify({
+      userPrompt: formatStructuredBlock("Registration evaluation input", {
         eval_prompt: EVAL_PROMPT,
         capability_claim: capabilityClaim,
-      }),
+      }).text,
     });
     return { pass: Boolean(grade.pass), reason: grade.reason };
   } catch (err) {
@@ -177,7 +132,7 @@ export const runEvalGate = internalAction({
       return null;
     }
 
-    const cfg = toSpecialistConfig(row);
+    const cfg = specialistConfigFromPersisted(row);
     const report = baseReport();
     let reason = "unknown";
 

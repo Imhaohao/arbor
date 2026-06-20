@@ -8,6 +8,9 @@ export interface HiveAgentRegistration {
   system_prompt: string;
   cost_baseline: number;
   starting_reputation?: number;
+  tier?: "real" | "mcp-forwarding" | "a2a" | "a2a-bridge" | "openrouter" | "mock" | "disabled";
+  openrouter_model_id?: string;
+  openrouter_api_key_env?: string;
   mcp_endpoint?: string;
   mcp_api_key_env?: string;
   a2a_endpoint?: string;
@@ -27,7 +30,7 @@ export interface HiveAgentCandidate {
   reputation_score: number;
   similarity: number;
   eval_status: "pending" | "passed" | "failed";
-  transport: "a2a" | "mcp" | "none";
+  transport: "a2a" | "mcp" | "openrouter" | "none";
   mcp_endpoint?: string;
   a2a_endpoint?: string;
 }
@@ -68,9 +71,11 @@ export function buildCapabilityText(input: CapabilityTextInput): string {
 }
 
 export function hiveAgentTransport(input: {
+  tier?: string;
   mcp_endpoint?: string;
   a2a_endpoint?: string;
 }): HiveAgentCandidate["transport"] {
+  if (input.tier === "openrouter") return "openrouter";
   if (input.a2a_endpoint) return "a2a";
   if (input.mcp_endpoint) return "mcp";
   return "none";

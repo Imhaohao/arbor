@@ -1,5 +1,8 @@
 const DEFAULT_OPENAI_MODEL = "gpt-5.5";
 const OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions";
+const OPENROUTER_CHAT_COMPLETIONS_URL =
+  "https://openrouter.ai/api/v1/chat/completions";
+const DEFAULT_OPENROUTER_MODEL = "openai/gpt-4o-mini";
 const DEFAULT_AZURE_API_VERSION = "2024-10-21";
 
 export type ModelPurpose =
@@ -14,14 +17,26 @@ export type ModelPurpose =
 
 type ModelProvider = "openai" | "azure-openai" | "foundry" | "disabled";
 type AzureApiMode = "responses" | "chat";
+export type ModelGateway = "openrouter" | "native";
 
-interface CallOptions {
+export interface CallOptions {
   systemPrompt: string;
   userPrompt: string;
   maxTokens?: number;
   timeoutMs?: number;
   retries?: number;
   purpose?: ModelPurpose;
+  /**
+   * Per-call OpenRouter override. "openrouter"/"native" force the gateway for
+   * this call; omitted falls back to the global ARBOR_OPENROUTER_ENABLED switch.
+   */
+  gateway?: ModelGateway;
+}
+
+export interface OpenRouterCallOptions extends CallOptions {
+  model: string;
+  /** Defaults to OPENROUTER_API_KEY. */
+  apiKeyEnv?: string;
 }
 
 interface OpenAITextResponse {
@@ -43,12 +58,20 @@ interface ResponsesTextResponse {
 }
 
 async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  return await Promise.race([
-    p,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`timeout after ${ms}ms`)), ms),
-    ),
-  ]);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      p,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`timeout after ${ms}ms`)),
+          ms,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 function env(name: string): string | undefined {
@@ -59,6 +82,24 @@ function env(name: string): string | undefined {
 function envFlag(name: string): boolean {
   const value = (env(name) ?? "").toLowerCase();
   return ["1", "true", "yes", "on", "enabled"].includes(value);
+}
+
+/**
+ * The OpenRouter master switch. A per-call/per-task override wins; otherwise the
+ * global ARBOR_OPENROUTER_ENABLED flag decides. Default off → native providers,
+ * so flipping it is a reversible rollout, not a cutover.
+ */
+export function openrouterEnabled(override?: ModelGateway | string): boolean {
+  if (override === "openrouter") return true;
+  if (override === "native") return false;
+  return envFlag("ARBOR_OPENROUTER_ENABLED");
+}
+
+/** Emergency kill-switch that wins regardless of provider or gateway. */
+function modelSpendDisabled(): boolean {
+  return (
+    envFlag("ARBOR_MODEL_SPEND_DISABLED") || envFlag("ARBOR_MODEL_CALLS_DISABLED")
+  );
 }
 
 function purposeSuffix(purpose: ModelPurpose | undefined): string {
@@ -104,6 +145,12 @@ function openAIApiKey(): string {
   return key;
 }
 
+function openRouterApiKey(apiKeyEnv = "OPENROUTER_API_KEY"): string {
+  const key = env(apiKeyEnv);
+  if (!key) throw new Error(`${apiKeyEnv} is not set`);
+  return key;
+}
+
 function azureApiKey(): string {
   const key = env("AZURE_OPENAI_API_KEY");
   if (!key) throw new Error("AZURE_OPENAI_API_KEY is not set");
@@ -140,6 +187,22 @@ function openAIModel(purpose?: ModelPurpose): string {
     env("OPENAI_MODEL") ??
     env("ARBOR_MODEL") ??
     DEFAULT_OPENAI_MODEL
+  );
+}
+
+/**
+ * Model slug used when the OpenRouter gateway is on. Kept separate from
+ * openAIModel so native OPENAI_MODEL config is left untouched by the switch —
+ * OpenRouter slugs are namespaced (e.g. "anthropic/claude-opus-4-8").
+ */
+function openRouterModel(purpose?: ModelPurpose): string {
+  const suffix = purposeSuffix(purpose);
+  return (
+    env(`OPENROUTER_${suffix}_MODEL`) ??
+    env("OPENROUTER_MODEL") ??
+    env(`ARBOR_${suffix}_MODEL`) ??
+    env("ARBOR_MODEL") ??
+    DEFAULT_OPENROUTER_MODEL
   );
 }
 
@@ -247,6 +310,25 @@ function openAIHeaders(): Record<string, string> {
   return { authorization: `Bearer ${key}` };
 }
 
+function openRouterChatUrl(): string {
+  const base = env("OPENROUTER_BASE_URL");
+  if (!base) return OPENROUTER_CHAT_COMPLETIONS_URL;
+  const normalized = normalizeEndpoint(base);
+  if (/\/chat\/completions$/i.test(normalized)) return normalized;
+  return appendPath(normalized, "chat/completions");
+}
+
+function openRouterHeaders(apiKeyEnv?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    authorization: `Bearer ${openRouterApiKey(apiKeyEnv)}`,
+  };
+  const referer = env("OPENROUTER_HTTP_REFERER");
+  const title = env("OPENROUTER_APP_NAME");
+  if (referer) headers["HTTP-Referer"] = referer;
+  if (title) headers["X-OpenRouter-Title"] = title;
+  return headers;
+}
+
 async function postJSON(
   url: string,
   headers: Record<string, string>,
@@ -273,27 +355,91 @@ async function postJSON(
   return await response.json();
 }
 
-async function callOpenAIChat(opts: RequiredCallOptions): Promise<string> {
+async function callOpenAIChat(
+  opts: RequiredCallOptions,
+  useOpenRouter = false,
+): Promise<string> {
   const body: Record<string, unknown> = {
-    model: openAIModel(opts.purpose),
+    model: useOpenRouter
+      ? openRouterModel(opts.purpose)
+      : openAIModel(opts.purpose),
     messages: [
       { role: "system", content: opts.systemPrompt },
       { role: "user", content: opts.userPrompt },
     ],
-    max_completion_tokens: opts.maxTokens,
   };
+  // OpenRouter canonicalizes on max_tokens; native OpenAI on max_completion_tokens.
+  if (useOpenRouter) body.max_tokens = opts.maxTokens;
+  else body.max_completion_tokens = opts.maxTokens;
+
   const effort =
     env("OPENAI_REASONING_EFFORT") ?? env("ARBOR_REASONING_EFFORT") ?? "none";
-  if (effort && effort.toLowerCase() !== "default") body.reasoning_effort = effort;
+  const effortLc = effort.toLowerCase();
+  // Native path keeps its prior behavior; OpenRouter omits an explicit "none"
+  // since many catalog models reject it.
+  if (effort && effortLc !== "default" && !(useOpenRouter && effortLc === "none")) {
+    body.reasoning_effort = effort;
+  }
 
   return extractText(
     (await postJSON(
-      openAIChatUrl(),
-      openAIHeaders(),
+      useOpenRouter ? openRouterChatUrl() : openAIChatUrl(),
+      useOpenRouter ? openRouterHeaders() : openAIHeaders(),
       body,
       opts.timeoutMs,
     )) as OpenAITextResponse,
   );
+}
+
+/** OpenRouter's OpenAI-compatible chat endpoint, used by provider-specific
+ * callers that need an explicit catalog model rather than Arbor's global
+ * OpenAI model selection. */
+export async function callOpenRouter(
+  opts: OpenRouterCallOptions,
+): Promise<string> {
+  const {
+    model,
+    systemPrompt,
+    userPrompt,
+    maxTokens = 1024,
+    timeoutMs = 20_000,
+    retries = 1,
+    purpose,
+    apiKeyEnv,
+  } = opts;
+  const resolvedMaxTokens = maxOutputTokens(purpose, maxTokens);
+
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      if (
+        envFlag("ARBOR_MODEL_SPEND_DISABLED") ||
+        envFlag("ARBOR_MODEL_CALLS_DISABLED")
+      ) {
+        throw new Error("remote model calls are switched off");
+      }
+      return extractText(
+        (await postJSON(
+          openRouterChatUrl(),
+          openRouterHeaders(apiKeyEnv),
+          {
+            model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            max_tokens: resolvedMaxTokens,
+          },
+          timeoutMs,
+        )) as OpenAITextResponse,
+      );
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error("OpenRouter call failed");
 }
 
 async function callAzureResponses(opts: RequiredCallOptions): Promise<string> {
@@ -359,8 +505,9 @@ async function callFoundryChat(opts: RequiredCallOptions): Promise<string> {
   );
 }
 
-interface RequiredCallOptions extends Required<Omit<CallOptions, "purpose">> {
+interface RequiredCallOptions extends Required<Omit<CallOptions, "purpose" | "gateway">> {
   purpose?: ModelPurpose;
+  gateway?: ModelGateway;
 }
 
 export function describeModelRuntime(purpose?: ModelPurpose): {
@@ -372,6 +519,14 @@ export function describeModelRuntime(purpose?: ModelPurpose): {
 } {
   const selected = provider();
   const resolvedPurpose = purpose ?? "default";
+  if (openrouterEnabled()) {
+    return {
+      provider: "openai",
+      purpose: resolvedPurpose,
+      model: openRouterModel(purpose),
+      endpoint: openRouterChatUrl(),
+    };
+  }
   if (selected === "disabled") {
     return { provider: selected, purpose: resolvedPurpose, model: "(disabled)" };
   }
@@ -420,9 +575,21 @@ export async function callOpenAI(opts: CallOptions): Promise<string> {
     purpose,
   };
 
+  const useOpenRouter = openrouterEnabled(opts.gateway);
+
   let lastErr: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      // Emergency kill-switch wins even with the OpenRouter switch on.
+      if (modelSpendDisabled()) {
+        throw new Error(
+          "remote model calls are switched off by ARBOR_MODEL_SPEND_DISABLED=true",
+        );
+      }
+      // OpenRouter is an explicit opt-in gateway: when on, route the
+      // OpenAI-compatible call through OpenRouter, bypassing azure/foundry.
+      if (useOpenRouter) return await callOpenAIChat(resolved, true);
+
       const selected = provider();
       if (selected === "disabled") {
         throw new Error(
@@ -437,7 +604,7 @@ export async function callOpenAI(opts: CallOptions): Promise<string> {
           : await callAzureResponses(resolved);
       }
       if (selected === "foundry") return await callFoundryChat(resolved);
-      return await callOpenAIChat(resolved);
+      return await callOpenAIChat(resolved, false);
     } catch (err) {
       lastErr = err;
     }

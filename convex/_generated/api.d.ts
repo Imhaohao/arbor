@@ -9,11 +9,14 @@
  */
 
 import type * as a2aAuth from "../a2aAuth.js";
+import type * as a2aAuthCore from "../a2aAuthCore.js";
 import type * as a2aNonces from "../a2aNonces.js";
 import type * as a2aOutboundKeys from "../a2aOutboundKeys.js";
 import type * as a2aTaskRuns from "../a2aTaskRuns.js";
 import type * as agentKeys from "../agentKeys.js";
 import type * as agentKeysAdmin from "../agentKeysAdmin.js";
+import type * as agentReadiness from "../agentReadiness.js";
+import type * as agentReadinessActions from "../agentReadinessActions.js";
 import type * as agentToolCalls from "../agentToolCalls.js";
 import type * as agents from "../agents.js";
 import type * as auctions from "../auctions.js";
@@ -26,6 +29,7 @@ import type * as discoveredSpecialists from "../discoveredSpecialists.js";
 import type * as disputes from "../disputes.js";
 import type * as escalations from "../escalations.js";
 import type * as escrow from "../escrow.js";
+import type * as hiveBaselineBackstop from "../hiveBaselineBackstop.js";
 import type * as hiveData from "../hiveData.js";
 import type * as hiveEvalGate from "../hiveEvalGate.js";
 import type * as hiveEvaluator from "../hiveEvaluator.js";
@@ -59,11 +63,14 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   a2aAuth: typeof a2aAuth;
+  a2aAuthCore: typeof a2aAuthCore;
   a2aNonces: typeof a2aNonces;
   a2aOutboundKeys: typeof a2aOutboundKeys;
   a2aTaskRuns: typeof a2aTaskRuns;
   agentKeys: typeof agentKeys;
   agentKeysAdmin: typeof agentKeysAdmin;
+  agentReadiness: typeof agentReadiness;
+  agentReadinessActions: typeof agentReadinessActions;
   agentToolCalls: typeof agentToolCalls;
   agents: typeof agents;
   auctions: typeof auctions;
@@ -76,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   disputes: typeof disputes;
   escalations: typeof escalations;
   escrow: typeof escrow;
+  hiveBaselineBackstop: typeof hiveBaselineBackstop;
   hiveData: typeof hiveData;
   hiveEvalGate: typeof hiveEvalGate;
   hiveEvaluator: typeof hiveEvaluator;

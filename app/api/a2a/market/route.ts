@@ -20,6 +20,7 @@
 
 import { NextRequest } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
+import { makeFunctionReference } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import { corsPreflight, jsonOk } from "@/lib/http";
 import { dispatchTool } from "@/lib/mcp-tools";
@@ -29,11 +30,41 @@ import {
   INTENT_DESCRIPTIONS,
   type MarketIntent,
 } from "@/lib/specialists/a2a-market-card";
+import {
+  ARBOR_ACP_VERSION,
+  artifactDataPart,
+  dataFromParts,
+  negotiateSla,
+  textFromParts,
+  type AcpMessagePart,
+  type AcpSla,
+  type AcpSlaRequest,
+  type AcpTaskState,
+} from "@/lib/acp";
+import type { AgentFormat } from "@/lib/toon";
+import { didForAgent } from "@/lib/hive/blackboard-core";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MARKET_AGENT_ID = "arbor-market";
+const verifyInboundCallbackRef = makeFunctionReference<
+  "action",
+  {
+    raw_body: string;
+    agent_id?: string;
+    timestamp?: string;
+    nonce?: string;
+    signature?: string;
+  },
+  | { ok: true; agent_id: string }
+  | {
+      ok: false;
+      status: 401 | 403;
+      error: string;
+      detail?: string;
+    }
+>("a2aAuth:verifyInboundCallback");
 
 // ─── JSON-RPC + helpers ──────────────────────────────────────────────────
 
@@ -44,21 +75,18 @@ interface JsonRpcRequest {
   params?: unknown;
 }
 
-interface MessagePart {
-  kind?: string;
-  type?: string;
-  text?: string;
-  data?: unknown;
-}
-
 interface MessageSendParams {
   message?: {
-    parts?: MessagePart[];
+    parts?: AcpMessagePart[];
   };
   metadata?: Record<string, unknown>;
 }
 
 interface TasksGetParams {
+  id?: string;
+}
+
+interface TasksCancelParams {
   id?: string;
 }
 
@@ -70,19 +98,37 @@ function convex() {
 
 
 function promptFromMessage(params: MessageSendParams | undefined): string {
-  return (
-    params?.message?.parts
-      ?.map((part) => part.text)
-      .filter((text): text is string => Boolean(text?.trim()))
-      .join("\n\n")
-      .trim() ?? ""
-  );
+  return textFromParts(params?.message?.parts);
 }
 
 function metadataObject(
   params: MessageSendParams | undefined,
 ): Record<string, unknown> {
   return (params?.metadata ?? {}) as Record<string, unknown>;
+}
+
+function slaFromParams(
+  params: MessageSendParams | undefined,
+): AcpSlaRequest | undefined {
+  const raw = metadataObject(params).sla;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const value = raw as Record<string, unknown>;
+  return {
+    max_budget:
+      typeof value.max_budget === "number" ? value.max_budget : undefined,
+    deadline_at:
+      typeof value.deadline_at === "number" ? value.deadline_at : undefined,
+    max_tokens:
+      typeof value.max_tokens === "number" ? value.max_tokens : undefined,
+    capabilities: Array.isArray(value.capabilities)
+      ? value.capabilities.filter((item): item is string => typeof item === "string")
+      : undefined,
+    accepted_formats: Array.isArray(value.accepted_formats)
+      ? value.accepted_formats.filter(
+          (item): item is string => typeof item === "string",
+        )
+      : undefined,
+  };
 }
 
 function intentFromParams(
@@ -110,10 +156,14 @@ function argsForIntent(
 ): Record<string, unknown> {
   const meta = metadataObject(params);
   const rawParams = meta.params;
-  const metaParams: Record<string, unknown> =
+  const metadataParams: Record<string, unknown> =
     rawParams && typeof rawParams === "object" && !Array.isArray(rawParams)
       ? (rawParams as Record<string, unknown>)
       : {};
+  const metaParams = {
+    ...(dataFromParts(params?.message?.parts) ?? {}),
+    ...metadataParams,
+  };
 
   if (intent === "post_task") {
     const messageText = promptFromMessage(params);
@@ -170,16 +220,16 @@ interface A2ATaskShape {
   id: string;
   kind: "task";
   status: {
-    state: "submitted" | "working" | "completed" | "failed";
+    state: AcpTaskState;
     message?: {
       role: string;
-      parts: Array<{ kind: "text"; text: string }>;
+      parts: AcpMessagePart[];
     };
   };
   artifacts: Array<{
     name?: string;
     description?: string;
-    parts: Array<{ kind: "text" | "data"; text?: string; data?: unknown }>;
+    parts: AcpMessagePart[];
   }>;
   metadata?: Record<string, unknown>;
 }
@@ -189,6 +239,7 @@ function buildSuccessTask(args: {
   text: string;
   description: string;
   artifactData?: unknown;
+  format: AgentFormat;
   metadata?: Record<string, unknown>;
 }): A2ATaskShape {
   return {
@@ -209,12 +260,7 @@ function buildSuccessTask(args: {
           { kind: "text", text: args.text },
           ...(args.artifactData === undefined
             ? []
-            : [
-                {
-                  kind: "data" as const,
-                  data: args.artifactData,
-                },
-              ]),
+            : [artifactDataPart(args.artifactData, args.format)]),
         ],
       },
     ],
@@ -225,13 +271,14 @@ function buildSuccessTask(args: {
 function buildFailureTask(args: {
   runId: string;
   text: string;
+  state?: Extract<AcpTaskState, "failed" | "rejected" | "input-required" | "canceled">;
   metadata?: Record<string, unknown>;
 }): A2ATaskShape {
   return {
     id: args.runId,
     kind: "task",
     status: {
-      state: "failed",
+      state: args.state ?? "failed",
       message: {
         role: "agent",
         parts: [{ kind: "text", text: args.text }],
@@ -258,6 +305,10 @@ async function persistRunStart(args: {
   intent: MarketIntent;
   tool: string;
   prompt: string;
+  requesterAgentId?: string;
+  requesterDid?: string;
+  sla?: AcpSla;
+  negotiatedFormat?: AgentFormat;
 }) {
   try {
     await convex()
@@ -267,6 +318,11 @@ async function persistRunStart(args: {
         intent: args.intent,
         tool: args.tool,
         prompt: args.prompt,
+        requester_agent_id: args.requesterAgentId,
+        requester_did: args.requesterDid,
+        protocol_version: ARBOR_ACP_VERSION,
+        sla: args.sla,
+        negotiated_format: args.negotiatedFormat,
       })
       .catch((error) => logPersistenceWarning("start", args.runId, error));
   } catch (error) {
@@ -307,6 +363,34 @@ async function persistRunFailure(args: { runId: string; message: string }) {
       .catch((error) => logPersistenceWarning("fail", args.runId, error));
   } catch (error) {
     logPersistenceWarning("fail", args.runId, error);
+  }
+}
+
+async function persistRunInputRequired(args: { runId: string; message: string }) {
+  try {
+    await convex()
+      .mutation(api.a2aTaskRuns.setInputRequired, {
+        run_id: args.runId,
+        message: args.message,
+      })
+      .catch((error) =>
+        logPersistenceWarning("set_input_required", args.runId, error),
+      );
+  } catch (error) {
+    logPersistenceWarning("set_input_required", args.runId, error);
+  }
+}
+
+async function persistRunRejected(args: { runId: string; message: string }) {
+  try {
+    await convex()
+      .mutation(api.a2aTaskRuns.reject, {
+        run_id: args.runId,
+        error_message: args.message,
+      })
+      .catch((error) => logPersistenceWarning("reject", args.runId, error));
+  } catch (error) {
+    logPersistenceWarning("reject", args.runId, error);
   }
 }
 
@@ -357,6 +441,7 @@ function summarizeResult(intent: MarketIntent, result: unknown): string {
 async function handleMessageSend(args: {
   rpcId: string | number | null;
   params: MessageSendParams | undefined;
+  authenticatedAgentId?: string;
 }) {
   const { rpcId, params } = args;
   const intentResult = intentFromParams(params);
@@ -378,12 +463,80 @@ async function handleMessageSend(args: {
         : promptFromMessage(params)
       : JSON.stringify(toolArgs);
 
+  const defaultBudget =
+    intent === "post_task" && typeof toolArgs.max_budget === "number"
+      ? toolArgs.max_budget
+      : undefined;
+  const configuredMaxBudget = Number(
+    process.env.ARBOR_ACP_MAX_BUDGET ?? "10000",
+  );
+  const slaDecision = negotiateSla({
+    request: slaFromParams(params),
+    offeredCapabilities: Object.keys(INTENT_TO_TOOL),
+    defaultBudget,
+    maxBudget: Number.isFinite(configuredMaxBudget)
+      ? configuredMaxBudget
+      : 10000,
+  });
+  const requesterDid = args.authenticatedAgentId
+    ? didForAgent(args.authenticatedAgentId)
+    : undefined;
+
   await persistRunStart({
     runId,
     intent,
     tool: toolName,
     prompt: promptForRecord,
+    requesterAgentId: args.authenticatedAgentId,
+    requesterDid,
+    sla: slaDecision.accepted ? slaDecision.sla : undefined,
+    negotiatedFormat: slaDecision.accepted
+      ? slaDecision.sla.output_format
+      : "json",
   });
+
+  if (!slaDecision.accepted) {
+    await persistRunRejected({ runId, message: slaDecision.reason });
+    return jsonOk({
+      jsonrpc: "2.0",
+      id: rpcId,
+      result: buildFailureTask({
+        runId,
+        text: `SLA rejected: ${slaDecision.reason}`,
+        state: "rejected",
+        metadata: {
+          intent,
+          acp_version: ARBOR_ACP_VERSION,
+          sla_accepted: false,
+        },
+      }),
+    });
+  }
+
+  if (intent === "post_task" && !promptForRecord.trim()) {
+    const message = "A non-empty task prompt is required before work can begin.";
+    await persistRunInputRequired({ runId, message });
+    return jsonOk({
+      jsonrpc: "2.0",
+      id: rpcId,
+      result: buildFailureTask({
+        runId,
+        text: message,
+        state: "input-required",
+        metadata: {
+          intent,
+          acp_version: ARBOR_ACP_VERSION,
+          required_input: ["prompt"],
+          sla: slaDecision.sla,
+        },
+      }),
+    });
+  }
+
+  if (intent === "post_task" && slaDecision.sla.max_budget !== undefined) {
+    toolArgs.max_budget = slaDecision.sla.max_budget;
+  }
+
   await persistRunWorking(runId);
 
   try {
@@ -394,7 +547,15 @@ async function handleMessageSend(args: {
       text: summary,
       description: INTENT_DESCRIPTIONS[intent],
       artifactData: { intent, tool: toolName, result },
-      metadata: { intent, tool: toolName, market_gateway: true },
+      format: slaDecision.sla.output_format,
+      metadata: {
+        intent,
+        tool: toolName,
+        market_gateway: true,
+        acp_version: ARBOR_ACP_VERSION,
+        requester_did: requesterDid,
+        sla: slaDecision.sla,
+      },
     });
     await persistRunComplete({ runId, artifact: task });
     return jsonOk({ jsonrpc: "2.0", id: rpcId, result: task });
@@ -469,10 +630,55 @@ async function handleTasksGet(args: {
       metadata: {
         intent: row.intent,
         market_gateway: true,
+        acp_version: row.protocol_version ?? ARBOR_ACP_VERSION,
+        requester_did: row.requester_did,
+        sla: row.sla,
+        negotiated_format: row.negotiated_format,
         created_at: row.created_at,
         updated_at: row.updated_at,
       },
     },
+  });
+}
+
+async function handleTasksCancel(args: {
+  rpcId: string | number | null;
+  params: TasksCancelParams | undefined;
+}) {
+  const taskId = args.params?.id?.trim();
+  if (!taskId) {
+    return jsonRpcError({
+      id: args.rpcId,
+      code: -32602,
+      message: "tasks/cancel requires params.id",
+    });
+  }
+  const result = await convex().mutation(api.a2aTaskRuns.cancel, {
+    run_id: taskId,
+  });
+  if (!result.ok) {
+    return jsonRpcError({
+      id: args.rpcId,
+      code: -32002,
+      message: result.missing
+        ? `task ${taskId} not found`
+        : `task ${taskId} cannot transition to canceled`,
+      status: result.missing ? 404 : 409,
+    });
+  }
+  return jsonOk({
+    jsonrpc: "2.0",
+    id: args.rpcId,
+    result: buildFailureTask({
+      runId: taskId,
+      text: `Task ${taskId} canceled.`,
+      state: "canceled",
+      metadata: {
+        acp_version: ARBOR_ACP_VERSION,
+        scope: "acp_contract",
+        underlying_execution_may_continue: true,
+      },
+    }),
   });
 }
 
@@ -488,12 +694,14 @@ export async function POST(req: NextRequest) {
   // break signatures generated against the wire format).
   const rawBody = await req.text();
 
-  // Opt-in HMAC verification. Demos and unsigned A2A clients keep working
-  // unless ARBOR_A2A_HMAC_REQUIRED=true is set; that flag flips the gateway
-  // into "every inbound POST must be signed" mode.
-  if (process.env.ARBOR_A2A_HMAC_REQUIRED === "true") {
+  let authenticatedAgentId: string | undefined;
+  const hmacRequired = process.env.ARBOR_A2A_HMAC_REQUIRED === "true";
+  const hasSignature = Boolean(req.headers.get("X-Arbor-Signature"));
+  // Verify every signed request. Unsigned compatibility remains available only
+  // when the deployment has not enabled the HMAC-required policy.
+  if (hmacRequired || hasSignature) {
     const client = convex();
-    const verdict = await client.action(api.a2aAuth.verifyInboundCallback, {
+    const verdict = await client.action(verifyInboundCallbackRef, {
       raw_body: rawBody,
       agent_id: req.headers.get("X-Arbor-Agent") ?? undefined,
       timestamp: req.headers.get("X-Arbor-Timestamp") ?? undefined,
@@ -512,6 +720,7 @@ export async function POST(req: NextRequest) {
         },
       );
     }
+    authenticatedAgentId = verdict.agent_id;
   }
 
   let body: JsonRpcRequest;
@@ -532,6 +741,7 @@ export async function POST(req: NextRequest) {
     return await handleMessageSend({
       rpcId,
       params: body.params as MessageSendParams | undefined,
+      authenticatedAgentId,
     });
   }
   if (method === "tasks/get") {
@@ -541,11 +751,9 @@ export async function POST(req: NextRequest) {
     });
   }
   if (method === "tasks/cancel") {
-    return jsonRpcError({
-      id: rpcId,
-      code: -32601,
-      message:
-        "tasks/cancel is not supported on the market gateway in v1; cancel via the protocol task_id on the underlying surface",
+    return await handleTasksCancel({
+      rpcId,
+      params: body.params as TasksCancelParams | undefined,
     });
   }
   return jsonRpcError({

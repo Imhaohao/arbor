@@ -5,10 +5,13 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
-  SPECIALISTS,
+  getSpecialists,
   getRunner,
   registerDiscoveredSpecialist,
+  specialistConfigFromPersisted,
+  specialistEnabled,
   toPublicTier,
+  ARBOR_FLOOR_AGENT_IDS,
 } from "../lib/specialists/registry";
 import { makeMockSpecialist } from "../lib/specialists/base";
 import { MCP_CATALOG } from "../lib/specialists/catalog";
@@ -25,8 +28,9 @@ import type {
   ToolCallAuditOutcome,
   ToolCallRecorder,
 } from "../lib/types";
-import { callOpenAIJSON } from "../lib/openai";
+import { callOpenAIJSON, type ModelGateway } from "../lib/openai";
 import { buildTaskContext } from "../lib/campaign-context";
+import { formatStructuredBlock } from "../lib/toon";
 import {
   endpointHost,
   finalizeProvenance,
@@ -36,6 +40,14 @@ import {
 import { sha256Hex } from "../lib/a2a-hmac";
 
 const BUYER_ID = "buyer:default";
+
+function dedupeRoster(configs: SpecialistConfig[]): SpecialistConfig[] {
+  const byId = new Map<string, SpecialistConfig>();
+  for (const config of configs) {
+    if (!byId.has(config.agent_id)) byId.set(config.agent_id, config);
+  }
+  return Array.from(byId.values());
+}
 
 function stripeCheckoutMode(): boolean {
   return process.env.ARBOR_PAYMENTS_MODE === "stripe_checkout";
@@ -378,6 +390,7 @@ function makeToolCallRecorder(
 async function assessPlanPlausibility(
   taskPrompt: string,
   plan: string,
+  gateway?: ModelGateway,
 ): Promise<{ plausible: boolean; reason: string }> {
   if (plan.trim().length < 40) {
     return { plausible: false, reason: "plan too short to be actionable" };
@@ -393,6 +406,7 @@ async function assessPlanPlausibility(
       timeoutMs: 6_000,
       retries: 0,
       purpose: "judge",
+      gateway,
     });
     if (typeof verdict.plausible === "boolean") {
       return { plausible: verdict.plausible, reason: verdict.reason ?? "" };
@@ -425,40 +439,18 @@ export const solicitBids = internalAction({
     ]
       .filter((part): part is string => Boolean(part))
       .join("\n\n");
+    const staticSpecialists = getSpecialists(task.model_gateway);
 
     const discovered = (await ctx.runQuery(
       api.discoveredSpecialists.list,
       {},
     )) as Array<Doc<"discovered_specialists">>;
-    const discoveredConfigs: SpecialistConfig[] = discovered.map((d) => {
-      const cfg: SpecialistConfig = {
-        agent_id: d.agent_id,
-        display_name: d.display_name,
-        sponsor: d.sponsor,
-        capabilities: d.capabilities,
-        system_prompt: d.system_prompt,
-        cost_baseline: d.cost_baseline,
-        starting_reputation: d.starting_reputation,
-        one_liner: d.one_liner,
-        mcp_endpoint: d.mcp_endpoint,
-        mcp_api_key_env: d.mcp_api_key_env,
-        a2a_endpoint: d.a2a_endpoint,
-        a2a_agent_card_url: d.a2a_agent_card_url,
-        a2a_api_key_env: d.a2a_api_key_env,
-        a2a_auth_mode: d.a2a_auth_mode,
-        homepage_url: d.homepage_url,
-        discovered: true,
-        discovery_source: d.discovery_source,
-        discovered_for: d.discovered_for,
-        tier: d.a2a_endpoint
-          ? "a2a"
-          : d.mcp_endpoint
-            ? "mcp-forwarding"
-            : "mock",
-      };
-      registerDiscoveredSpecialist(cfg);
-      return cfg;
-    });
+    const discoveredConfigs: SpecialistConfig[] = discovered
+      .map((row) => specialistConfigFromPersisted(row))
+      .filter((config) => specialistEnabled(config, task.model_gateway));
+    for (const config of discoveredConfigs) {
+      registerDiscoveredSpecialist(config);
+    }
 
     // Hydrate outbound A2A keys from the Convex vault: any specialist whose
     // key env var is unset gets it populated from a2a_outbound_keys so keyed
@@ -484,7 +476,7 @@ export const solicitBids = internalAction({
     // Auto-enrol every catalog entry (Stripe, Linear, Vercel, etc.) as a
     // bidder unless it's already covered by a sponsor or discovered config.
     const taken = new Set([
-      ...SPECIALISTS.map((s) => s.agent_id),
+      ...staticSpecialists.map((s) => s.agent_id),
       ...discoveredConfigs.map((d) => d.agent_id),
     ]);
     const catalogConfigs: SpecialistConfig[] = MCP_CATALOG.filter(
@@ -514,7 +506,11 @@ export const solicitBids = internalAction({
     // Open auction: every registered specialist gets a chance to bid. Each
     // runner's bid prompt tells it to decline when the task is out of scope,
     // and the Vickrey score (reputation / bid_price) handles the rest.
-    const roster = [...SPECIALISTS, ...discoveredConfigs, ...catalogConfigs];
+    const roster = dedupeRoster([
+      ...staticSpecialists,
+      ...discoveredConfigs,
+      ...catalogConfigs,
+    ]);
 
     // Make sure every bidder has an agents row so reputation reads use the
     // live score and settlement's _applyReputationDelta never hits a missing
@@ -541,7 +537,7 @@ export const solicitBids = internalAction({
     if (task.task_type === "reacher-live-launch") {
       // Sponsor-demo invariant: reacher-live-launch always solicits only
       // reacher-social, regardless of any per-task shortlist.
-      invitedSpecialists = SPECIALISTS.filter(
+      invitedSpecialists = staticSpecialists.filter(
         (spec) => spec.agent_id === "reacher-social",
       );
     } else if (invitedIds) {
@@ -589,6 +585,9 @@ export const solicitBids = internalAction({
         const missingKeyEnv =
           spec.mcp_api_key_env && !process.env[spec.mcp_api_key_env]
             ? spec.mcp_api_key_env
+            : spec.openrouter_api_key_env &&
+                !process.env[spec.openrouter_api_key_env]
+              ? spec.openrouter_api_key_env
             : undefined;
 
         const runner = getRunner(spec.agent_id as AgentId);
@@ -597,7 +596,7 @@ export const solicitBids = internalAction({
         // Demo-lane policy: only Arbor's own listed specialists (the static
         // roster shown on /agents) may bid via the labeled persona lane.
         // Discovered/catalog third parties never get plans authored for them.
-        const demoEligible = !spec.discovered;
+        const demoEligible = !spec.discovered && spec.tier !== "openrouter";
         const public_tier = liveCapable
           ? toPublicTier(spec.tier)
           : toPublicTier("mock");
@@ -721,10 +720,17 @@ export const solicitBids = internalAction({
         }
 
         // ─── Plan screen: a bid must carry a plausible, task-specific plan.
-        const screen = await assessPlanPlausibility(
-          task.prompt,
-          bid.capability_claim,
-        );
+        // Arbor-owned last-resort floors are exempt — their plan is generic by
+        // design, and the screen must never be able to empty the auction by
+        // rejecting the guaranteed bidder. Floors stay last-resort on score, so
+        // exemption never lets them outrank a live specialist.
+        const screen = ARBOR_FLOOR_AGENT_IDS.has(spec.agent_id)
+          ? { plausible: true, reason: "arbor-owned floor (screen-exempt)" }
+          : await assessPlanPlausibility(
+              task.prompt,
+              bid.capability_claim,
+              task.model_gateway as ModelGateway | undefined,
+            );
         if (!screen.plausible) {
           await declineWith(`implausible_plan: ${screen.reason}`);
           return;
@@ -737,7 +743,9 @@ export const solicitBids = internalAction({
           probe.status === "pass" || (probe.status === "fail" && liveCapable);
         const tierWeight =
           liveBidConfirmed &&
-          (public_tier === "native-a2a" || public_tier === "a2a-bridge")
+          (public_tier === "native-a2a" ||
+            public_tier === "a2a-bridge" ||
+            public_tier === "model-backed")
             ? 1.0
             : probe.status === "demo_lane"
               ? 0.05
@@ -940,30 +948,9 @@ export const execute = internalAction({
         { agent_id: winner.agent_id },
       );
       if (discoveredEntry) {
-        registerDiscoveredSpecialist({
-          agent_id: discoveredEntry.agent_id,
-          display_name: discoveredEntry.display_name,
-          sponsor: discoveredEntry.sponsor,
-          capabilities: discoveredEntry.capabilities,
-          system_prompt: discoveredEntry.system_prompt,
-          cost_baseline: discoveredEntry.cost_baseline,
-          starting_reputation: discoveredEntry.starting_reputation,
-          one_liner: discoveredEntry.one_liner,
-          mcp_endpoint: discoveredEntry.mcp_endpoint,
-          mcp_api_key_env: discoveredEntry.mcp_api_key_env,
-          a2a_endpoint: discoveredEntry.a2a_endpoint,
-          a2a_agent_card_url: discoveredEntry.a2a_agent_card_url,
-          a2a_api_key_env: discoveredEntry.a2a_api_key_env,
-          homepage_url: discoveredEntry.homepage_url,
-          discovered: true,
-          discovery_source: discoveredEntry.discovery_source,
-          discovered_for: discoveredEntry.discovered_for,
-          tier: discoveredEntry.a2a_endpoint
-            ? "a2a"
-            : discoveredEntry.mcp_endpoint
-              ? "mcp-forwarding"
-              : "mock",
-        });
+        registerDiscoveredSpecialist(
+          specialistConfigFromPersisted(discoveredEntry),
+        );
       }
       const runner = getRunner(winner.agent_id as AgentId);
       const toolRecorder = makeToolCallRecorder(ctx, args.task_id, winner.agent_id);
@@ -1198,7 +1185,7 @@ export const judge = internalAction({
         : null,
       buildTaskContext(task.prompt, task.task_type),
       task.output_schema
-        ? `Required output schema:\n${JSON.stringify(task.output_schema, null, 2)}`
+        ? formatStructuredBlock("Required output schema", task.output_schema).text
         : null,
       args.dispute_reason
         ? `Buyer dispute reason (re-evaluate with this in mind):\n${args.dispute_reason}`
@@ -1220,6 +1207,7 @@ export const judge = internalAction({
           timeoutMs: 20_000,
           retries: 1,
           purpose: "judge",
+          gateway: task.model_gateway as ModelGateway | undefined,
         }),
         new Promise<JudgeVerdict>((_, reject) =>
           setTimeout(() => reject(new Error("judge timeout (20s)")), 20_000),

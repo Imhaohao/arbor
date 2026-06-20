@@ -15,6 +15,8 @@ import type { Id } from "@/convex/_generated/dataModel";
 import {
   SPECIALISTS,
   registerDiscoveredSpecialist,
+  specialistConfigFromPersisted,
+  specialistEnabled,
 } from "@/lib/specialists/registry";
 import {
   suggestSpecialists,
@@ -127,22 +129,23 @@ export interface SearchAgentsArgs {
 
 export interface ScratchpadReadArgs {
   dag_id: string;
+  namespace?: string;
 }
 
 export interface ScratchpadWriteArgs {
-  dag_id: string;
+  signed_payload: string;
+  format?: "json" | "toon";
   agent_id: string;
-  kind: "observation" | "result" | "decision" | "question";
-  content: string;
-  confidence: number;
-  node_id?: string;
-  task_id?: string;
+  timestamp: string;
+  nonce: string;
+  signature: string;
 }
 
 export interface ScratchpadRecallArgs {
   dag_id: string;
   query: string;
   limit?: number;
+  namespace?: string;
 }
 
 // ─── tool definitions ─────────────────────────────────────────────────────
@@ -487,30 +490,30 @@ export const TOOLS: ToolDefinition[] = [
           type: "string",
           description: "Hive DAG id returned by dagForTask or a hive task lookup.",
         },
+        namespace: {
+          type: "string",
+          description: "Optional board namespace such as research, code, review, or consensus.",
+        },
       },
     },
   },
   {
     name: "scratchpad_write",
     description:
-      "Append an entry to a hive DAG's shared scratchpad. Stamp it with your agent_id, a kind, and a confidence 0..1. Other agents read this, so be concise and honest about confidence.",
+      "Append an authenticated entry to a hive DAG's agentic blackboard. Sign the exact JSON or TOON payload with the agent HMAC key; Arbor derives writer identity from the verified signature.",
     inputSchema: {
       type: "object",
-      required: ["dag_id", "agent_id", "kind", "content", "confidence"],
+      required: ["signed_payload", "agent_id", "timestamp", "nonce", "signature"],
       properties: {
-        dag_id: { type: "string" },
-        agent_id: { type: "string" },
-        kind: {
+        signed_payload: {
           type: "string",
-          enum: ["observation", "result", "decision", "question"],
+          description: "Exact serialized blackboard payload covered by the signature.",
         },
-        content: { type: "string" },
-        confidence: {
-          type: "number",
-          description: "Confidence from 0 to 1.",
-        },
-        node_id: { type: "string" },
-        task_id: { type: "string" },
+        format: { type: "string", enum: ["json", "toon"] },
+        agent_id: { type: "string" },
+        timestamp: { type: "string", description: "Unix timestamp in seconds." },
+        nonce: { type: "string" },
+        signature: { type: "string", description: "Base64url HMAC-SHA256 signature." },
       },
     },
   },
@@ -528,6 +531,7 @@ export const TOOLS: ToolDefinition[] = [
           type: "integer",
           description: "Number of results, clamped to 1..20.",
         },
+        namespace: { type: "string" },
       },
     },
   },
@@ -648,6 +652,9 @@ async function loadAllSpecialists(): Promise<SpecialistConfig[]> {
     cost_baseline: number;
     starting_reputation: number;
     one_liner: string;
+    tier?: SpecialistConfig["tier"];
+    openrouter_model_id?: string;
+    openrouter_api_key_env?: string;
     discovered_for: string;
     discovery_source?: "catalog" | "registry" | "a2a" | "synthesized";
     mcp_endpoint?: string;
@@ -657,28 +664,15 @@ async function loadAllSpecialists(): Promise<SpecialistConfig[]> {
     a2a_agent_card_url?: string;
     a2a_api_key_env?: string;
   }>;
-  const discoveredConfigs: SpecialistConfig[] = discovered.map((d) => ({
-    agent_id: d.agent_id,
-    display_name: d.display_name,
-    sponsor: d.sponsor,
-    capabilities: d.capabilities,
-    system_prompt: d.system_prompt,
-    cost_baseline: d.cost_baseline,
-    starting_reputation: d.starting_reputation,
-    one_liner: d.one_liner,
-    mcp_endpoint: d.mcp_endpoint,
-    mcp_api_key_env: d.mcp_api_key_env,
-    homepage_url: d.homepage_url,
-    a2a_endpoint: d.a2a_endpoint,
-    a2a_agent_card_url: d.a2a_agent_card_url,
-    a2a_api_key_env: d.a2a_api_key_env,
-    discovered: true,
-    discovery_source: d.discovery_source,
-    discovered_for: d.discovered_for,
-    tier: d.a2a_endpoint ? "a2a" as const : d.mcp_endpoint ? "mcp-forwarding" as const : "mock" as const,
-  }));
+  const discoveredConfigs: SpecialistConfig[] = discovered
+    .map((row) => specialistConfigFromPersisted(row))
+    .filter((config) => specialistEnabled(config));
   for (const cfg of discoveredConfigs) registerDiscoveredSpecialist(cfg);
-  return [...SPECIALISTS, ...discoveredConfigs];
+  const seen = new Set(SPECIALISTS.map((config) => config.agent_id));
+  return [
+    ...SPECIALISTS,
+    ...discoveredConfigs.filter((config) => !seen.has(config.agent_id)),
+  ];
 }
 
 export async function handleSuggestSpecialists(
@@ -911,49 +905,30 @@ export async function handleSearchAgents(args: SearchAgentsArgs) {
   return { query: args.query, candidates };
 }
 
-function assertScratchpadKind(
-  kind: string,
-): asserts kind is ScratchpadWriteArgs["kind"] {
-  if (
-    kind !== "observation" &&
-    kind !== "result" &&
-    kind !== "decision" &&
-    kind !== "question"
-  ) {
-    throw new Error("kind must be observation, result, decision, or question");
-  }
-}
-
 export async function handleScratchpadRead(args: ScratchpadReadArgs) {
   if (!args.dag_id) throw new Error("dag_id is required");
   const entries = await convex().query(api.scratchpad.forDag, {
     dag_id: args.dag_id as Id<"hive_dags">,
+    namespace: args.namespace,
   });
   return { dag_id: args.dag_id, entries };
 }
 
 export async function handleScratchpadWrite(args: ScratchpadWriteArgs) {
-  if (!args.dag_id) throw new Error("dag_id is required");
+  if (!args.signed_payload?.trim()) throw new Error("signed_payload is required");
   if (!args.agent_id?.trim()) throw new Error("agent_id is required");
-  if (!args.content?.trim()) throw new Error("content is required");
-  assertScratchpadKind(args.kind);
-  if (typeof args.confidence !== "number" || !Number.isFinite(args.confidence)) {
-    throw new Error("confidence must be a finite number");
-  }
-  if (args.confidence < 0 || args.confidence > 1) {
-    throw new Error("confidence must be between 0 and 1");
-  }
+  if (!args.timestamp?.trim()) throw new Error("timestamp is required");
+  if (!args.nonce?.trim()) throw new Error("nonce is required");
+  if (!args.signature?.trim()) throw new Error("signature is required");
 
-  const result = await convex().action(api.scratchpadActions.write, {
-    dag_id: args.dag_id as Id<"hive_dags">,
+  return await convex().action(api.scratchpadActions.writeSigned, {
+    raw_body: args.signed_payload,
+    format: args.format,
     agent_id: args.agent_id,
-    kind: args.kind,
-    content: args.content,
-    confidence: args.confidence,
-    node_id: args.node_id,
-    task_id: args.task_id as Id<"tasks"> | undefined,
+    timestamp: args.timestamp,
+    nonce: args.nonce,
+    signature: args.signature,
   });
-  return { dag_id: args.dag_id, ...result };
 }
 
 export async function handleScratchpadRecall(args: ScratchpadRecallArgs) {
@@ -967,6 +942,7 @@ export async function handleScratchpadRecall(args: ScratchpadRecallArgs) {
     dag_id: args.dag_id as Id<"hive_dags">,
     query: args.query,
     limit,
+    namespace: args.namespace,
   });
   return { dag_id: args.dag_id, query: args.query, results };
 }

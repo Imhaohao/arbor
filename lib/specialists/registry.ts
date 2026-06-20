@@ -28,8 +28,23 @@ import { makeMcpForwardingSpecialist } from "./mcp-forwarding";
 import { makeA2aForwardingSpecialist } from "./a2a-forwarding";
 import { makeMockSpecialist } from "./base";
 import { makeDevinMcpBridgeSpecialist } from "./devin-bridge";
-import type { SpecialistConfig, SpecialistRunner, AgentId } from "../types";
+import { makeOpenRouterSpecialist } from "./openrouter-forwarding";
+import { OPENROUTER_SPECIALISTS } from "./openrouter-roster";
+import { arborBaseline, ARBOR_BASELINE_CONFIG } from "./arbor-baseline";
+import {
+  arborHiveBackstop,
+  ARBOR_HIVE_BACKSTOP_CONFIG,
+} from "./arbor-hive-backstop";
+import { githubPrReview, GITHUB_PR_REVIEW_CONFIG } from "./github-pr-review";
+import { openrouterEnabled, type ModelGateway } from "../openai";
+import type {
+  SpecialistConfig,
+  SpecialistRunner,
+  AgentId,
+  InternalSpecialistTier,
+} from "../types";
 export { toPublicTier } from "./tiers";
+export { OPENROUTER_SPECIALISTS } from "./openrouter-roster";
 
 /**
  * Seed A2A specialist that round-trips to Arbor's own /api/a2a/market gateway.
@@ -74,7 +89,7 @@ const DEMO_MOCK_SPECIALISTS: SpecialistConfig[] = [
  * because it is the primary data sponsor for this pivot and has a documented
  * MCP endpoint, which becomes live once REACHER_API_KEY is configured.
  */
-export const SPECIALISTS: SpecialistConfig[] = [
+const BASE_SPECIALISTS: SpecialistConfig[] = [
   REACHER_SOCIAL_CONFIG,
   NIA_CONTEXT_CONFIG,
   HYPERSPELL_BRAIN_CONFIG,
@@ -83,6 +98,18 @@ export const SPECIALISTS: SpecialistConfig[] = [
   VERCEL_V0_CONFIG,
   INSFORGE_BACKEND_CONFIG,
   ...(INCLUDE_DEMO_MOCK_SPECIALISTS ? DEMO_MOCK_SPECIALISTS : []),
+  // Agent Task 23 — automated PR code review. github-pr-review is the live,
+  // tool-backed path (real GitHub diff fetch); arbor-baseline is Arbor's own
+  // last-resort floor that guarantees every PR-review node returns a judged,
+  // honestly-labeled deliverable. Both join every roster at auctions.ts:517
+  // and decline non-PR tasks immediately (no model spend), so they never widen
+  // the rollout to other task classes.
+  GITHUB_PR_REVIEW_CONFIG,
+  ARBOR_BASELINE_CONFIG,
+  // Universal last-resort floor: bids on every task class so no hive node can
+  // fail for lack of a plausible bidder. Last-resort economics keep it under any
+  // live specialist; it only wins when nothing live qualifies.
+  ARBOR_HIVE_BACKSTOP_CONFIG,
   ARBOR_LOOPBACK_A2A_CONFIG,
   // External A2A specialists — registered when their env vars are present.
   TENSORLAKE_A2A_CONFIG,
@@ -90,6 +117,100 @@ export const SPECIALISTS: SpecialistConfig[] = [
   CONVEX_A2A_CONFIG,
   WORKER_A2A_CONFIG,
 ].filter((s) => s.tier !== "disabled");
+
+const ALL_STATIC_SPECIALISTS = [
+  ...BASE_SPECIALISTS,
+  ...OPENROUTER_SPECIALISTS,
+];
+
+/** Static roster for a task. Per-task gateway overrides win over the env flag. */
+export function getSpecialists(
+  gateway?: ModelGateway | string,
+): SpecialistConfig[] {
+  return openrouterEnabled(gateway)
+    ? [...BASE_SPECIALISTS, ...OPENROUTER_SPECIALISTS]
+    : [...BASE_SPECIALISTS];
+}
+
+/** Backwards-compatible global roster used by UI and non-task-aware callers. */
+export const SPECIALISTS: SpecialistConfig[] = getSpecialists();
+
+export function specialistEnabled(
+  config: SpecialistConfig,
+  gateway?: ModelGateway | string,
+): boolean {
+  return config.tier !== "openrouter" || openrouterEnabled(gateway);
+}
+
+export interface PersistedSpecialistConfig {
+  agent_id: string;
+  display_name: string;
+  sponsor: string;
+  capabilities: string[];
+  system_prompt: string;
+  cost_baseline: number;
+  starting_reputation: number;
+  one_liner: string;
+  tier?: InternalSpecialistTier;
+  openrouter_model_id?: string;
+  openrouter_api_key_env?: string;
+  mcp_endpoint?: string;
+  mcp_api_key_env?: string;
+  homepage_url?: string;
+  a2a_endpoint?: string;
+  a2a_agent_card_url?: string;
+  a2a_api_key_env?: string;
+  a2a_auth_mode?: "none" | "card";
+  discovery_source?: "catalog" | "registry" | "a2a" | "synthesized";
+  discovered_for?: string;
+}
+
+/** Rehydrate a Convex row without guessing model-backed agents are mocks. */
+export function specialistConfigFromPersisted(
+  row: PersistedSpecialistConfig,
+): SpecialistConfig {
+  return {
+    agent_id: row.agent_id,
+    display_name: row.display_name,
+    sponsor: row.sponsor,
+    capabilities: row.capabilities,
+    system_prompt: row.system_prompt,
+    cost_baseline: row.cost_baseline,
+    starting_reputation: row.starting_reputation,
+    one_liner: row.one_liner,
+    tier:
+      row.tier ??
+      (row.a2a_endpoint
+        ? "a2a"
+        : row.mcp_endpoint
+          ? "mcp-forwarding"
+          : "mock"),
+    openrouter_model_id: row.openrouter_model_id,
+    openrouter_api_key_env: row.openrouter_api_key_env,
+    mcp_endpoint: row.mcp_endpoint,
+    mcp_api_key_env: row.mcp_api_key_env,
+    homepage_url: row.homepage_url,
+    a2a_endpoint: row.a2a_endpoint,
+    a2a_agent_card_url: row.a2a_agent_card_url,
+    a2a_api_key_env: row.a2a_api_key_env,
+    a2a_auth_mode: row.a2a_auth_mode,
+    discovered: true,
+    discovery_source: row.discovery_source,
+    discovered_for: row.discovered_for,
+  };
+}
+
+/**
+ * Arbor-owned last-resort floor agents. Their bids are exempt from the
+ * auctioneer plan-plausibility screen (their plan is generic by design) and the
+ * hive router always invites them, so no node can fail for lack of a plausible
+ * bid. They stay last-resort via low reputation — they only win when nothing
+ * live qualifies.
+ */
+export const ARBOR_FLOOR_AGENT_IDS: ReadonlySet<AgentId> = new Set<AgentId>([
+  ARBOR_BASELINE_CONFIG.agent_id,
+  ARBOR_HIVE_BACKSTOP_CONFIG.agent_id,
+]);
 
 export const SPECIALIST_RUNNERS: Partial<Record<AgentId, SpecialistRunner>> = {
   "nia-context": niaContext,
@@ -99,6 +220,9 @@ export const SPECIALIST_RUNNERS: Partial<Record<AgentId, SpecialistRunner>> = {
   "reacher-social": reacherSocial,
   "vercel-v0": vercelV0,
   "insforge-backend": insforgeBackend,
+  "github-pr-review": githubPrReview,
+  "arbor-baseline": arborBaseline,
+  "arbor-hive-backstop": arborHiveBackstop,
   ...(INCLUDE_DEMO_MOCK_SPECIALISTS
     ? {
         "codex-writer": codexWriter,
@@ -128,12 +252,23 @@ export function registerDiscoveredSpecialist(config: SpecialistConfig) {
   DISCOVERED.set(config.agent_id, { ...config, discovered: true });
 }
 
-export function getDiscoveredSpecialists(): SpecialistConfig[] {
-  return Array.from(DISCOVERED.values());
+export function getDiscoveredSpecialists(
+  gateway?: ModelGateway | string,
+): SpecialistConfig[] {
+  return Array.from(DISCOVERED.values()).filter((config) =>
+    specialistEnabled(config, gateway),
+  );
 }
 
-export function getAllSpecialists(): SpecialistConfig[] {
-  return [...SPECIALISTS, ...getDiscoveredSpecialists()];
+export function getAllSpecialists(
+  gateway?: ModelGateway | string,
+): SpecialistConfig[] {
+  const byId = new Map<string, SpecialistConfig>();
+  for (const config of getSpecialists(gateway)) byId.set(config.agent_id, config);
+  for (const config of getDiscoveredSpecialists(gateway)) {
+    if (!byId.has(config.agent_id)) byId.set(config.agent_id, config);
+  }
+  return Array.from(byId.values());
 }
 
 /**
@@ -205,6 +340,10 @@ function buildRunner(cfg: SpecialistConfig): SpecialistRunner {
       );
     }
 
+    case "openrouter": {
+      return makeOpenRouterSpecialist(cfg);
+    }
+
     case "mock": {
       // Explicit opt-in only.
       return makeMockSpecialist(cfg);
@@ -228,7 +367,8 @@ export function getRunner(agent_id: AgentId): SpecialistRunner {
   const runner = SPECIALIST_RUNNERS[agent_id];
   if (runner) return runner;
   const cfg =
-    SPECIALISTS.find((s) => s.agent_id === agent_id) ?? DISCOVERED.get(agent_id);
+    ALL_STATIC_SPECIALISTS.find((s) => s.agent_id === agent_id) ??
+    DISCOVERED.get(agent_id);
   if (!cfg) throw new Error(`No specialist runner registered for ${agent_id}`);
   return buildRunner(cfg);
 }

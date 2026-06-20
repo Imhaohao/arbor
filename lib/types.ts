@@ -2,6 +2,7 @@
 export type SpecialistTier =
   | "native-a2a"
   | "a2a-bridge"
+  | "model-backed"
   | "not-a2a-yet"
   | "disabled";
 
@@ -12,10 +13,17 @@ export type InternalSpecialistTier =
   | "mcp-forwarding"
   | "a2a"
   | "a2a-bridge"
+  | "openrouter"
   | "mock"
   | "disabled";
 
-export type TransportKind = "api" | "mcp" | "a2a" | "a2a-bridge" | "mock";
+export type TransportKind =
+  | "api"
+  | "mcp"
+  | "a2a"
+  | "a2a-bridge"
+  | "openrouter"
+  | "mock";
 
 export type ProofLevel =
   | "none"
@@ -218,6 +226,10 @@ export interface SpecialistConfig {
   tier: InternalSpecialistTier;
   /** A2A endpoint URL (Stream C will use this). */
   a2a_endpoint?: string;
+  /** Exact OpenRouter catalog model slug used by model-backed specialists. */
+  openrouter_model_id?: string;
+  /** Env var containing the OpenRouter bearer key. */
+  openrouter_api_key_env?: string;
   /**
    * Optional explicit URL for this agent's card JSON. If omitted the runner
    * defaults to `${origin(a2a_endpoint)}/.well-known/agent.json`.

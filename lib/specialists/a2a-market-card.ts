@@ -7,6 +7,14 @@
  * export recognized handlers (GET/POST/OPTIONS/...), not helpers.
  */
 
+import {
+  ARBOR_ACP_EXTENSION_URI,
+  ARBOR_ACP_VERSION,
+  ARBOR_BLACKBOARD_EXTENSION_URI,
+  didWebForUrl,
+} from "../acp";
+import { TOON_MEDIA_TYPE } from "../toon";
+
 export const A2A_PROTOCOL_VERSION = "0.3.0";
 export const MARKET_EXTENSION_URI = "https://arbor.dev/a2a/extensions/market";
 
@@ -48,6 +56,8 @@ function publicOrigin(req: { url: string; headers?: Headers }): string {
 export function buildMarketAgentCard(req: { url: string; headers?: Headers }) {
   const origin = publicOrigin(req);
   const url = `${origin}/api/a2a/market`;
+  const hmacRequired = process.env.ARBOR_A2A_HMAC_REQUIRED === "true";
+  const did = didWebForUrl(origin);
   return {
     protocolVersion: A2A_PROTOCOL_VERSION,
     name: "Arbor Market",
@@ -70,22 +80,44 @@ export function buildMarketAgentCard(req: { url: string; headers?: Headers }) {
           description:
             "Arbor market intents: discover, post_task, get_task, raise_dispute via message/send metadata.intent.",
         },
+        {
+          uri: ARBOR_ACP_EXTENSION_URI,
+          required: false,
+          description:
+            "Arbor ACP profile: DID metadata, SLA negotiation, durable task states, typed Parts, and Artifacts.",
+        },
+        {
+          uri: ARBOR_BLACKBOARD_EXTENSION_URI,
+          required: false,
+          description:
+            "Namespaced agentic blackboard with signed writes and control-shell consensus.",
+        },
       ],
     },
-    defaultInputModes: ["application/json", "text/plain"],
-    defaultOutputModes: ["application/json", "text/markdown"],
+    defaultInputModes: ["application/json", TOON_MEDIA_TYPE, "text/plain"],
+    defaultOutputModes: ["application/json", TOON_MEDIA_TYPE, "text/markdown"],
     skills: (Object.keys(INTENT_TO_TOOL) as MarketIntent[]).map((intent) => ({
       id: intent,
       name: intent,
       description: INTENT_DESCRIPTIONS[intent],
       tags: ["arbor", "market", intent],
-      inputModes: ["application/json", "text/plain"],
-      outputModes: ["application/json", "text/markdown"],
+      inputModes: ["application/json", TOON_MEDIA_TYPE, "text/plain"],
+      outputModes: ["application/json", TOON_MEDIA_TYPE, "text/markdown"],
     })),
-    security: [],
-    securitySchemes: {},
-    supportsAuthenticatedExtendedCard: false,
+    security: hmacRequired ? [{ arborHmac: [] }] : [],
+    securitySchemes: {
+      arborHmac: {
+        type: "apiKey",
+        in: "header",
+        name: "X-Arbor-Signature",
+        description:
+          "HMAC-SHA256 over body + timestamp + nonce. Also send X-Arbor-Agent, X-Arbor-Timestamp, and X-Arbor-Nonce.",
+      },
+    },
+    supportsAuthenticatedExtendedCard: hmacRequired,
     arbor: {
+      acp_version: ARBOR_ACP_VERSION,
+      did,
       market_agent: true,
       intents: Object.fromEntries(
         (Object.keys(INTENT_TO_TOOL) as MarketIntent[]).map((intent) => [
@@ -96,7 +128,39 @@ export function buildMarketAgentCard(req: { url: string; headers?: Headers }) {
           },
         ]),
       ),
-      supported_methods: ["message/send", "tasks/send", "tasks/get"],
+      supported_methods: [
+        "message/send",
+        "tasks/send",
+        "tasks/get",
+        "tasks/cancel",
+      ],
+      negotiation: {
+        metadata_field: "sla",
+        supported_formats: ["application/json", TOON_MEDIA_TYPE],
+      },
+      blackboard: {
+        read_url_template: `${origin}/api/v1/scratchpad/{dag_id}`,
+        recall_url_template: `${origin}/api/v1/scratchpad/{dag_id}/recall`,
+        write_auth: "arborHmac",
+        namespaces: [
+          "proposals",
+          "research",
+          "code",
+          "artifacts",
+          "review",
+          "decisions",
+          "consensus",
+        ],
+      },
+      auth: {
+        required: hmacRequired,
+        required_headers: [
+          "X-Arbor-Agent",
+          "X-Arbor-Timestamp",
+          "X-Arbor-Nonce",
+          "X-Arbor-Signature",
+        ],
+      },
     },
   };
 }

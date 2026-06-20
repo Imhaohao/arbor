@@ -10,6 +10,8 @@ import {
   type HiveAgentCandidate,
 } from "../lib/hive/registry-core";
 import { discoverTools } from "../lib/mcp-outbound";
+import { openrouterEnabled } from "../lib/openai";
+import { isCuratedOpenRouterSpecialist } from "../lib/specialists/openrouter-roster";
 
 const AGENT_ID_RE = /^[a-z0-9][a-z0-9-]{2,40}$/;
 const DEFAULT_REPUTATION = 0.5;
@@ -61,6 +63,19 @@ const registerArgs = {
   system_prompt: v.string(),
   cost_baseline: v.number(),
   starting_reputation: v.optional(v.number()),
+  tier: v.optional(
+    v.union(
+      v.literal("real"),
+      v.literal("mcp-forwarding"),
+      v.literal("a2a"),
+      v.literal("a2a-bridge"),
+      v.literal("openrouter"),
+      v.literal("mock"),
+      v.literal("disabled"),
+    ),
+  ),
+  openrouter_model_id: v.optional(v.string()),
+  openrouter_api_key_env: v.optional(v.string()),
   mcp_endpoint: v.optional(v.string()),
   mcp_api_key_env: v.optional(v.string()),
   a2a_endpoint: v.optional(v.string()),
@@ -83,6 +98,8 @@ export const registerAgent = action({
 
     const starting_reputation =
       args.starting_reputation ?? DEFAULT_REPUTATION;
+    const trustedCuratedOpenRouter =
+      args.tier === "openrouter" && isCuratedOpenRouterSpecialist(args);
     const upsertArgs = {
       agent_id: args.agent_id,
       display_name: args.display_name,
@@ -102,6 +119,9 @@ export const registerAgent = action({
       a2a_endpoint?: string;
       a2a_agent_card_url?: string;
       a2a_api_key_env?: string;
+      tier?: NonNullable<typeof args.tier>;
+      openrouter_model_id?: string;
+      openrouter_api_key_env?: string;
     } = {};
     if (args.mcp_endpoint) upsertOptionalArgs.mcp_endpoint = args.mcp_endpoint;
     if (args.mcp_api_key_env) {
@@ -115,6 +135,13 @@ export const registerAgent = action({
     if (args.a2a_api_key_env) {
       upsertOptionalArgs.a2a_api_key_env = args.a2a_api_key_env;
     }
+    if (args.tier) upsertOptionalArgs.tier = args.tier;
+    if (args.openrouter_model_id) {
+      upsertOptionalArgs.openrouter_model_id = args.openrouter_model_id;
+    }
+    if (args.openrouter_api_key_env) {
+      upsertOptionalArgs.openrouter_api_key_env = args.openrouter_api_key_env;
+    }
     await ctx.runMutation(api.discoveredSpecialists.upsert, {
       ...upsertArgs,
       ...upsertOptionalArgs,
@@ -123,7 +150,7 @@ export const registerAgent = action({
     await ctx.runMutation(internal.hiveRegistryData._patchRegistrationMetadata, {
       agent_id: args.agent_id,
       owner_id: args.owner_id ?? args.sponsor,
-      eval_status: "pending",
+      eval_status: trustedCuratedOpenRouter ? "passed" : "pending",
     });
 
     let mcpToolSchemas: Array<{ name?: string; description?: string }> | undefined;
@@ -165,20 +192,22 @@ export const registerAgent = action({
       capability_text,
       embedding,
       embedding_model,
-      eval_passed: false,
+      eval_passed: trustedCuratedOpenRouter,
       cost_baseline: args.cost_baseline,
       reputation_score: starting_reputation,
       updated_at: Date.now(),
     });
 
-    await ctx.scheduler.runAfter(0, internal.hiveEvalGate.runEvalGate, {
-      agent_id: args.agent_id,
-    });
+    if (!trustedCuratedOpenRouter) {
+      await ctx.scheduler.runAfter(0, internal.hiveEvalGate.runEvalGate, {
+        agent_id: args.agent_id,
+      });
+    }
 
     return {
       agent_id: args.agent_id,
       registered: true,
-      eval_status: "pending",
+      eval_status: trustedCuratedOpenRouter ? "passed" : "pending",
       embedding_model,
     };
   },
@@ -191,6 +220,7 @@ export const searchAgents = action({
     min_reputation: v.optional(v.number()),
     max_cost: v.optional(v.number()),
     include_unevaluated: v.optional(v.boolean()),
+    model_gateway: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<HiveAgentCandidate[]> => {
     const query = args.query.trim();
@@ -236,8 +266,7 @@ export const searchAgents = action({
             row.cost_baseline <= maxCost
           );
         },
-      )
-      .slice(0, topK);
+      );
 
     const hydrated = await ctx.runQuery(
       internal.hiveRegistryData._hydrateCandidates,
@@ -252,6 +281,12 @@ export const searchAgents = action({
       const joined = hydratedById.get(hit.row.agent_id);
       if (!joined) continue;
       const specialist = joined.specialist;
+      if (
+        specialist.tier === "openrouter" &&
+        !openrouterEnabled(args.model_gateway)
+      ) {
+        continue;
+      }
       const candidate: HiveAgentCandidate = {
         agent_id: specialist.agent_id,
         display_name: specialist.display_name,
@@ -272,6 +307,7 @@ export const searchAgents = action({
         candidate.a2a_endpoint = specialist.a2a_endpoint;
       }
       candidates.push(candidate);
+      if (candidates.length >= topK) break;
     }
     return candidates;
   },

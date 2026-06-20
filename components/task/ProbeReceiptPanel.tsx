@@ -10,7 +10,7 @@ export interface BidProbeDoc {
   task_id: string;
   bid_id?: string;
   agent_id: string;
-  public_tier: string; // "native-a2a" | "a2a-bridge" | "not-a2a-yet"
+  public_tier: string; // "native-a2a" | "a2a-bridge" | "model-backed" | "not-a2a-yet"
   probe_status: "pass" | "fail" | "demo_lane";
   duration_ms: number;
   response_excerpt?: string;
@@ -37,6 +37,13 @@ function TierPill({ tier }: { tier: string }) {
     return (
       <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200">
         a2a-bridge
+      </span>
+    );
+  }
+  if (tier === "model-backed") {
+    return (
+      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200">
+        model-backed
       </span>
     );
   }

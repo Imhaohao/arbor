@@ -3,13 +3,23 @@
 // runtime, Node actions, browser, tests). The actual reads/writes live in
 // convex/scratchpad.ts and convex/scratchpadActions.ts.
 
+import { formatStructuredBlock, type AgentFormat } from "../toon";
+import type { BlackboardKind } from "./blackboard-core";
+
 export interface ScratchpadWrite {
   dag_id: string;
   node_id?: string;
   task_id?: string;
   agent_id: string;
-  kind: "observation" | "result" | "decision" | "question";
+  kind: BlackboardKind;
+  namespace?: string;
   content: string;
+  content_format?: "text" | AgentFormat;
+  content_type?: string;
+  writer_did?: string;
+  verified_writer?: boolean;
+  supersedes_entry_id?: string;
+  revision?: number;
   confidence: number;
 }
 
@@ -108,4 +118,57 @@ export function assembleNodeContext(args: {
   }
 
   return formatEntriesForPrompt(deduped, args.maxChars ?? 4000);
+}
+
+/**
+ * Compact blackboard view for worker prompts. Each row carries a stable board
+ * pointer and a bounded excerpt, so workers receive relevant state without the
+ * full message history. TOON is selected by Arbor's existing format switch.
+ */
+export function assembleBlackboardPointers(args: {
+  dagId: string;
+  entries: Array<
+    ContextEntry & {
+      namespace?: string;
+      revision?: number;
+      content_format?: string;
+    }
+  >;
+  maxChars?: number;
+  format?: AgentFormat;
+}): string {
+  const seen = new Set<string>();
+  let rows = [...args.entries]
+    .sort((a, b) => a.created_at - b.created_at)
+    .filter((entry) => {
+      if (!entry.entry_id) return true;
+      if (seen.has(entry.entry_id)) return false;
+      seen.add(entry.entry_id);
+      return true;
+    })
+    .map((entry) => ({
+      ref: entry.entry_id
+        ? `bb://${args.dagId}/${entry.namespace ?? "general"}/${entry.entry_id}`
+        : `bb://${args.dagId}/${entry.namespace ?? "general"}`,
+      namespace: entry.namespace ?? "general",
+      kind: entry.kind,
+      writer: entry.agent_id,
+      confidence: Number(entry.confidence.toFixed(2)),
+      revision: entry.revision ?? 0,
+      format: entry.content_format ?? "text",
+      excerpt: entry.content.slice(0, MAX_CONTENT_CHARS),
+    }));
+  if (rows.length === 0) return "";
+
+  const maxChars = args.maxChars ?? 4000;
+  while (rows.length > 1) {
+    const block = formatStructuredBlock("Blackboard pointers", { entries: rows }, {
+      override: args.format,
+    }).text;
+    if (block.length <= maxChars) return block;
+    rows = rows.slice(1);
+  }
+  return formatStructuredBlock("Blackboard pointers", { entries: rows }, {
+    override: args.format,
+  }).text;
 }

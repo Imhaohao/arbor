@@ -43,6 +43,9 @@ export default defineSchema({
     payment_status: v.optional(v.string()),
     project_id: v.optional(v.string()),
     workflow_mode: v.optional(v.string()),
+    // Per-task OpenRouter override: "openrouter" | "native". Unset → global
+    // ARBOR_OPENROUTER_ENABLED switch decides. Mirrors workflow_mode.
+    model_gateway: v.optional(v.string()),
     result: v.optional(v.any()),
     judge_verdict: v.optional(v.any()),
     /**
@@ -203,7 +206,7 @@ export default defineSchema({
     task_id: v.id("tasks"),
     bid_id: v.optional(v.id("bids")),               // null when probe failed and no bid was inserted
     agent_id: v.string(),
-    public_tier: v.string(),                          // "native-a2a" | "a2a-bridge" | "not-a2a-yet"
+    public_tier: v.string(), // "native-a2a" | "a2a-bridge" | "model-backed" | "not-a2a-yet"
     probe_status: v.union(
       v.literal("pass"),
       v.literal("fail"),
@@ -389,6 +392,19 @@ export default defineSchema({
     cost_baseline: v.number(),
     starting_reputation: v.number(),
     one_liner: v.string(),
+    tier: v.optional(
+      v.union(
+        v.literal("real"),
+        v.literal("mcp-forwarding"),
+        v.literal("a2a"),
+        v.literal("a2a-bridge"),
+        v.literal("openrouter"),
+        v.literal("mock"),
+        v.literal("disabled"),
+      ),
+    ),
+    openrouter_model_id: v.optional(v.string()),
+    openrouter_api_key_env: v.optional(v.string()),
     discovered_for: v.string(),
     created_at: v.number(),
     discovery_source: v.optional(
@@ -438,10 +454,18 @@ export default defineSchema({
     state: v.union(
       v.literal("submitted"),
       v.literal("working"),
+      v.literal("input-required"),
       v.literal("completed"),
       v.literal("failed"),
+      v.literal("canceled"),
+      v.literal("rejected"),
     ),
     prompt: v.string(),
+    requester_agent_id: v.optional(v.string()),
+    requester_did: v.optional(v.string()),
+    protocol_version: v.optional(v.string()),
+    sla: v.optional(v.any()),
+    negotiated_format: v.optional(v.union(v.literal("json"), v.literal("toon"))),
     artifact: v.optional(v.any()),
     error_message: v.optional(v.string()),
     cancel_requested: v.optional(v.boolean()),
@@ -508,13 +532,14 @@ export default defineSchema({
     assigned_agent_id: v.optional(v.string()),
     output_text: v.optional(v.string()),
     eval_score: v.optional(v.number()),
+    revision_count: v.optional(v.number()),
     updated_at: v.number(),
   })
     .index("by_dag", ["dag_id"])
     .index("by_dag_and_node_id", ["dag_id", "node_id"])
     .index("by_task_id", ["task_id"]),
 
-  // ─── Hive mind: Layer 4 shared context store (stigmergy scratchpad) ─────
+  // ─── Hive mind: Layer 4 agentic blackboard ──────────────────────────────
   scratchpad_entries: defineTable({
     dag_id: v.id("hive_dags"),
     node_id: v.optional(v.string()),
@@ -525,8 +550,21 @@ export default defineSchema({
       v.literal("result"),
       v.literal("decision"),
       v.literal("question"),
+      v.literal("proposal"),
+      v.literal("critique"),
+      v.literal("artifact"),
+      v.literal("consensus"),
     ),
+    namespace: v.optional(v.string()),
     content: v.string(),
+    content_format: v.optional(
+      v.union(v.literal("text"), v.literal("json"), v.literal("toon")),
+    ),
+    content_type: v.optional(v.string()),
+    writer_did: v.optional(v.string()),
+    verified_writer: v.optional(v.boolean()),
+    supersedes_entry_id: v.optional(v.id("scratchpad_entries")),
+    revision: v.optional(v.number()),
     confidence: v.number(),
     embedding: v.optional(v.array(v.float64())),
     embedding_model: v.optional(v.string()),
@@ -534,6 +572,7 @@ export default defineSchema({
   })
     .index("by_dag", ["dag_id"])
     .index("by_dag_and_node", ["dag_id", "node_id"])
+    .index("by_dag_and_namespace", ["dag_id", "namespace"])
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,
@@ -584,4 +623,91 @@ export default defineSchema({
   })
     .index("by_owner_and_period", ["owner_id", "period"])
     .index("by_agent_and_period", ["agent_id", "period"]),
+
+  // ─── Agent Task 23: readiness matrix ─────────────────────────────────────
+  // Separates TRANSPORT readiness (can we reach this agent at all?) from BID /
+  // EXEC fitness (does it do good work on a given task class?). An agent that
+  // fails one task class is NOT marked globally bad — fitness is per-class.
+  // Populated by the agentReadiness smoke-task path and read by the dashboard
+  // readiness filters (ready | needs_key | protocol_mismatch | endpoint_down |
+  // mock_only).
+  agent_readiness: defineTable({
+    agent_id: v.string(),
+    source: v.string(), // static | catalog | discovered | a2a | arbor-baseline
+    transport: v.string(), // real | mcp-forwarding | a2a | mock | api
+    owner: v.optional(v.string()),
+    endpoint: v.optional(v.string()),
+    auth_mode: v.optional(v.string()),
+    required_key_env: v.optional(v.string()),
+    transport_status: v.string(), // ready | needs_key | protocol_mismatch | endpoint_down | mock_only
+    readiness_status: v.optional(v.string()),
+    latest_probe_status: v.optional(v.string()),
+    last_bid_status: v.optional(v.string()), // separate from transport
+    last_exec_status: v.optional(v.string()),
+    latest_judge_status: v.optional(v.string()),
+    latest_eval_status: v.optional(v.string()),
+    latest_scratchpad_status: v.optional(v.string()),
+    settlement_eligible: v.optional(v.boolean()),
+    dashboard_status: v.optional(v.string()),
+    failure_bucket: v.optional(v.string()),
+    latest_smoke_run_id: v.optional(v.string()),
+    task_class: v.optional(v.string()), // fitness is per-class, not global
+    note: v.optional(v.string()),
+    updated_at: v.number(),
+  })
+    .index("by_agent_id", ["agent_id"])
+    .index("by_status", ["transport_status"])
+    .index("by_readiness_status", ["readiness_status"]),
+
+  agent_smoke_runs: defineTable({
+    run_id: v.string(),
+    mode: v.union(v.literal("probe"), v.literal("full")),
+    status: v.union(
+      v.literal("running"),
+      v.literal("complete"),
+      v.literal("failed"),
+    ),
+    total_agents: v.number(),
+    processed_agents: v.number(),
+    ready_agents: v.number(),
+    scratchpad_task_id: v.optional(v.id("tasks")),
+    scratchpad_dag_id: v.optional(v.id("hive_dags")),
+    started_at: v.number(),
+    completed_at: v.optional(v.number()),
+    updated_at: v.number(),
+  })
+    .index("by_run_id", ["run_id"])
+    .index("by_started_at", ["started_at"]),
+
+  agent_smoke_results: defineTable({
+    run_id: v.string(),
+    agent_id: v.string(),
+    owner: v.string(),
+    source: v.string(),
+    transport: v.string(),
+    endpoint: v.optional(v.string()),
+    required_key_env: v.optional(v.string()),
+    task_class: v.string(),
+    task_prompt: v.string(),
+    transport_status: v.string(),
+    readiness_status: v.string(),
+    probe_status: v.string(),
+    bid_status: v.string(),
+    execution_status: v.string(),
+    judge_status: v.string(),
+    eval_status: v.string(),
+    scratchpad_status: v.string(),
+    scratchpad_entry_id: v.optional(v.id("scratchpad_entries")),
+    settlement_eligible: v.boolean(),
+    dashboard_status: v.string(),
+    failure_bucket: v.string(),
+    evidence: v.optional(v.string()),
+    error_message: v.optional(v.string()),
+    duration_ms: v.number(),
+    created_at: v.number(),
+  })
+    .index("by_run_id", ["run_id"])
+    .index("by_agent_id", ["agent_id"])
+    .index("by_run_id_and_agent_id", ["run_id", "agent_id"])
+    .index("by_failure_bucket", ["failure_bucket"]),
 });

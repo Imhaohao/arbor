@@ -179,6 +179,11 @@ export function AuctionResolution({ events, probes }: Props) {
                         BRIDGE
                       </span>
                     )}
+                    {publicTier === "model-backed" && (
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-violet-100 text-violet-800">
+                        MODEL
+                      </span>
+                    )}
                     {publicTier === "not-a2a-yet" && (
                       <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium italic bg-gray-200 text-gray-600">
                         DEMO

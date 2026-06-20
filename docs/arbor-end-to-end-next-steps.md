@@ -1,6 +1,6 @@
 # Arbor End-to-End Next Steps
 
-Updated: 2026-06-13
+Updated: 2026-06-17
 
 ## Current Run
 
@@ -34,6 +34,7 @@ The designated key tracker is `docs/api-keys.md`. It now covers:
 - Stripe checkout/Connect/settlement variables.
 - Static specialist and catalog MCP provider keys.
 - A2A endpoint variables and dynamic `ARBOR_A2A_KEY_*` outbound auth keys for protected registered agents.
+- Hive accepts a Convex-side Anthropic key or an OpenRouter fallback key; the dashboard now checks the live Convex action environment instead of silently assuming `.env.local` applies.
 
 ## Plan To Make Every Registered Agent Work End-To-End
 
