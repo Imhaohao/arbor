@@ -153,6 +153,15 @@ fallback used by both paths when the provider-specific var is unset.
 | `STRIPE_API_KEY`, `NOTION_API_KEY`, `LINEAR_API_KEY`, `VERCEL_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`, `SENTRY_AUTH_TOKEN`, `ATLASSIAN_API_TOKEN`, `NEON_API_KEY`, `FIGMA_API_TOKEN` | Next, Convex if called from actions | Optional per specialist | Catalog MCP specialists. Missing values leave the matching specialist not market-ready. |
 | `MCP_REGISTRY_URL` | Next, Convex if called from actions | Optional | MCP registry URL override. |
 
+## Hyperspell And Nia Verification (2026-07-10)
+
+| Integration | API surface | Verification | Production status |
+| --- | --- | --- | --- |
+| Hyperspell | Direct REST helpers: `GET /memories/list`, `POST /memories/query`, `POST /memories/add`, and `POST /memories/upload`. Requests use bearer auth and `X-As-User`. | A read-only `memories/list` request succeeded with HTTP 200 using the local configured identity. | `HYPERSPELL_API_KEY` is present on the active Convex deployment, but `HYPERSPELL_USER_ID` is not. The enrichment action therefore falls back to `task.posted_by`; set the deployment user ID to the connected Hyperspell identity before relying on deployed memory retrieval. |
+| Nia | Streamable HTTP MCP at `https://apigcp.trynia.ai/mcp`: JSON-RPC `initialize`, `tools/list`, and `tools/call` with bearer auth. Arbor calls `search` first and falls back to `nia_research`. | The MCP handshake and `tools/list` both returned HTTP 200; 20 tools were discovered. The Nia CLI is authenticated. | `NIA_API_KEY` is present on the active Convex deployment. This checkout has no `nia.json` and no synced local source, so CLI searches are not project-scoped; run `nia project init` and bind/index the intended sources before depending on local-repo retrieval. |
+
+The Hyperspell check was read-only. The Nia check did not run a search, preserving the remaining query quota.
+
 ## Popular Catalog MCP Connections
 
 75 mass-market remote MCP servers added to `MCP_CATALOG` via
