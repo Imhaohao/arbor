@@ -17,6 +17,16 @@ or in the Convex dashboard.
 | `ARBOR_TOON_ENABLED` | Both | Optional, default off | Master switch for TOON ([Token-Oriented Object Notation](https://github.com/toon-format/toon)) on agent-to-LLM structured payloads (`lib/toon.ts`). When `true`, structured blocks embedded in LLM prompts — the judge's required output schema (`convex/auctions.ts`) and the eval-gate grader input (`convex/hiveEvalGate.ts`) — are encoded as TOON instead of pretty JSON, cutting ~30-70% of the tokens those blocks cost. Each block stays self-describing (label states the format). Off → JSON, byte-for-byte unchanged. Decoding is symmetric (`decodeToon`/`parseAgentData`). A2A wire envelopes to third-party agents stay JSON regardless — only Arbor-controlled LLM readers get TOON. |
 | `ARBOR_TOON_DISABLED` | Both | Optional | Emergency kill switch for TOON. When `true`, forces JSON everywhere, beating both `ARBOR_TOON_ENABLED` and any per-call `"toon"` override. |
 | `ARBOR_BASELINE_FALLBACK` | Convex | Optional, default false | When set to `"true"`, widens the arbor-baseline specialist to bid on ALL task classes instead of only PR code review. Leave unset or `false` for the scoped Task-23 rollout. Set with `npx convex env set ARBOR_BASELINE_FALLBACK 'true'`. |
+| `ARBOR_BLACKBOARD_VERIFY_ENABLED` | Convex | Optional, default off | DELM-style (arXiv:2510.01285) admit-on-verify gate for the agentic blackboard (`convex/scratchpad.ts` `_write`, `lib/hive/blackboard-core.ts`). When `true`, a new entry that declares `supporting_entry_ids` gets those ids resolved against the same DAG: all-resolved → `verification: "evidence_backed"`; none declared or any missing → `verification: "unverified"`. Curation is labeling only — unverified entries are still stored, never rejected. Off (default) → no `verification` field is written at all, byte-for-byte unchanged from pre-DELM behavior. Set with `npx convex env set ARBOR_BLACKBOARD_VERIFY_ENABLED 'true'`. |
+| `ARBOR_HIVE_BESTOFN_ENABLED` | Convex | Optional, default off | Sakana-style best-of-N candidate search (AB-MCTS pattern, arXiv:2503.04412). When `true`, a high-value DAG node (`task_class` reasoning/generation) with budget to spare fans out into K parallel candidate executions instead of one; each runs the normal auction→execute→judge pipeline, all land in `hive_node_candidates`, and the judge's calibrated score promotes the best onto the node (losers kept as a replayable archive + extra flywheel signal). Budget-safe: the node's SeqRoute ceiling is SPLIT across candidates, so K candidates never exceed the single-winner spend. Off (default) → single-winner-per-node path is byte-for-byte unchanged. Logic in `lib/hive/candidate-search-core.ts` + `convex/hiveCandidates.ts`. Set with `npx convex env set ARBOR_HIVE_BESTOFN_ENABLED 'true'`. |
+| `ARBOR_HIVE_BESTOFN_DISABLED` | Convex | Optional | Emergency kill switch for best-of-N — forces single-winner everywhere, beating `ARBOR_HIVE_BESTOFN_ENABLED`. |
+| `ARBOR_HIVE_BESTOFN_MAX` | Convex | Optional, default 3 | Max candidates per node under best-of-N. Clamped to [1,5] so a mis-set value cannot explode the fan-out. |
+| `ARBOR_HIVE_BESTOFN_MIN_BUDGET` | Convex | Optional, default 10 | Minimum per-candidate budget. A node fans out only if its ceiling can afford at least two of these, keeping best-of-N budget-sensitive. |
+| `ARBOR_HIVE_BESTOFN_DEADLINE_SECONDS` | Convex | Optional, default 600 (clamped 60–3600) | Liveness deadline for the fan-out barrier, measured past the bid window. Convex actions are not retried on failure, so a candidate `routeNode` that dies before minting its child would leave the barrier short forever; at the deadline `hiveCandidates.forcePromotionCheck` promotes from whatever candidates actually settled, or fails the node to the W6 floor if none did. |
+| `ARBOR_ORCHESTRATOR_FIRST_ENABLED` | Convex | Optional, default off | Orchestrator-first direct assignment. On a thin market (fewer than `ARBOR_DIRECT_ROUTE_LIQUIDITY` independent ready candidates for a node), `hiveRouter.routeNode` skips the bid round: it writes one synthetic bid (`plan_source: "direct_assignment"`, priced at the agent's flywheel avg price, else registry cost baseline, else the node ceiling, always clamped to budget) for the top profile-ranked ready candidate and schedules `auctions.resolve` immediately. The degenerate single-bid Vickrey then runs the unchanged escrow -> execute -> judge -> settle pipeline; a failed direct assignee falls into the W6 floor backstop exactly like a failed auction. Conservative gating in `lib/hive/router-core.ts` `decideRouteMode`: `force_open` retries, best-of-N fan-outs, consensus revisions, and exhausted budgets always auction. Decision telemetry lands in `hive_node_routed` (`route_mode`, `route_mode_reason`, `independent_ready_count`). Set with `npx convex env set ARBOR_ORCHESTRATOR_FIRST_ENABLED 'true'`. |
+| `ARBOR_ORCHESTRATOR_FIRST_DISABLED` | Convex | Optional | Emergency kill switch for orchestrator-first — forces the auction path everywhere, beating `ARBOR_ORCHESTRATOR_FIRST_ENABLED`. |
+| `ARBOR_DIRECT_ROUTE_LIQUIDITY` | Convex | Optional, default 3 (clamped 2–10) | Independent ready candidates (floors and non-`ready` agents excluded) at/above which a node's market counts as liquid and a real auction runs instead of direct assignment. |
+| `ARBOR_HIVE_EVOLUTION_ENABLED` | Convex | Optional, default off | Sakana evolution archive (ShinkaEvolve/Darwin-Godel/CycleQD pattern) for reversible artifacts — prompt templates, rubric weights, DAG priors, role specs, tool allowlists (`convex/evolutionArchive.ts`, `lib/hive/evolution-core.ts`). Enables proposing + evaluating evolved genomes. Promotion ALWAYS requires explicit approval (`approveGenome`) — this flag never auto-promotes. A genome scored with a non-canonical harness, or that fails to beat its parent, is rejected. Nothing in the live hive loop triggers evolution automatically. |
 | `OPENAI_API_KEY` | Both | Optional Hive backstop; required for direct OpenAI paths | Powers OpenAI model calls and embeddings. If Anthropic and OpenRouter calls fail, Hive control-plane calls use this runtime instead of silently degrading. Hive embeddings fall back to deterministic local hashing when absent or forced local. |
 | `OPENAI_MODEL` | Both | Optional | Default OpenAI model override when `ARBOR_MODEL_PROVIDER=openai`. |
 | `OPENAI_BASE_URL` | Both | Optional | OpenAI-compatible endpoint override, including Azure v1-compatible endpoints. |
@@ -32,6 +42,44 @@ or in the Convex dashboard.
 | `ARBOR_HIVE_DEFAULT` | Both | Optional | Set `true` to route new tasks through the hive DAG planner by default. Use `workflow_mode: "legacy"` to opt out per task. |
 | `model_gateway` (per-task `tasks.post` field) | n/a (task arg) | Optional | Per-task OpenRouter override: `"openrouter"` or `"native"` flips a single task's model calls regardless of the global `ARBOR_OPENROUTER_ENABLED` switch. Mirrors `workflow_mode`. |
 | `ARBOR_MIN_BID_RESPONSES` | Convex | Optional | Min number of bid responses per auction (1-50). When live bidders fall short, `solicitBids` backfills non-awardable standby bids (demo-lane weight, priced just above budget) so the auction always shows market interest. Unset/0 disables backfill. |
+
+## 2026 Frontier Model Roster (Purpose -> Deployment)
+
+> Warning: `AZURE_OPENAI_<PURPOSE>_DEPLOYMENT` / `AZURE_FOUNDRY_<PURPOSE>_DEPLOYMENT`
+> values are **your Azure deployment names**, not model IDs — Azure deployment
+> names are customer-chosen at deploy time (e.g. you might name a GPT-5.5
+> deployment `gpt55-planner-prod`). Only the `OPENROUTER_<PURPOSE>_MODEL` /
+> `ARBOR_<PURPOSE>_MODEL` values below are real OpenRouter catalog slugs.
+> Resolution order for each purpose is in `lib/openai.ts` (`openRouterModel`,
+> `azureDeployment`; do not edit that file from this workstream).
+
+Curated OpenRouter roster (`lib/specialists/openrouter-roster.ts`, verified
+live against `GET https://openrouter.ai/api/v1/models` on 2026-07-04):
+
+| Role | OpenRouter slug | Price ($/1M in / out) | Notes |
+| --- | --- | --- | --- |
+| Default / tool-loop / high-volume | `google/gemini-3.5-flash` | $1.50 / $9.00 | Value leader. Verbose by default — cap output with `ARBOR_AGENT_MAX_OUTPUT_TOKENS` (or a per-call `maxTokens`). |
+| Hard/abstract reasoning + planner (hard tasks) | `openai/gpt-5.5` | $5.00 / $30.00 | Use for `planner` purpose and any task tagged hard/abstract reasoning. |
+| Hard software-engineering / PR-review | `anthropic/claude-opus-4.8` | $5.00 / $25.00 | Highest-rigor coding/reasoning specialist; reserve for hard SWE and PR-review, not default traffic. |
+| Bulk / cost-capped (open-weight) | `deepseek/deepseek-v4-pro` | $0.435 / $0.87 | Cheapest capable option for high-volume/low-stakes generation. |
+| Bulk / cost-capped (open-weight, alt) | `moonshotai/kimi-k2.6` | $0.66 / $3.41 | Second open-weight bulk option; use where DeepSeek is unavailable or for diversity. |
+
+Recommended env values per purpose (`ModelPurpose` in `lib/types.ts`: `default`,
+`agent`, `judge`, `suggester`, `intake`, `planner`, `discovery`, `demo`):
+
+| Purpose | OpenRouter path (`ARBOR_OPENROUTER_ENABLED=true`) | Azure path |
+| --- | --- | --- |
+| `planner` (hard/abstract reasoning) | `OPENROUTER_PLANNER_MODEL=openai/gpt-5.5` | `AZURE_OPENAI_PLANNER_DEPLOYMENT=<your-gpt-5.5-deployment-name>` |
+| `agent` (default/tool-loop/high-volume) | `OPENROUTER_AGENT_MODEL=google/gemini-3.5-flash` + `ARBOR_AGENT_MAX_OUTPUT_TOKENS=<cap>` | `AZURE_OPENAI_AGENT_DEPLOYMENT=<your-gemini-3.5-flash-deployment-name>` (only if the resource fronts a Gemini deployment; otherwise keep the existing GPT-5 agent deployment and route Flash traffic through OpenRouter) |
+| `judge` | `OPENROUTER_JUDGE_MODEL=openai/gpt-5.5` (or `google/gemini-3.5-flash` for cheaper high-volume judging) | `AZURE_OPENAI_JUDGE_DEPLOYMENT=<your-judge-deployment-name>` |
+| PR-review / hard SWE (routed via `agent` purpose today; no dedicated purpose yet) | `OPENROUTER_AGENT_MODEL=anthropic/claude-opus-4.8` when the task is tagged PR-review/hard-SWE, else Flash | `AZURE_OPENAI_AGENT_DEPLOYMENT=<your-opus-4.8-deployment-name>` for a PR-review-dedicated deployment |
+| bulk / cost-capped batches | `OPENROUTER_MODEL=deepseek/deepseek-v4-pro` (or `moonshotai/kimi-k2.6`) for scripts/batches that don't set a purpose | n/a — open-weight models are OpenRouter-only here |
+
+Because `lib/openai.ts` resolves `OPENROUTER_<PURPOSE>_MODEL` before the
+purpose-less `OPENROUTER_MODEL`, and `AZURE_OPENAI_<PURPOSE>_DEPLOYMENT` before
+`AZURE_OPENAI_DEPLOYMENT`, set the per-purpose var to override just one purpose
+without touching the rest. `ARBOR_<PURPOSE>_MODEL` is the gateway-agnostic
+fallback used by both paths when the provider-specific var is unset.
 
 > Operational note (2026-06-17): The preferred Hive Claude path requires either
 > `ANTHROPIC_API_KEY` or `OPENROUTER_API_KEY` in the Convex deployment; values in

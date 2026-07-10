@@ -26,8 +26,7 @@
 //   token_endpoint:         https://mcp.insforge.dev/oauth/token
 //   scopes_supported:       mcp:read, mcp:write, project:select
 
-import { makeMcpForwardingSpecialist } from "./mcp-forwarding";
-import type { SpecialistConfig, SpecialistRunner } from "../types";
+import type { SpecialistConfig } from "../types";
 
 export const INSFORGE_BACKEND_CONFIG: SpecialistConfig = {
   agent_id: "insforge-backend",
@@ -53,7 +52,3 @@ export const INSFORGE_BACKEND_CONFIG: SpecialistConfig = {
   },
   mcp_requires_session: true,
 };
-
-export const insforgeBackend: SpecialistRunner = makeMcpForwardingSpecialist(
-  INSFORGE_BACKEND_CONFIG,
-);

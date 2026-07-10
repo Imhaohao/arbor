@@ -52,6 +52,17 @@ export interface McpRequestOptions {
 
 let nextId = 1;
 
+function redactUrlForLog(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.search = parsed.search ? "?[redacted]" : "";
+    parsed.hash = "";
+    return parsed.toString();
+  } catch {
+    return url.replace(/\?.*$/, "?[redacted]");
+  }
+}
+
 function parseJsonEnvelope<T>(
   text: string,
   url: string,
@@ -61,8 +72,9 @@ function parseJsonEnvelope<T>(
   try {
     return JSON.parse(text) as JsonRpcResponse<T>;
   } catch (err) {
+    const safeUrl = redactUrlForLog(url);
     throw new Error(
-      `MCP ${method} → ${url} returned invalid ${source} JSON: ${
+      `MCP ${method} → ${safeUrl} returned invalid ${source} JSON: ${
         err instanceof Error ? err.message : String(err)
       }; body=${text.slice(0, 200)}`,
     );
@@ -109,8 +121,9 @@ async function rpcSession<T>(
       signal: ctl.signal,
     });
     const returnedSession = res.headers.get("mcp-session-id") ?? sessionId;
+    const safeUrl = redactUrlForLog(url);
     if (!res.ok) {
-      throw new Error(`MCP ${method} → ${url} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      throw new Error(`MCP ${method} → ${safeUrl} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
     }
     // Some MCP servers return text/event-stream even for single-shot responses.
     const ct = res.headers.get("content-type") ?? "";
@@ -119,7 +132,7 @@ async function rpcSession<T>(
       const text = await res.text();
       // Take the first `data:` line.
       const line = text.split("\n").find((l) => l.startsWith("data:"));
-      if (!line) throw new Error(`MCP ${method} → ${url} SSE response had no data line`);
+      if (!line) throw new Error(`MCP ${method} → ${safeUrl} SSE response had no data line`);
       envelope = parseJsonEnvelope<T>(line.slice(5).trim(), url, method, "SSE data");
     } else {
       const text = await res.text();

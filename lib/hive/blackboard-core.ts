@@ -41,6 +41,10 @@ export interface BlackboardWritePayload {
   supersedes_entry_id?: string;
   revision?: number;
   format?: BlackboardContentFormat;
+  // DELM admit-on-verify (optional): entry ids the writer claims as
+  // supporting evidence for this write. Only consulted when
+  // ARBOR_BLACKBOARD_VERIFY_ENABLED is on.
+  supporting_entry_ids?: string[];
 }
 
 export function isBlackboardKind(value: unknown): value is BlackboardKind {
@@ -128,6 +132,18 @@ export function validateBlackboardPayload(
   if (revision !== undefined && revision < 0) {
     throw new Error("revision must be a non-negative integer");
   }
+  let supporting_entry_ids: string[] | undefined;
+  if (row.supporting_entry_ids !== undefined) {
+    if (
+      !Array.isArray(row.supporting_entry_ids) ||
+      !row.supporting_entry_ids.every((id) => typeof id === "string")
+    ) {
+      throw new Error("supporting_entry_ids must be an array of strings");
+    }
+    supporting_entry_ids = row.supporting_entry_ids
+      .map((id) => (id as string).trim())
+      .filter((id) => id.length > 0);
+  }
   return {
     dag_id: row.dag_id.trim(),
     node_id: typeof row.node_id === "string" ? row.node_id.trim() : undefined,
@@ -144,6 +160,7 @@ export function validateBlackboardPayload(
         : undefined,
     revision,
     format,
+    supporting_entry_ids,
   };
 }
 
@@ -180,4 +197,75 @@ export function parseBlackboardContent(entry: {
     return entry.content;
   }
   return parseAgentData(entry.content, entry.content_format);
+}
+
+// ── DELM (arXiv:2510.01285) curated-blackboard properties ──────────────────
+// Both properties below are additive and default-safe: gist is always cheap
+// to compute (no model call), and the verify gate is off unless the caller
+// opts in via ARBOR_BLACKBOARD_VERIFY_ENABLED.
+
+const DEFAULT_GIST_MAX_CHARS = 240;
+
+/**
+ * Deterministic, no-model-call summary of a blackboard entry's content.
+ *
+ * - Takes the first line (split on \n); falls back to the whole content if
+ *   there is no newline.
+ * - Collapses internal whitespace runs to a single space and trims ends.
+ * - Truncates to `maxChars` (default 240), leaving room for an ellipsis
+ *   marker ("...") when truncation actually occurs.
+ * - Empty/whitespace-only content returns "".
+ */
+export function makeGist(
+  content: string,
+  maxChars: number = DEFAULT_GIST_MAX_CHARS,
+): string {
+  if (!content) return "";
+  const firstLine = content.split("\n", 1)[0] ?? "";
+  const collapsed = firstLine.replace(/\s+/g, " ").trim();
+  if (!collapsed) return "";
+  if (collapsed.length <= maxChars) return collapsed;
+  const ellipsis = "...";
+  const cut = Math.max(0, maxChars - ellipsis.length);
+  return collapsed.slice(0, cut).trimEnd() + ellipsis;
+}
+
+/**
+ * Admit-on-verify master switch (ARBOR_BLACKBOARD_VERIFY_ENABLED). Follows the
+ * same truthy convention as lib/openai.ts's envFlag: 1/true/yes/on/enabled.
+ * Default off preserves current writeSigned behavior byte-for-byte.
+ */
+export function blackboardVerifyEnabled(): boolean {
+  const value = (process.env.ARBOR_BLACKBOARD_VERIFY_ENABLED ?? "")
+    .trim()
+    .toLowerCase();
+  return ["1", "true", "yes", "on", "enabled"].includes(value);
+}
+
+export type BlackboardVerification = "evidence_backed" | "unverified";
+
+/**
+ * Decide the curation label for a new entry given its declared supporting
+ * entry ids and which of those ids were actually found (resolved) in the
+ * same DAG. Labeling only — never a rejection: the entry is always stored,
+ * this just decides how it is tagged.
+ *
+ * - If the verify gate is disabled, returns undefined (no label at all — the
+ *   pre-DELM schema shape, so existing readers see no behavior change).
+ * - If enabled and every declared supporting id resolved (and at least one
+ *   was declared), returns "evidence_backed".
+ * - Otherwise (none declared, or some failed to resolve), returns
+ *   "unverified".
+ */
+export function resolveBlackboardVerification(args: {
+  enabled: boolean;
+  declaredSupportingIds?: string[];
+  resolvedSupportingIds: string[];
+}): BlackboardVerification | undefined {
+  if (!args.enabled) return undefined;
+  const declared = args.declaredSupportingIds ?? [];
+  if (declared.length === 0) return "unverified";
+  const resolvedSet = new Set(args.resolvedSupportingIds);
+  const allResolved = declared.every((id) => resolvedSet.has(id));
+  return allResolved ? "evidence_backed" : "unverified";
 }

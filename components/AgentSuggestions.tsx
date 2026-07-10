@@ -6,7 +6,7 @@ import { Pill, type PillTone } from "@/components/ui/Pill";
 import { formatMoney, formatScore } from "@/lib/utils";
 import { Sparkle, CircleNotch, Lightning } from "@phosphor-icons/react";
 
-type DiscoverySource = "catalog" | "registry" | "synthesized";
+type DiscoverySource = "google" | "catalog" | "registry" | "a2a" | "synthesized";
 
 interface SuggestionItem {
   agent_id: string;
@@ -315,8 +315,10 @@ function SourceBadge({
 }) {
   if (!discovered) return null;
   const map: Record<DiscoverySource, { label: string; tone: PillTone }> = {
+    google: { label: "Search · Google", tone: "success" },
     catalog: { label: "MCP · catalog", tone: "success" },
     registry: { label: "MCP · registry", tone: "success" },
+    a2a: { label: "A2A", tone: "success" },
     synthesized: { label: "Synthesized", tone: "warning" },
   };
   const fallback: { label: string; tone: PillTone } = hasEndpoint

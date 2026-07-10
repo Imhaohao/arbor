@@ -1,25 +1,16 @@
-import { niaContext, NIA_CONTEXT_CONFIG } from "./nia-context";
-import {
-  hyperspellBrain,
-  HYPERSPELL_BRAIN_CONFIG,
-} from "./hyperspell-brain";
+import { NIA_CONTEXT_CONFIG } from "./nia-context";
+import { HYPERSPELL_BRAIN_CONFIG } from "./hyperspell-brain";
 import {
   tensorlakeExec,
   TENSORLAKE_EXEC_CONFIG,
 } from "./tensorlake-exec";
-import { codexWriter, CODEX_WRITER_CONFIG } from "./codex-writer";
-import { devinEngineer, DEVIN_ENGINEER_CONFIG } from "./devin-engineer";
+import { CODEX_WRITER_CONFIG } from "./codex-writer";
+import { DEVIN_ENGINEER_CONFIG } from "./devin-engineer";
 import { reacherSocial, REACHER_SOCIAL_CONFIG } from "./reacher-social";
 import { vercelV0, VERCEL_V0_CONFIG } from "./vercel-v0";
-import {
-  insforgeBackend,
-  INSFORGE_BACKEND_CONFIG,
-} from "./insforge-backend";
-import { asideBrowser, ASIDE_BROWSER_CONFIG } from "./aside-browser";
-import {
-  convexRealtime,
-  CONVEX_REALTIME_CONFIG,
-} from "./convex-realtime";
+import { INSFORGE_BACKEND_CONFIG } from "./insforge-backend";
+import { ASIDE_BROWSER_CONFIG } from "./aside-browser";
+import { CONVEX_REALTIME_CONFIG } from "./convex-realtime";
 import { TENSORLAKE_A2A_CONFIG } from "./tensorlake-a2a";
 import { DEVIN_A2A_CONFIG } from "./devin-a2a";
 import { CONVEX_A2A_CONFIG } from "./convex-a2a";
@@ -161,7 +152,7 @@ export interface PersistedSpecialistConfig {
   a2a_agent_card_url?: string;
   a2a_api_key_env?: string;
   a2a_auth_mode?: "none" | "card";
-  discovery_source?: "catalog" | "registry" | "a2a" | "synthesized";
+  discovery_source?: "google" | "catalog" | "registry" | "a2a" | "synthesized";
   discovered_for?: string;
 }
 
@@ -212,24 +203,17 @@ export const ARBOR_FLOOR_AGENT_IDS: ReadonlySet<AgentId> = new Set<AgentId>([
   ARBOR_HIVE_BACKSTOP_CONFIG.agent_id,
 ]);
 
-export const SPECIALIST_RUNNERS: Partial<Record<AgentId, SpecialistRunner>> = {
-  "nia-context": niaContext,
-  "hyperspell-brain": hyperspellBrain,
+// Hand-written runners exist ONLY for tier:"real" specialists — every other
+// tier (mcp-forwarding, a2a, a2a-bridge, openrouter, mock) is constructed from
+// its config by buildRunner, so tier declarations (and their guards, like the
+// missing-key loud-decline) are the single source of truth for dispatch.
+const SPECIALIST_RUNNERS: Partial<Record<AgentId, SpecialistRunner>> = {
   "tensorlake-exec": tensorlakeExec,
-  "devin-engineer": devinEngineer,
   "reacher-social": reacherSocial,
   "vercel-v0": vercelV0,
-  "insforge-backend": insforgeBackend,
   "github-pr-review": githubPrReview,
   "arbor-baseline": arborBaseline,
   "arbor-hive-backstop": arborHiveBackstop,
-  ...(INCLUDE_DEMO_MOCK_SPECIALISTS
-    ? {
-        "codex-writer": codexWriter,
-        "aside-browser": asideBrowser,
-        "convex-realtime": convexRealtime,
-      }
-    : {}),
 };
 
 // Warn once at module load for every specialist that is explicitly mocked.
@@ -250,25 +234,6 @@ const DISCOVERED: Map<string, SpecialistConfig> = new Map();
 
 export function registerDiscoveredSpecialist(config: SpecialistConfig) {
   DISCOVERED.set(config.agent_id, { ...config, discovered: true });
-}
-
-export function getDiscoveredSpecialists(
-  gateway?: ModelGateway | string,
-): SpecialistConfig[] {
-  return Array.from(DISCOVERED.values()).filter((config) =>
-    specialistEnabled(config, gateway),
-  );
-}
-
-export function getAllSpecialists(
-  gateway?: ModelGateway | string,
-): SpecialistConfig[] {
-  const byId = new Map<string, SpecialistConfig>();
-  for (const config of getSpecialists(gateway)) byId.set(config.agent_id, config);
-  for (const config of getDiscoveredSpecialists(gateway)) {
-    if (!byId.has(config.agent_id)) byId.set(config.agent_id, config);
-  }
-  return Array.from(byId.values());
 }
 
 /**

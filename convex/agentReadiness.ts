@@ -262,6 +262,19 @@ export const latestRun = query({
   },
 });
 
+export const latestCompleteRun = query({
+  args: {},
+  returns: v.union(v.any(), v.null()),
+  handler: async (ctx): Promise<Doc<"agent_smoke_runs"> | null> => {
+    return await ctx.db
+      .query("agent_smoke_runs")
+      .withIndex("by_started_at")
+      .order("desc")
+      .filter((q) => q.eq(q.field("status"), "complete"))
+      .first();
+  },
+});
+
 export const runSummary = query({
   args: { run_id: v.string() },
   returns: v.object({

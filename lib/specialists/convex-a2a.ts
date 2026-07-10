@@ -11,8 +11,7 @@
 //   (no auth token env var needed — Convex's public A2A endpoint declares
 //    security: [] if keyless, or use CONVEX_A2A_API_KEY for custom deployments)
 
-import { makeA2aForwardingSpecialist } from "./a2a-forwarding";
-import type { SpecialistConfig, SpecialistRunner } from "../types";
+import type { SpecialistConfig } from "../types";
 
 const a2aEndpoint = process.env.CONVEX_A2A_ENDPOINT?.trim();
 const cardUrl = process.env.CONVEX_A2A_AGENT_CARD_URL?.trim();
@@ -41,7 +40,3 @@ export const CONVEX_A2A_CONFIG: SpecialistConfig = {
   a2a_api_key_env: "CONVEX_A2A_API_KEY",
   homepage_url: "https://convex.dev",
 };
-
-export const convexA2a: SpecialistRunner | null = a2aEndpoint
-  ? makeA2aForwardingSpecialist(CONVEX_A2A_CONFIG)
-  : null;

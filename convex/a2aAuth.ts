@@ -1,6 +1,6 @@
 "use node";
 
-import { action, internalAction } from "./_generated/server";
+import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { verifyInbound } from "./a2aAuthCore";
 
@@ -11,12 +11,6 @@ const verifyArgs = {
   nonce: v.optional(v.string()),
   signature: v.optional(v.string()),
 };
-
-/** Shared internal verifier for authenticated protocol surfaces. */
-export const _verifyInbound = internalAction({
-  args: verifyArgs,
-  handler: verifyInbound,
-});
 
 /** Public verifier used by the A2A route before dispatching a request. */
 export const verifyInboundCallback = action({

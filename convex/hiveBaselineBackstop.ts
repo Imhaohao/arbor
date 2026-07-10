@@ -1,29 +1,43 @@
 "use node";
 
-// Agent Task 23 — no-bid backstop for the PR-review task class.
+// Guaranteed terminal executor (W6) — backstop for EVERY node class.
 //
-// This is the belt-and-suspenders guarantee. The PRIMARY mechanism is that
-// arbor-baseline is registered in SPECIALISTS and bids (last-resort) on every
-// PR-review auction, so a node normally completes through the ordinary auction
-// path. This backstop covers the residual case where even that path fails for a
-// PR-review node (e.g. arbor-baseline's execute threw on every attempt). It runs
-// arbor-baseline DIRECTLY, then writes the full attributable trail the trust bar
-// requires: node output, a scratchpad diagnostic, a judge verdict, and a
-// reputation_dimensions record. No PR-review node may terminate silently.
+// This is the belt-and-suspenders guarantee behind the hive's "always
+// terminates" contract. The PRIMARY mechanism is that the Arbor-owned floor
+// agents are registered in SPECIALISTS and bid (last-resort) on every auction,
+// so a node normally completes through the ordinary auction path. This backstop
+// covers the residual case where even that path fails: after shortlist +
+// bounded open-retry exhaust, the orchestrator hands the failed node here and
+// we run an Arbor-owned runner DIRECTLY inside Convex (no tunnel needed):
+//   - PR-review nodes  -> arbor-baseline (specialized reviewer)
+//   - everything else  -> arbor-hive-backstop (universal model floor)
+// Then we write the full attributable trail the trust bar requires: node
+// output, a scratchpad diagnostic, a judge verdict, and a reputation_dimensions
+// record. No hive node may terminate silently.
 
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { arborBaseline, ARBOR_BASELINE_LABEL } from "../lib/specialists/arbor-baseline";
+import {
+  arborHiveBackstop,
+  ARBOR_HIVE_BACKSTOP_LABEL,
+} from "../lib/specialists/arbor-hive-backstop";
 import { isPrReviewTask } from "../lib/specialists/pr-review-detect";
 import { callOpenAIJSON } from "../lib/openai";
 
-const JUDGE_MODEL = "arbor-baseline-backstop-judge";
+const JUDGE_MODEL = "arbor-backstop-judge";
 
 // Stable prefix written to a node's output_text when the backstop itself could
-// not produce a review. The orchestrator checks for it so a failed backstop is
-// never re-scheduled into an infinite loop — the DAG fails honestly instead.
+// not produce a deliverable. The orchestrator checks for it so a failed
+// backstop is never re-scheduled into an infinite loop — the DAG fails honestly
+// instead.
 export const BACKSTOP_FAILED_PREFIX =
+  "arbor backstop could not produce a deliverable";
+
+// Rows written before the W6 generalization carry the old PR-review-era prefix;
+// the orchestrator honors both so legacy failed nodes are not re-looped.
+export const LEGACY_BACKSTOP_FAILED_PREFIX =
   "arbor-baseline backstop could not produce a review";
 
 interface BackstopVerdict {
@@ -56,29 +70,23 @@ export const runForFailedNode = internalAction({
       node.description +
       (node.success_criteria ? `\n\nSuccess criteria: ${node.success_criteria}` : "");
 
-    // Defensive: this backstop is only scheduled for PR-review nodes. If a
-    // non-PR node somehow reached here, revert and let normal failure proceed.
-    if (!isPrReviewTask(prompt, node.task_class)) {
-      await ctx.runMutation(internal.hiveData._patchNode, {
-        dag_id: args.dag_id,
-        node_id: args.node_id,
-        status: "failed",
-      });
-      await ctx.scheduler.runAfter(0, internal.hiveOrchestrator.advance, {
-        dag_id: args.dag_id,
-      });
-      return null;
-    }
+    // Runner selection: the specialized reviewer for PR-review nodes, the
+    // universal Arbor model floor for every other task class.
+    const isPr = isPrReviewTask(prompt, node.task_class);
+    const runner = isPr ? arborBaseline : arborHiveBackstop;
+    const agentId = isPr ? "arbor-baseline" : "arbor-hive-backstop";
+    const label = isPr ? ARBOR_BASELINE_LABEL : ARBOR_HIVE_BACKSTOP_LABEL;
+    const taskType = isPr ? "pr-review" : (node.task_class ?? "general");
 
     const startedAt = Date.now();
     try {
-      // 2. Run arbor-baseline directly (no toolRecorder — this is not the
-      //    auction execute path, so the receipt gate does not apply here).
-      const { output } = await arborBaseline.execute(prompt, "pr-review", {
+      // 2. Run the Arbor-owned runner directly (no toolRecorder — this is not
+      //    the auction execute path, so the receipt gate does not apply here).
+      const { output } = await runner.execute(prompt, taskType, {
         task_id: node.task_id ? String(node.task_id) : undefined,
-        agent_id: "arbor-baseline",
+        agent_id: agentId,
       });
-      // arbor-baseline always returns string output; normalize defensively.
+      // Runners return string output; normalize defensively.
       const reviewText = typeof output === "string" ? output : output.summary;
       const actualSeconds = Math.max(0.1, (Date.now() - startedAt) / 1000);
 
@@ -87,8 +95,8 @@ export const runForFailedNode = internalAction({
       try {
         verdict = await callOpenAIJSON<BackstopVerdict>({
           systemPrompt:
-            'You judge an automated code review. Given the task and the review, decide whether the review materially addresses the task with specific, grounded findings. Output JSON only: { "verdict": "accept" | "reject", "quality_score": <0.0-1.0>, "reasoning": "<one sentence>" }',
-          userPrompt: `Task:\n${prompt.slice(0, 1500)}\n\nReview:\n${reviewText.slice(0, 3000)}`,
+            'You judge a deliverable produced by an automated agent. Given the task and the deliverable, decide whether it materially addresses the task with specific, grounded content. Output JSON only: { "verdict": "accept" | "reject", "quality_score": <0.0-1.0>, "reasoning": "<one sentence>" }',
+          userPrompt: `Task:\n${prompt.slice(0, 1500)}\n\nDeliverable:\n${reviewText.slice(0, 3000)}`,
           maxTokens: 256,
           timeoutMs: 20_000,
           retries: 1,
@@ -112,7 +120,7 @@ export const runForFailedNode = internalAction({
         dag_id: args.dag_id,
         node_id: args.node_id,
         status: "complete",
-        assigned_agent_id: "arbor-baseline",
+        assigned_agent_id: agentId,
         output_text: reviewText.slice(0, 50_000),
         eval_score: qualityScore,
       });
@@ -122,9 +130,9 @@ export const runForFailedNode = internalAction({
         dag_id: args.dag_id,
         node_id: args.node_id,
         task_id: node.task_id ?? undefined,
-        agent_id: "arbor-baseline",
+        agent_id: agentId,
         kind: "decision",
-        content: `${ARBOR_BASELINE_LABEL} no live PR-review specialist completed node ${node.node_id}; Arbor-owned baseline backstop produced the review (judge ${accepted ? "accept" : "reject"}, quality ${qualityScore.toFixed(2)}).`,
+        content: `${label} no live specialist completed node ${node.node_id}; Arbor-owned backstop produced the deliverable (judge ${accepted ? "accept" : "reject"}, quality ${qualityScore.toFixed(2)}).`,
         confidence: qualityScore,
       });
 
@@ -132,12 +140,12 @@ export const runForFailedNode = internalAction({
       await ctx.runMutation(internal.hiveData._insertEvaluation, {
         dag_id: args.dag_id,
         node_id: args.node_id,
-        agent_id: "arbor-baseline",
+        agent_id: agentId,
         score: qualityScore,
         verdict: accepted ? "accept" : "reject",
         reasoning:
           verdict.reasoning ??
-          "arbor-baseline backstop review accepted as material deliverable",
+          "arbor backstop deliverable accepted as material",
         judge_model: JUDGE_MODEL,
       });
 
@@ -145,7 +153,7 @@ export const runForFailedNode = internalAction({
       //    so price_paid is 0 and bid_price is the baseline cost.
       if (node.task_id) {
         await ctx.runMutation(internal.reputationDimensions._record, {
-          agent_id: "arbor-baseline",
+          agent_id: agentId,
           task_id: node.task_id,
           actual_seconds: actualSeconds,
           estimated_seconds: 45,
@@ -156,13 +164,23 @@ export const runForFailedNode = internalAction({
         });
       }
 
+      // Capability-profile flywheel (W3): backstop runs are outcomes too.
+      await ctx.runMutation(internal.agentProfiles._recordOutcome, {
+        agent_id: agentId,
+        task_class: node.task_class,
+        success: true,
+        quality_score: qualityScore,
+        latency_seconds: actualSeconds,
+        price_paid: 0,
+      });
+
       // 8. Lifecycle breadcrumbs on the root task (settled + backstop marker).
       await ctx.runMutation(internal.lifecycle.log, {
         task_id: dag.root_task_id,
         event_type: "hive_baseline_backstop",
         payload: {
           node_id: node.node_id,
-          agent_id: "arbor-baseline",
+          agent_id: agentId,
           verdict: accepted ? "accept" : "reject",
           quality_score: qualityScore,
           reason: "no_live_specialist_completed_node",
@@ -174,7 +192,7 @@ export const runForFailedNode = internalAction({
         payload: {
           node_id: node.node_id,
           status: "complete",
-          agent_id: "arbor-baseline",
+          agent_id: agentId,
           quality_score: qualityScore,
           via: "baseline_backstop",
         },
@@ -192,17 +210,17 @@ export const runForFailedNode = internalAction({
         dag_id: args.dag_id,
         node_id: args.node_id,
         task_id: node.task_id ?? undefined,
-        agent_id: "arbor-baseline",
+        agent_id: agentId,
         kind: "observation",
-        content: `${ARBOR_BASELINE_LABEL} backstop failed for node ${node.node_id}: ${reason}. No live specialist and the baseline model call did not return — node cannot be completed.`,
+        content: `${label} backstop failed for node ${node.node_id}: ${reason}. No live specialist and the backstop model call did not return — node cannot be completed.`,
         confidence: 0,
       });
       await ctx.runMutation(internal.hiveData._insertEscalation, {
         dag_id: args.dag_id,
         task_id: dag.root_task_id,
         kind: "low_confidence",
-        reason: `pr_review_backstop_failed: ${reason}`,
-        payload: { node_id: node.node_id, agent_id: "arbor-baseline" },
+        reason: `hive_backstop_failed: ${reason}`,
+        payload: { node_id: node.node_id, agent_id: agentId },
       });
       await ctx.runMutation(internal.lifecycle.log, {
         task_id: dag.root_task_id,

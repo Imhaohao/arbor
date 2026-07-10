@@ -26,7 +26,19 @@ function resetEnv(): void {
   delete process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_MODEL;
   delete process.env.ARBOR_MODEL_PROVIDER;
+  delete process.env.ARBOR_HIVE_MODEL_PROVIDER;
+  delete process.env.ARBOR_CLAUDE_PROVIDER;
   delete process.env.ARBOR_MODEL_SPEND_DISABLED;
+  delete process.env.ARBOR_MODEL_CALLS_DISABLED;
+  delete process.env.ARBOR_AZURE_ENABLED;
+  delete process.env.ARBOR_REQUIRE_AZURE;
+  delete process.env.AZURE_OPENAI_API_KEY;
+  delete process.env.AZURE_OPENAI_ENDPOINT;
+  delete process.env.AZURE_OPENAI_DEPLOYMENT;
+  delete process.env.AZURE_OPENAI_PLANNER_DEPLOYMENT;
+  delete process.env.AZURE_OPENAI_API_MODE;
+  delete process.env.ARBOR_MODEL;
+  delete process.env.ARBOR_PLANNER_MODEL;
 }
 
 async function test(name: string, fn: () => Promise<void> | void): Promise<void> {
@@ -56,7 +68,7 @@ async function main(): Promise<void> {
           systemPrompt: "Classify this.",
           userPrompt: "hello",
         }),
-      /ANTHROPIC_API_KEY, OPENROUTER_API_KEY, or OPENAI_API_KEY must be set/,
+      /ANTHROPIC_API_KEY, OPENROUTER_API_KEY, or a usable OpenAI-path provider \(OPENAI_API_KEY, or Azure\/Foundry credentials with ARBOR_AZURE_ENABLED\) must be set/,
     );
     assert.equal(calledFetch, false);
   });
@@ -78,6 +90,73 @@ async function main(): Promise<void> {
       message:
         "Convex has no model runtime key. Hive planning collapses to one node and evaluation uses plain output concatenation.",
     });
+  });
+
+  await test("describeClaudeRuntime reports a ready OpenAI path on a pure-Azure deployment", () => {
+    process.env.AZURE_OPENAI_API_KEY = "test";
+    process.env.AZURE_OPENAI_ENDPOINT = "https://example.openai.azure.com";
+    process.env.ARBOR_AZURE_ENABLED = "true";
+    process.env.AZURE_OPENAI_PLANNER_DEPLOYMENT = "planner-deploy";
+
+    const runtime = describeClaudeRuntime();
+    assert.equal(runtime.ready, true);
+    assert.equal(runtime.status, "fallback");
+    assert.equal(runtime.provider, "openai");
+    assert.equal(runtime.model, "planner-deploy");
+    assert.match(runtime.message, /Azure fallback/);
+  });
+
+  await test("callClaude reaches the OpenAI path on a pure-Azure deployment", async () => {
+    process.env.AZURE_OPENAI_API_KEY = "test";
+    process.env.AZURE_OPENAI_ENDPOINT = "https://example.openai.azure.com";
+    process.env.ARBOR_AZURE_ENABLED = "true";
+    process.env.AZURE_OPENAI_PLANNER_DEPLOYMENT = "planner-deploy";
+
+    let request: { url: string; init?: RequestInit } | undefined;
+    globalThis.fetch = async (input, init) => {
+      request = { url: String(input), init };
+      return new Response(
+        JSON.stringify({ output_text: "azure-recovered" }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+
+    const result = await callClaude({
+      model: CLAUDE_PLANNER_MODEL,
+      systemPrompt: "Plan.",
+      userPrompt: "Recover via Azure.",
+      timeoutMs: 1_000,
+      retries: 0,
+    });
+
+    assert.equal(result, "azure-recovered");
+    assert.ok(request);
+    assert.match(request.url, /example\.openai\.azure\.com/);
+  });
+
+  await test("describeClaudeRuntime blocks (without throwing) when Azure deployment is missing", () => {
+    process.env.AZURE_OPENAI_API_KEY = "test";
+    process.env.ARBOR_AZURE_ENABLED = "true";
+
+    const runtime = describeClaudeRuntime();
+    assert.equal(runtime.ready, false);
+    assert.equal(runtime.status, "blocked");
+    assert.ok(runtime.missing_env.includes("AZURE_OPENAI_ENDPOINT"));
+    assert.ok(
+      runtime.missing_env.some((key) => key.includes("DEPLOYMENT")),
+    );
+  });
+
+  await test("describeClaudeRuntime stays blocked when the kill switch is set even with Azure configured", () => {
+    process.env.AZURE_OPENAI_API_KEY = "test";
+    process.env.AZURE_OPENAI_ENDPOINT = "https://example.openai.azure.com";
+    process.env.AZURE_OPENAI_PLANNER_DEPLOYMENT = "planner-deploy";
+    process.env.ARBOR_AZURE_ENABLED = "true";
+    process.env.ARBOR_MODEL_SPEND_DISABLED = "true";
+
+    const runtime = describeClaudeRuntime();
+    assert.equal(runtime.ready, false);
+    assert.equal(runtime.status, "blocked");
   });
 
   await test("parseJSONLoose round-trips fenced JSON", () => {
@@ -133,6 +212,49 @@ async function main(): Promise<void> {
     });
   });
 
+  await test("unset provider flag keeps the Anthropic-first fallback order", () => {
+    // Regression: auto must NOT silently prefer a usable OpenAI path over a
+    // configured Anthropic key — openai-first is an explicit opt-in via
+    // ARBOR_HIVE_MODEL_PROVIDER=openai.
+    process.env.OPENAI_API_KEY = "working-openai-key";
+    process.env.OPENAI_MODEL = "gpt-test";
+    process.env.ANTHROPIC_API_KEY = "available-anthropic-key";
+
+    const runtime = describeClaudeRuntime();
+    assert.equal(runtime.ready, true);
+    assert.equal(runtime.provider, "anthropic");
+    assert.match(runtime.message, /direct Anthropic runtime/);
+  });
+
+  await test("ARBOR_HIVE_MODEL_PROVIDER=openai forces OpenAI only", async () => {
+    process.env.ARBOR_HIVE_MODEL_PROVIDER = "openai";
+    process.env.OPENAI_API_KEY = "working-openai-key";
+    process.env.OPENAI_MODEL = "gpt-test";
+    process.env.ANTHROPIC_API_KEY = "available-anthropic-key";
+    const urls: string[] = [];
+
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      urls.push(url);
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: "openai-only" } }] }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+
+    const result = await callClaude({
+      model: CLAUDE_PLANNER_MODEL,
+      systemPrompt: "Plan.",
+      userPrompt: "Use OpenAI.",
+      timeoutMs: 100,
+      retries: 0,
+    });
+
+    assert.equal(result, "openai-only");
+    assert.deepEqual(urls, ["https://api.openai.com/v1/chat/completions"]);
+    assert.equal(describeClaudeRuntime().status, "ready");
+  });
+
   await test("callClaude falls back to OpenRouter with a Claude catalog model", async () => {
     process.env.OPENROUTER_API_KEY = "test-openrouter-key";
     let request: { url: string; init?: RequestInit } | undefined;
@@ -176,7 +298,38 @@ async function main(): Promise<void> {
     assert.equal(describeClaudeRuntime().status, "fallback");
   });
 
-  await test("callClaude reaches OpenAI when both Claude providers fail", async () => {
+  await test("callClaude defaults to Anthropic first even when OpenAI is usable", async () => {
+    process.env.ANTHROPIC_API_KEY = "working-anthropic-key";
+    process.env.OPENROUTER_API_KEY = "unused-openrouter-key";
+    process.env.OPENAI_API_KEY = "working-openai-key";
+    process.env.OPENAI_MODEL = "gpt-test";
+    const urls: string[] = [];
+
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      urls.push(url);
+      return new Response(
+        JSON.stringify({
+          content: [{ type: "text", text: "anthropic-first" }],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+
+    const result = await callClaude({
+      model: CLAUDE_PLANNER_MODEL,
+      systemPrompt: "Plan.",
+      userPrompt: "Use the default order.",
+      timeoutMs: 100,
+      retries: 0,
+    });
+
+    assert.equal(result, "anthropic-first");
+    assert.deepEqual(urls, ["https://api.anthropic.com/v1/messages"]);
+  });
+
+  await test("callClaude auto mode cascades Anthropic -> OpenRouter -> OpenAI on exhaustion", async () => {
+    process.env.ARBOR_HIVE_MODEL_PROVIDER = "auto";
     process.env.ANTHROPIC_API_KEY = "unfunded-anthropic-key";
     process.env.OPENROUTER_API_KEY = "unfunded-openrouter-key";
     process.env.OPENAI_API_KEY = "working-openai-key";

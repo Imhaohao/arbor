@@ -16,12 +16,21 @@ import { callClaudeJSON, CLAUDE_PLANNER_MODEL } from "../lib/anthropic";
 import {
   validateDag,
   topologicalLevels,
+  classifyTaskComplexity,
   type PlannedNode,
 } from "../lib/hive/dag";
 import {
   didForAgent,
   serializeBlackboardContent,
 } from "../lib/hive/blackboard-core";
+
+// W8 escape hatch: honor ARBOR_HIVE_GATE_DISABLED to always plan a full DAG,
+// bypassing the single-vs-multi-agent pre-gate. Matches the truthy-string
+// convention used by envFlag() in lib/openai.ts.
+function hiveGateDisabled(): boolean {
+  const value = (process.env.ARBOR_HIVE_GATE_DISABLED ?? "").trim().toLowerCase();
+  return ["1", "true", "yes", "on", "enabled"].includes(value);
+}
 
 const SYSTEM_PROMPT =
   'You are the planner for a multi-agent marketplace. Decompose the user\'s goal into 1 to 8 task nodes forming a dependency DAG. Each node: { "id": "<short snake_case or kebab id>", "description": "<self-contained sub-task; the executing agent sees ONLY this description plus shared-scratchpad context, so include all needed detail>", "depends_on": ["<ids of nodes whose output this node needs>"], "success_criteria": "<one sentence: what makes this node\'s output acceptable>", "task_class": one of "reasoning"|"classification"|"extraction"|"generation" }. Nodes with empty depends_on run in parallel; prefer parallel structure over long chains. Do NOT pad: a simple goal is a single node. depends_on must reference only ids defined in this plan and never form a cycle. Output strict JSON only: { "nodes": [ ... ] }.';
@@ -40,35 +49,62 @@ export const planDag = internalAction({
     const task = await ctx.runQuery(internal.tasks._get, {
       task_id: args.task_id,
     });
+
+    // W8: cheap deterministic pre-gate. If the task clearly doesn't need a
+    // multi-node DAG, skip the model-backed planner call entirely and reuse
+    // the same single-node shape the planner already falls back to on
+    // failure. ARBOR_HIVE_GATE_DISABLED=true bypasses the gate (always plans
+    // a full DAG), matching the repo's other kill-switch env flags.
+    const gateDisabled = hiveGateDisabled();
+    const gate = gateDisabled
+      ? null
+      : classifyTaskComplexity(task.prompt, undefined, task.max_budget);
+
     // 2 + 3. Single model call, then validate. Any throw or validation failure
     //         collapses to a single-node fallback. No retry/self-repair loop.
     let planned: PlannedNode[];
     let fallbackReason: string | null = null;
+    let gatedSingle = false;
 
-    try {
-      const result = await callClaudeJSON<{ nodes: PlannedNode[] }>({
-        model: CLAUDE_PLANNER_MODEL,
-        maxTokens: 1500,
-        timeoutMs: 45000,
-        retries: 1,
-        systemPrompt: SYSTEM_PROMPT,
-        userPrompt: task.prompt,
+    if (gate !== null && gate.mode === "single") {
+      gatedSingle = true;
+      planned = [{ id: "main", description: task.prompt, depends_on: [] }];
+      console.log(`[hive-planner] gated single-node: ${gate.reason}`);
+      await ctx.runMutation(internal.lifecycle.log, {
+        task_id: args.task_id,
+        event_type: "hive_plan_gated_single",
+        payload: { reason: gate.reason },
       });
-      const candidate = Array.isArray(result?.nodes) ? result.nodes : [];
-      const validation = validateDag(candidate);
-      if (validation.ok) {
-        planned = candidate;
-      } else {
-        fallbackReason = validation.error;
+    } else {
+      try {
+        const roleHint =
+          gate !== null && gate.roles && gate.roles.length > 0
+            ? `\n\nHint: this task likely needs specialists in these rough roles: ${gate.roles.join(", ")}.`
+            : "";
+        const result = await callClaudeJSON<{ nodes: PlannedNode[] }>({
+          model: CLAUDE_PLANNER_MODEL,
+          maxTokens: 1500,
+          timeoutMs: 45000,
+          retries: 1,
+          systemPrompt: SYSTEM_PROMPT,
+          userPrompt: `${task.prompt}${roleHint}`,
+        });
+        const candidate = Array.isArray(result?.nodes) ? result.nodes : [];
+        const validation = validateDag(candidate);
+        if (validation.ok) {
+          planned = candidate;
+        } else {
+          fallbackReason = validation.error;
+          planned = [{ id: "main", description: task.prompt, depends_on: [] }];
+        }
+      } catch (err) {
+        fallbackReason = err instanceof Error ? err.message : String(err);
         planned = [{ id: "main", description: task.prompt, depends_on: [] }];
       }
-    } catch (err) {
-      fallbackReason = err instanceof Error ? err.message : String(err);
-      planned = [{ id: "main", description: task.prompt, depends_on: [] }];
-    }
 
-    if (fallbackReason !== null) {
-      console.log(`[hive-planner] fallback single-node: ${fallbackReason}`);
+      if (fallbackReason !== null) {
+        console.log(`[hive-planner] fallback single-node: ${fallbackReason}`);
+      }
     }
 
     // 4. Persist the DAG, its nodes, the task linkage, and the initial ready set.
@@ -160,6 +196,7 @@ export const planDag = internalAction({
         node_count: planned.length,
         levels: topologicalLevels(planned),
         fallback_used: fallbackReason !== null,
+        gated_single: gatedSingle,
       },
     });
 

@@ -1,0 +1,42 @@
+Agentic context layer build progress
+
+Plan:
+1. Research agentic context/hivemind patterns from primary sources and map them to Arbor.
+2. Inspect current Arbor context, MCP, Hyperspell, Nia, GitHub, and hive orchestration paths.
+3. Implement an account/capability context layer with preliminary MCP connector definitions.
+4. Expose the layer through Arbor's MCP tools, including a concrete GitHub PR/push readiness action.
+5. Verify typecheck, tests, local health, Nia/Hyperspell status, and GitHub ability to act.
+
+Delegation table:
+Task | Model
+Research synthesis | Opus inline
+Architecture/routing decisions | Opus inline
+Scoped code edits | Opus inline (subagents not spawned without explicit subagent authorization)
+Verification | Local shell and Arbor health scripts
+
+Status:
+- Research: completed
+- Code inspection: completed
+- Implementation: completed
+- Verification: completed
+
+Checkpoint:
+- Added lib/agentic-context-layer.ts for connector readiness, context/action contracts, and GitHub autonomy verification.
+- Threaded the agentic context addendum into lib/orchestration-context.ts.
+- Exposed get_agentic_context, list_account_connectors, and verify_github_autonomy through lib/mcp-tools.ts.
+- Extended lib/github-pr.ts to create new files and same-repo PRs.
+- Added lib/agentic-context-layer.test.ts and included it in npm test.
+
+Verification:
+- npm run typecheck passed.
+- npm test passed.
+- MCP dispatch for get_agentic_context and verify_github_autonomy passed.
+- GitHub CLI token verified account Imhaohao with push/admin on Imhaohao/miyohacks.
+- Current .env.local GITHUB_TOKEN fails with GitHub 401 Bad credentials.
+- Created smoke PR: https://github.com/Imhaohao/miyohacks/pull/3.
+- Nia remote MCP verified: 20 tools discovered.
+- Hyperspell REST verified: integrations/list, connections/list, memory list, and memory search work.
+- Hyperspell MCP via Smithery does not work: tools/list returns 404 Server not found.
+- Reacher/TikTok social MCP probe passed with 69 tools.
+- Refreshed agent smoke readiness: 61 ready of 232, 94 needs_key, 51 endpoint_down, 17 mock_only, 6 protocol_mismatch, 3 needs_owner_action.
+- arbor-check --skip-e2e passed with no blocking fixes; active cloudflared tunnels are still warnings.

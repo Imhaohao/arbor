@@ -161,6 +161,12 @@ export const post = mutation({
       });
     }
 
+    await ctx.scheduler.runAfter(
+      0,
+      internal.taskAgentDiscovery.discoverForPostedTask,
+      { task_id },
+    );
+
     // Prompts mentioning "conversion drop" route to the dedicated
     // diagnose-then-PR investigation flow instead of the generic auction.
     if (isConversionDropPrompt(args.prompt)) {
@@ -267,21 +273,6 @@ export const _setPlan = internalMutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.task_id, { task_plan: args.plan });
-  },
-});
-
-export const _childrenOf = internalQuery({
-  args: { parent_task_id: v.id("tasks") },
-  handler: async (ctx, args) => {
-    const children = await ctx.db
-      .query("tasks")
-      .withIndex("by_parent", (q) =>
-        q.eq("parent_task_id", args.parent_task_id),
-      )
-      .collect();
-    return children.sort(
-      (a, b) => (a.step_index ?? 0) - (b.step_index ?? 0),
-    );
   },
 });
 

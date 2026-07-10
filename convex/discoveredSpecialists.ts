@@ -46,6 +46,7 @@ const SPECIALIST_FIELDS = {
   discovered_for: v.string(),
   discovery_source: v.optional(
     v.union(
+      v.literal("google"),
       v.literal("catalog"),
       v.literal("registry"),
       v.literal("synthesized"),

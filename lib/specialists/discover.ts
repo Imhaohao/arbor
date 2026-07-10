@@ -31,6 +31,17 @@ import {
   type RegistryCandidate,
 } from "./mcp-registry";
 import { fetchAgentCard, type AgentCard } from "./a2a-agent-card";
+import {
+  discoverViaGoogleSearch,
+  GoogleSearchToolUnavailableError,
+} from "./google-search";
+
+export type DiscoverySource =
+  | "google"
+  | "catalog"
+  | "registry"
+  | "a2a"
+  | "synthesized";
 
 interface DiscoverArgs {
   query: string;
@@ -46,12 +57,17 @@ interface DiscoverArgs {
   /**
    * Lets callers override the order or skip stages — handy in tests and demos.
    */
-  preferred_sources?: Array<"catalog" | "registry" | "a2a" | "synthesized">;
+  preferred_sources?: DiscoverySource[];
+  /**
+   * Defaults to true for the user-facing discover tool. Background discovery
+   * can disable this so it never enrolls an LLM-only costume as a real backend.
+   */
+  allow_synthesized_fallback?: boolean;
 }
 
 export interface DiscoveryResult {
   specialist: SpecialistConfig;
-  source: "catalog" | "registry" | "a2a" | "synthesized";
+  source: DiscoverySource;
   /** Why this candidate was chosen — surfaced to the UI. */
   rationale: string;
   /**
@@ -61,7 +77,8 @@ export interface DiscoveryResult {
   verified_tools: string[];
 }
 
-const DEFAULT_ORDER: Array<"catalog" | "registry" | "a2a" | "synthesized"> = [
+const DEFAULT_ORDER: DiscoverySource[] = [
+  "google",
   "catalog",
   "registry",
   "a2a",
@@ -75,10 +92,14 @@ export async function discoverSpecialist(
   args: DiscoverArgs,
 ): Promise<DiscoveryResult> {
   const order = args.preferred_sources ?? DEFAULT_ORDER;
+  const allowSynthesized = args.allow_synthesized_fallback ?? true;
   const taken = new Set(args.existing.map((s) => s.agent_id));
 
   for (const stage of order) {
-    if (stage === "catalog") {
+    if (stage === "google") {
+      const hit = await tryGoogle(args.query, args.taskType, taken);
+      if (hit) return hit;
+    } else if (stage === "catalog") {
       const hit = await tryCatalog(args.query, args.taskType, taken);
       if (hit) {
         const verified_tools = args.verify
@@ -97,16 +118,38 @@ export async function discoverSpecialist(
     } else if (stage === "a2a") {
       const hit = await tryA2A(args.query, args.taskType, taken);
       if (hit) return { ...hit, verified_tools: [] };
-    } else if (stage === "synthesized") {
+    } else if (stage === "synthesized" && allowSynthesized) {
       const hit = await synthesize(args.query, args.taskType, args.existing, taken);
       return { ...hit, verified_tools: [] };
     }
   }
-  // Should be unreachable — synthesize always returns.
-  return await (async () => {
+  if (allowSynthesized) {
     const hit = await synthesize(args.query, args.taskType, args.existing, taken);
     return { ...hit, verified_tools: [] };
-  })();
+  }
+  throw new Error("no real specialist matched Google, catalog, registry, or A2A sources");
+}
+
+// ─── Stage 0: Google Search tool ─────────────────────────────────────────
+
+async function tryGoogle(
+  query: string,
+  taskType: string | undefined,
+  taken: Set<string>,
+): Promise<DiscoveryResult | null> {
+  try {
+    const hit = await discoverViaGoogleSearch({ query, taskType, taken });
+    if (!hit) return null;
+    return {
+      specialist: hit.specialist,
+      source: "google",
+      rationale: hit.rationale,
+      verified_tools: hit.verified_tools,
+    };
+  } catch (err) {
+    if (err instanceof GoogleSearchToolUnavailableError) return null;
+    throw err;
+  }
 }
 
 // ─── Stage 1: curated catalog ────────────────────────────────────────────

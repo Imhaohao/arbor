@@ -25,7 +25,7 @@ export interface SpecialistSuggestion {
   fit_score: number;
   fit_reasoning: string;
   discovered: boolean;
-  discovery_source?: "catalog" | "registry" | "synthesized" | "a2a";
+  discovery_source?: "google" | "catalog" | "registry" | "synthesized" | "a2a";
   /** Real MCP endpoint backing this specialist, if any. */
   mcp_endpoint?: string;
   homepage_url?: string;
@@ -133,7 +133,7 @@ interface CandidateSpec {
   mcp_endpoint?: string;
   homepage_url?: string;
   discovered: boolean;
-  discovery_source?: "catalog" | "registry" | "synthesized" | "a2a";
+  discovery_source?: "google" | "catalog" | "registry" | "synthesized" | "a2a";
   enrollable: boolean;
   tags?: string[];
   note?: string;

@@ -54,6 +54,81 @@ export interface SmokeAssessment {
 
 export type EnvPresent = (name: string) => boolean;
 
+export const READINESS_MAX_AGE_MS = 24 * 60 * 60 * 1_000;
+export const EPHEMERAL_TUNNEL_READINESS_MAX_AGE_MS = 15 * 60 * 1_000;
+
+export interface SmokeRunEvidence {
+  run_id: string;
+  status: string;
+  total_agents: number;
+  processed_agents: number;
+  completed_at?: number;
+}
+
+export interface AgentSmokeEvidence {
+  run_id: string;
+  readiness_status: string;
+  created_at: number;
+}
+
+export interface MarketReadinessAssessment {
+  ready: boolean;
+  reason: string | null;
+}
+
+export function isEphemeralTunnelEndpoint(endpoint: string | undefined): boolean {
+  if (!endpoint) return false;
+  try {
+    const hostname = new URL(endpoint).hostname.toLowerCase();
+    return hostname === "trycloudflare.com" || hostname.endsWith(".trycloudflare.com");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Market readiness is a short-lived lease granted by a completed smoke run.
+ * Quick tunnels get a shorter lease because their origin changes on restart.
+ */
+export function assessMarketReadiness(args: {
+  endpoint: string | undefined;
+  credential_satisfied: boolean;
+  run: SmokeRunEvidence | null;
+  evidence: AgentSmokeEvidence | null;
+  now?: number;
+}): MarketReadinessAssessment {
+  if (!args.endpoint) return { ready: false, reason: "no_endpoint" };
+  if (!args.credential_satisfied) {
+    return { ready: false, reason: "missing_credential" };
+  }
+  if (!args.run) return { ready: false, reason: "no_readiness_run" };
+  if (
+    args.run.status !== "complete" ||
+    args.run.processed_agents !== args.run.total_agents ||
+    !args.run.completed_at
+  ) {
+    return { ready: false, reason: "readiness_run_incomplete" };
+  }
+
+  const now = args.now ?? Date.now();
+  const maxAge = isEphemeralTunnelEndpoint(args.endpoint)
+    ? EPHEMERAL_TUNNEL_READINESS_MAX_AGE_MS
+    : READINESS_MAX_AGE_MS;
+  if (now - args.run.completed_at > maxAge) {
+    return { ready: false, reason: "readiness_expired" };
+  }
+  if (!args.evidence || args.evidence.run_id !== args.run.run_id) {
+    return { ready: false, reason: "no_current_readiness" };
+  }
+  if (now - args.evidence.created_at > maxAge) {
+    return { ready: false, reason: "readiness_expired" };
+  }
+  if (args.evidence.readiness_status !== "ready") {
+    return { ready: false, reason: args.evidence.readiness_status };
+  }
+  return { ready: true, reason: null };
+}
+
 function deriveSource(cfg: SpecialistConfig): string {
   if (cfg.agent_id.startsWith("arbor-")) return "arbor";
   if (!cfg.discovered) return "static";

@@ -71,3 +71,5 @@ Use ripgrep with -g for globs (not --include); prefer rg over find/grep. Clear s
 - Assume technical competence; skip obvious explanations.
 - Front-load critical info — warnings and key concepts first.
 - Default to 1–2 sentence explanations. Only expand when complexity requires it.
+
+## Imported Claude Cowork project instructions

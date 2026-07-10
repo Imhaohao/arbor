@@ -15,12 +15,31 @@ import type { Id } from "./_generated/dataModel";
 import { BID_WINDOW_SECONDS } from "./tasks";
 import { callClaudeJSON, CLAUDE_FAST_MODEL } from "../lib/anthropic";
 import {
+  allocateNodeBudget,
   buildRoutingQuery,
-  perNodeBudget,
+  decideRouteMode,
+  directRouteLiquidity,
+  orchestratorFirstEnabled,
   shouldFallbackOpen,
 } from "../lib/hive/router-core";
+import {
+  bestOfNEnabled,
+  fanoutDeadlineSeconds,
+  fanoutMaxWidth,
+  fanoutMinBudget,
+  plannedFanoutWidth,
+} from "../lib/hive/candidate-search-core";
 import { assembleBlackboardPointers } from "../lib/hive/context-store";
+import {
+  profileWeightedRank,
+  type AgentProfile,
+} from "../lib/hive/profile-core";
 import { ARBOR_FLOOR_AGENT_IDS } from "../lib/specialists/registry";
+
+// FlyRoute proven-bad filter (W3): with this much evidence and a success rate
+// this low, the agent is dropped from the shortlist (open auctions unaffected).
+const PROVEN_BAD_MIN_TASKS = 5;
+const PROVEN_BAD_SUCCESS_RATE = 0.2;
 
 const VALID_TASK_CLASSES = new Set([
   "reasoning",
@@ -53,6 +72,11 @@ export const routeNode = internalAction({
     // and run a full open auction (every roster agent may bid). This is the
     // safety valve when a node's shortlisted auction produced no plausible bid.
     force_open: v.optional(v.boolean()),
+    // Sakana best-of-N sibling dispatch: the primary routeNode call (index
+    // undefined) decides the fan-out width and re-schedules itself once per
+    // extra candidate with an explicit index + pre-split per-candidate budget.
+    candidate_index: v.optional(v.number()),
+    per_candidate_budget: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
@@ -68,7 +92,27 @@ export const routeNode = internalAction({
       dag_id: args.dag_id,
       node_id: args.node_id,
     });
-    if (!node || node.status !== "auctioned") {
+    // A best-of-N sibling (candidate_index > 0) runs while the node is already
+    // "executing" (the primary claimed it), so it uses a different guard: proceed
+    // as long as the node has not reached a terminal state. The primary and the
+    // legacy path keep the strict "auctioned" claim guard for idempotency.
+    const isCandidateSibling =
+      typeof args.candidate_index === "number" && args.candidate_index > 0;
+    if (!node) {
+      console.warn(
+        `[hive-router] node ${args.node_id} in dag ${args.dag_id} missing; skipping`,
+      );
+      return null;
+    }
+    if (isCandidateSibling) {
+      if (node.status === "complete" || node.status === "failed") {
+        console.warn(
+          `[hive-router] node ${args.node_id} candidate ${args.candidate_index} ` +
+            `arrived after node terminal (${node.status}); skipping`,
+        );
+        return null;
+      }
+    } else if (node.status !== "auctioned") {
       console.warn(
         `[hive-router] node ${args.node_id} in dag ${args.dag_id} is not ` +
           `"auctioned" (status=${node?.status ?? "missing"}); skipping (idempotent)`,
@@ -237,12 +281,105 @@ export const routeNode = internalAction({
       });
     }
 
-    // 3. Per-node budget + agent shortlist.
+    // 3. Per-node budget + agent shortlist. SeqRoute-style (W2): allocate this
+    //    node's ceiling from the REMAINING budget (max_budget minus realized
+    //    spend) weighted by estimated difficulty, reserving budget for deeper
+    //    downstream nodes instead of splitting the original budget evenly.
     const nodes = await ctx.runQuery(internal.hiveData._getNodes, {
       dag_id: args.dag_id,
     });
-    const nodeCount = nodes.length;
-    const budget = perNodeBudget(dag.max_budget, nodeCount);
+    const { spent } = await ctx.runQuery(internal.hiveData._dagSpend, {
+      dag_id: args.dag_id,
+    });
+    const nodeBudget = allocateNodeBudget({
+      dagBudget: dag.max_budget,
+      spent,
+      nodes: nodes.map((n) => ({
+        node_id: n.node_id,
+        description: n.description,
+        success_criteria: n.success_criteria,
+        task_class: n.node_id === args.node_id ? taskClass : n.task_class,
+        depends_on: n.depends_on,
+        // This node was claimed to "auctioned"/"executing" for routing; it is
+        // unfinished by definition, whatever the raceful read says.
+        status: n.node_id === args.node_id ? "auctioned" : n.status,
+      })),
+      nodeId: args.node_id,
+    });
+
+    // 3b. Sakana best-of-N fan-out decision. Only the PRIMARY call (no
+    //     candidate_index) decides: when best-of-N is on and this node's class is
+    //     high-value with budget to spare, split the node ceiling across K
+    //     candidate executions and re-schedule routeNode once per extra
+    //     candidate. Siblings inherit the pre-split per-candidate budget and skip
+    //     the decision. When best-of-N is off (or width collapses to 1), budget
+    //     equals the full node ceiling and everything below is unchanged.
+    let budget = nodeBudget;
+    let candidateIndex: number | undefined;
+    let isFanout = false;
+    if (isCandidateSibling) {
+      budget = args.per_candidate_budget ?? nodeBudget;
+      candidateIndex = args.candidate_index;
+      isFanout = true;
+    } else {
+      const fan = plannedFanoutWidth({
+        // Fan out only on a node's FIRST attempt. A consensus revision
+        // (revision_count > 0) is AB-MCTS "deeper" — one targeted refinement
+        // guided by the evaluator critique — not "wider"; it runs the legacy
+        // single-winner path. This also keeps round-1 barrier state
+        // (expected_candidates, promotion_claimed) provably inert: no round-2
+        // candidate can ever re-enter the claimed latch.
+        enabled: bestOfNEnabled() && (node.revision_count ?? 0) === 0,
+        taskClass,
+        nodeBudget,
+        perCandidateFloor: fanoutMinBudget(),
+        maxWidth: fanoutMaxWidth(),
+      });
+      if (fan.qualifies && fan.width > 1) {
+        budget = fan.perCandidateBudget;
+        candidateIndex = 0;
+        isFanout = true;
+        // Claim the node for fan-out: record the expected K and hold it
+        // "executing" while all candidates run. task_id is deliberately left
+        // unset — the promoted winner becomes node.task_id at barrier time.
+        await ctx.runMutation(internal.hiveData._patchNode, {
+          dag_id: args.dag_id,
+          node_id: args.node_id,
+          status: "executing",
+          expected_candidates: fan.width,
+        });
+        for (let i = 1; i < fan.width; i += 1) {
+          await ctx.scheduler.runAfter(0, internal.hiveRouter.routeNode, {
+            dag_id: args.dag_id,
+            node_id: args.node_id,
+            candidate_index: i,
+            per_candidate_budget: fan.perCandidateBudget,
+          });
+        }
+        // Liveness backstop: Convex actions are not retried on failure, so a
+        // candidate routeNode that dies before minting its child would leave
+        // the barrier short forever. After the bid window plus a generous
+        // execution allowance, the sweeper promotes from whatever candidates
+        // actually settled (or fails the node to the W6 floor if none did).
+        await ctx.scheduler.runAfter(
+          (BID_WINDOW_SECONDS + fanoutDeadlineSeconds()) * 1000,
+          internal.hiveCandidates.forcePromotionCheck,
+          { dag_id: args.dag_id, node_id: args.node_id },
+        );
+        await ctx.runMutation(internal.lifecycle.log, {
+          task_id: dag.root_task_id,
+          event_type: "hive_node_fanout",
+          payload: {
+            node_id: args.node_id,
+            width: fan.width,
+            per_candidate_budget: fan.perCandidateBudget,
+            node_budget: nodeBudget,
+            task_class: taskClass,
+            reason: fan.reason,
+          },
+        });
+      }
+    }
 
     const query = buildRoutingQuery(
       { description: node.description, success_criteria: node.success_criteria },
@@ -259,19 +396,83 @@ export const routeNode = internalAction({
           min_reputation: 0.3,
           max_cost: budget,
           model_gateway: rootTask.model_gateway,
+          // W4: base shortlist order is now the 4D blend (capability x
+          // reputation x price x availability) instead of raw similarity.
+          // The profile-weighted re-rank below still applies on top of it.
+          rank_mode: "4d",
         });
+    // FlyRoute profile weighting (W3): blend each candidate's capability
+    // profile into its semantic similarity, drop proven-bad agents (enough
+    // evidence, dismal success rate), and log the scores as flywheel data.
+    // Best-effort: a profile-store hiccup leaves the semantic order intact.
+    let ranked = candidates.map((c) => ({ ...c, routing_score: c.similarity }));
+    // Observed per-agent prices from the W3 flywheel, for direct-mode pricing.
+    const profilePrices = new Map<string, number>();
+    if (candidates.length > 0) {
+      try {
+        const profileRows: AgentProfile[] = await ctx.runQuery(
+          internal.agentProfiles._profilesFor,
+          {
+            agent_ids: candidates.map((c) => c.agent_id),
+            task_class: taskClass,
+          },
+        );
+        const profiles = new Map(profileRows.map((p) => [p.agent_id, p]));
+        for (const p of profileRows) {
+          if (p.tasks > 0 && p.avg_price > 0) {
+            profilePrices.set(p.agent_id, p.avg_price);
+          }
+        }
+        ranked = profileWeightedRank(candidates, profiles).filter((c) => {
+          const profile = profiles.get(c.agent_id);
+          return !(
+            profile &&
+            profile.tasks >= PROVEN_BAD_MIN_TASKS &&
+            profile.success_rate < PROVEN_BAD_SUCCESS_RATE
+          );
+        });
+      } catch (err) {
+        console.warn(
+          `[hive-router] profile weighting failed; using semantic order: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    // Orchestrator-first gate (ARBOR_ORCHESTRATOR_FIRST_ENABLED, default off):
+    // on a thin market, skip the bid round and directly assign the top
+    // profile-ranked ready candidate. The decision is conservative — force_open
+    // retries, best-of-N fan-outs, consensus revisions, and exhausted budgets
+    // all stay on the auction path (see decideRouteMode).
+    const routeMode = decideRouteMode({
+      enabled: orchestratorFirstEnabled(),
+      forceOpen: Boolean(args.force_open),
+      isFanout,
+      revisionCount: node.revision_count ?? 0,
+      budget,
+      candidates: ranked,
+      floorAgentIds: ARBOR_FLOOR_AGENT_IDS,
+      liquidityThreshold: directRouteLiquidity(),
+      profilePrices,
+    });
+    const isDirect =
+      routeMode.mode === "direct" && Boolean(routeMode.direct_agent_id);
+
     // Shortlisted auctions always also invite the Arbor-owned floor agents, so
     // every node has a guaranteed plausible bidder on the FIRST auction (not
     // only the open-retry). searchAgents filters by min_reputation 0.3, which
     // excludes the 0.05-rep floors, so they must be appended explicitly. On a
     // force_open / fallback-open round, invited is undefined and the whole
-    // roster (floors included) bids anyway.
-    const invited =
-      args.force_open || shouldFallbackOpen(candidates)
+    // roster (floors included) bids anyway. In direct mode the invited list is
+    // the single assignee — an audit trail; solicitBids never runs on it.
+    const invited = isDirect
+      ? [routeMode.direct_agent_id as string]
+      : args.force_open || shouldFallbackOpen(ranked)
         ? undefined
         : Array.from(
             new Set([
-              ...candidates.map((c) => c.agent_id),
+              ...ranked.map((c) => c.agent_id),
               ...ARBOR_FLOOR_AGENT_IDS,
             ]),
           );
@@ -296,10 +497,10 @@ export const routeNode = internalAction({
           "\n---"
         : "");
 
-    // NOTE: passing parent_task_id = dag.root_task_id means auctions.settle
-    // will later call internal.planning.advanceOrSynthesize on the root task,
-    // which is wrong for hive parents until Agent Task 19 adds a hive guard.
-    // We follow the spec exactly here (the guard lands separately).
+    // parent_task_id = dag.root_task_id: auctions.settle will later call
+    // internal.planning.advanceOrSynthesize on this child, whose hive guard
+    // (child.hive_node_id set) routes settlement to hiveOrchestrator.onNodeSettled
+    // instead of the legacy step-planner path.
     const created: { child_task_id: Id<"tasks">; bid_window_closes_at: number } =
       await ctx.runMutation(internal.tasks._createChild, {
         parent_task_id: dag.root_task_id,
@@ -315,15 +516,23 @@ export const routeNode = internalAction({
       hive_node_id: args.node_id,
       invited_agent_ids: invited,
       success_criteria: node.success_criteria,
+      // Marks this child as a best-of-N candidate so it settles into the
+      // candidate archive + barrier (hiveCandidates), not directly onto the node.
+      hive_candidate_index: isFanout ? candidateIndex : undefined,
     });
 
-    // 5. Mark the node executing and link it to its child task.
-    await ctx.runMutation(internal.hiveData._patchNode, {
-      dag_id: args.dag_id,
-      node_id: args.node_id,
-      status: "executing",
-      task_id: childTaskId,
-    });
+    // 5. Mark the node executing and link it to its child task. Under best-of-N
+    //    the node is already "executing" (the primary claimed it) and its
+    //    task_id is set to the promoted winner at barrier time, so no candidate
+    //    call touches node status/task_id here.
+    if (!isFanout) {
+      await ctx.runMutation(internal.hiveData._patchNode, {
+        dag_id: args.dag_id,
+        node_id: args.node_id,
+        status: "executing",
+        task_id: childTaskId,
+      });
+    }
 
     // 6. Lifecycle breadcrumb on the root task.
     await ctx.runMutation(internal.lifecycle.log, {
@@ -334,21 +543,63 @@ export const routeNode = internalAction({
         child_task_id: childTaskId,
         invited: invited ?? "open",
         candidate_count: candidates.length,
+        // Flywheel training data (W3): profile-blended scores per candidate.
+        routing_scores: ranked.map((c) => ({
+          agent_id: c.agent_id,
+          similarity: c.similarity,
+          routing_score: c.routing_score,
+        })),
         task_class: taskClass,
         budget,
+        dag_budget: dag.max_budget,
+        dag_spent: spent,
+        allocator: "seqroute-heuristic-v1",
         force_open: Boolean(args.force_open),
+        candidate_index: isFanout ? candidateIndex : undefined,
+        route_mode: routeMode.mode,
+        route_mode_reason: routeMode.reason,
+        independent_ready_count: routeMode.independent_ready_count,
+        direct_agent_id: isDirect ? routeMode.direct_agent_id : undefined,
+        direct_price: isDirect ? routeMode.direct_price : undefined,
       },
     });
 
-    // 7. Start the EXISTING Vickrey auction on the child task.
-    await ctx.scheduler.runAfter(0, internal.auctions.solicitBids, {
-      task_id: childTaskId,
-    });
-    await ctx.scheduler.runAfter(
-      BID_WINDOW_SECONDS * 1000,
-      internal.auctions.resolve,
-      { task_id: childTaskId },
-    );
+    if (isDirect) {
+      // 7a. Orchestrator-first direct assignment: one synthetic bid for the
+      //     chosen agent, then resolve immediately — no bid window, no
+      //     solicit fan-out, no plausibility screen. resolve's degenerate
+      //     single-bid Vickrey prices at this bid, locks escrow, and hands off
+      //     to the UNCHANGED execute -> judge -> settle pipeline. If the agent
+      //     fails, execute finds no other bids and the task fails into the W6
+      //     floor backstop via onNodeSettled, same as a failed auction.
+      await ctx.runMutation(internal.bids._insert, {
+        task_id: childTaskId,
+        agent_id: routeMode.direct_agent_id as string,
+        bid_price: routeMode.direct_price ?? budget,
+        capability_claim:
+          "Direct assignment by the orchestrator-first router: top " +
+          "profile-ranked ready candidate on a thin market (no bid round).",
+        estimated_seconds: 120,
+        score: 1,
+        plan_source: "direct_assignment",
+      });
+      await ctx.scheduler.runAfter(0, internal.auctions.resolve, {
+        task_id: childTaskId,
+      });
+    } else {
+      // 7b. Start the EXISTING Vickrey auction on the child task.
+      await ctx.scheduler.runAfter(0, internal.auctions.solicitBids, {
+        task_id: childTaskId,
+      });
+      await ctx.scheduler.runAfter(
+        BID_WINDOW_SECONDS * 1000,
+        internal.auctions.resolve,
+        { task_id: childTaskId },
+      );
+    }
+    // Settlement sweep backstop on both paths. The primary settlement trigger
+    // is auctions.settle -> advanceOrSynthesize; this delayed call only
+    // catches wedged nodes, and onNodeSettled is idempotent on settled ones.
     await ctx.scheduler.runAfter(
       BID_WINDOW_SECONDS * 1000 + 5000,
       internal.hiveOrchestrator.onNodeSettled,

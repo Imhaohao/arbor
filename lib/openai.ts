@@ -556,6 +556,75 @@ export function describeModelRuntime(purpose?: ModelPurpose): {
   };
 }
 
+export interface OpenAIPathReadiness {
+  usable: boolean;
+  provider: ModelProvider;
+  model: string;
+  missing_env: string[];
+}
+
+/**
+ * Throw-free probe of whether callOpenAI can actually run for the resolved
+ * provider (OpenAI direct, Azure, Foundry, or the OpenRouter gateway).
+ * Unlike describeModelRuntime, this never throws on missing deployment or
+ * endpoint config — it reports the missing env vars instead, so callers can
+ * gate fallback chains on provider usability rather than on OPENAI_API_KEY.
+ */
+export function describeOpenAIPathReadiness(
+  purpose?: ModelPurpose,
+): OpenAIPathReadiness {
+  if (openrouterEnabled()) {
+    const missing = env("OPENROUTER_API_KEY") ? [] : ["OPENROUTER_API_KEY"];
+    return {
+      usable: missing.length === 0,
+      provider: "openai",
+      model: openRouterModel(purpose),
+      missing_env: missing,
+    };
+  }
+  const selected = provider();
+  if (selected === "disabled") {
+    return {
+      usable: false,
+      provider: selected,
+      model: "(disabled)",
+      missing_env: [],
+    };
+  }
+  const missing: string[] = [];
+  let model = "(unset)";
+  if (selected === "azure-openai") {
+    if (!env("AZURE_OPENAI_API_KEY")) missing.push("AZURE_OPENAI_API_KEY");
+    if (!env("AZURE_OPENAI_ENDPOINT")) missing.push("AZURE_OPENAI_ENDPOINT");
+    try {
+      model = azureDeployment(purpose);
+    } catch {
+      missing.push(`AZURE_OPENAI_${purposeSuffix(purpose)}_DEPLOYMENT`);
+    }
+  } else if (selected === "foundry") {
+    if (!env("AZURE_FOUNDRY_API_KEY") && !env("AZURE_INFERENCE_CREDENTIAL")) {
+      missing.push("AZURE_FOUNDRY_API_KEY");
+    }
+    if (!env("AZURE_FOUNDRY_ENDPOINT") && !env("AZURE_AI_FOUNDRY_ENDPOINT")) {
+      missing.push("AZURE_FOUNDRY_ENDPOINT");
+    }
+    try {
+      model = foundryDeployment(purpose);
+    } catch {
+      missing.push(`AZURE_FOUNDRY_${purposeSuffix(purpose)}_DEPLOYMENT`);
+    }
+  } else {
+    if (!env("OPENAI_API_KEY")) missing.push("OPENAI_API_KEY");
+    model = openAIModel(purpose);
+  }
+  return {
+    usable: missing.length === 0,
+    provider: selected,
+    model,
+    missing_env: missing,
+  };
+}
+
 export async function callOpenAI(opts: CallOptions): Promise<string> {
   const {
     systemPrompt,

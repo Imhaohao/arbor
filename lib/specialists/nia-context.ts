@@ -4,8 +4,7 @@
 // and local folders (Nia's full toolkit). Bid + execute are forwarded to the
 // live server via OpenAI tool-calling when NIA_API_KEY is present.
 
-import { makeMcpForwardingSpecialist } from "./mcp-forwarding";
-import type { SpecialistConfig, SpecialistRunner } from "../types";
+import type { SpecialistConfig } from "../types";
 
 export const NIA_CONTEXT_CONFIG: SpecialistConfig = {
   agent_id: "nia-context",
@@ -29,7 +28,3 @@ export const NIA_CONTEXT_CONFIG: SpecialistConfig = {
   is_verified: true,
   homepage_url: "https://trynia.ai",
 };
-
-export const niaContext: SpecialistRunner = makeMcpForwardingSpecialist(
-  NIA_CONTEXT_CONFIG,
-);

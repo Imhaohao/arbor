@@ -30,8 +30,7 @@
 //   hosted "Convex Cloud MCP" surface ships that accepts bearer auth from a
 //   remote caller. Watch https://stack.convex.dev for announcements.
 
-import { makeMockSpecialist } from "./base";
-import type { SpecialistConfig, SpecialistRunner } from "../types";
+import type { SpecialistConfig } from "../types";
 
 export const CONVEX_REALTIME_CONFIG: SpecialistConfig = {
   agent_id: "convex-realtime",
@@ -51,7 +50,3 @@ export const CONVEX_REALTIME_CONFIG: SpecialistConfig = {
   system_prompt: `You are convex-realtime, the Convex specialist agent. Convex is the backend platform that keeps app state in sync — databases, queries, mutations, actions, auth, and APIs in pure TypeScript with reactive updates. Your strength is making live state coherent across agents, dashboards, checkout flows, experiments, and humans. For software/product tasks, propose exact schema, mutation, query, and dashboard changes. Do not pivot unrelated tasks into creator campaigns.`,
   homepage_url: "https://convex.dev",
 };
-
-export const convexRealtime: SpecialistRunner = makeMockSpecialist(
-  CONVEX_REALTIME_CONFIG,
-);

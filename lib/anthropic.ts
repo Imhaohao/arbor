@@ -1,7 +1,7 @@
 import {
   callOpenAI,
   callOpenRouter,
-  describeModelRuntime,
+  describeOpenAIPathReadiness,
   parseJSONLoose,
 } from "./openai";
 
@@ -43,6 +43,8 @@ interface AnthropicTextResponse {
 
 interface RequiredClaudeCallOptions extends Required<ClaudeCallOptions> {}
 
+type HiveProviderPreference = "auto" | "anthropic" | "openrouter" | "openai";
+
 async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -70,6 +72,46 @@ function envFlag(name: string): boolean {
   return ["1", "true", "yes", "on", "enabled"].includes(value);
 }
 
+function hiveProviderPreference(): {
+  preferred: HiveProviderPreference;
+  forced: boolean;
+} {
+  const raw = (
+    env("ARBOR_HIVE_MODEL_PROVIDER") ??
+    env("ARBOR_CLAUDE_PROVIDER") ??
+    ""
+  ).toLowerCase();
+  if (["anthropic", "claude"].includes(raw)) {
+    return { preferred: "anthropic", forced: true };
+  }
+  if (["openrouter", "router"].includes(raw)) {
+    return { preferred: "openrouter", forced: true };
+  }
+  if (["openai", "native", "direct"].includes(raw)) {
+    return { preferred: "openai", forced: true };
+  }
+  // Unset/auto keeps the legacy fallback order (Anthropic -> OpenRouter ->
+  // OpenAI path). Preferring OpenAI must be an explicit opt-in via the env
+  // flag — auto-preferring it whenever the OpenAI path is usable would
+  // silently reroute Anthropic-keyed deployments and make the flag a no-op.
+  return { preferred: "auto", forced: false };
+}
+
+function providerOrder(): Array<Exclude<HiveProviderPreference, "auto">> {
+  const preference = hiveProviderPreference();
+  const fallbackOrder: Array<Exclude<HiveProviderPreference, "auto">> = [
+    "anthropic",
+    "openrouter",
+    "openai",
+  ];
+  if (preference.preferred === "auto") return fallbackOrder;
+  if (preference.forced) return [preference.preferred];
+  return [
+    preference.preferred,
+    ...fallbackOrder.filter((provider) => provider !== preference.preferred),
+  ];
+}
+
 function anthropicApiKey(): string {
   const key = env("ANTHROPIC_API_KEY");
   if (!key) throw new Error("ANTHROPIC_API_KEY is not set");
@@ -94,6 +136,8 @@ export function describeClaudeRuntime(
   const anthropicConfigured = Boolean(env("ANTHROPIC_API_KEY"));
   const openRouterConfigured = Boolean(env("OPENROUTER_API_KEY"));
   const openAIConfigured = Boolean(env("OPENAI_API_KEY"));
+  const preference = hiveProviderPreference();
+  const openAIPath = describeOpenAIPathReadiness("planner");
   if (
     envFlag("ARBOR_MODEL_SPEND_DISABLED") ||
     envFlag("ARBOR_MODEL_CALLS_DISABLED")
@@ -111,6 +155,77 @@ export function describeClaudeRuntime(
         ...(openRouterConfigured ? [] : ["OPENROUTER_API_KEY"]),
       ],
       message: "Hive model calls are disabled by an Arbor runtime switch.",
+    };
+  }
+  if (preference.preferred === "openai" && preference.forced) {
+    if (openAIPath.usable) {
+      return {
+        ready: true,
+        status: "ready",
+        provider: "openai",
+        model: openAIPath.model,
+        anthropic_key_configured: anthropicConfigured,
+        openrouter_key_configured: openRouterConfigured,
+        openai_key_configured: openAIConfigured,
+        missing_env: [],
+        message:
+          "Hive model calls are forced through the configured OpenAI path.",
+      };
+    }
+    return {
+      ready: false,
+      status: "blocked",
+      provider: "unavailable",
+      model: openAIPath.model,
+      anthropic_key_configured: anthropicConfigured,
+      openrouter_key_configured: openRouterConfigured,
+      openai_key_configured: openAIConfigured,
+      missing_env: openAIPath.missing_env.length > 0
+        ? openAIPath.missing_env
+        : ["OPENAI_API_KEY"],
+      message:
+        "ARBOR_HIVE_MODEL_PROVIDER=openai is set, but the OpenAI path is not usable.",
+    };
+  }
+  if (preference.preferred === "openrouter" && preference.forced) {
+    if (openRouterConfigured) {
+      return {
+        ready: true,
+        status: "ready",
+        provider: "openrouter",
+        model: openRouterModel(model),
+        anthropic_key_configured: anthropicConfigured,
+        openrouter_key_configured: true,
+        openai_key_configured: openAIConfigured,
+        missing_env: [],
+        message: "Hive model calls are forced through OpenRouter.",
+      };
+    }
+    return {
+      ready: false,
+      status: "blocked",
+      provider: "unavailable",
+      model: openRouterModel(model),
+      anthropic_key_configured: anthropicConfigured,
+      openrouter_key_configured: false,
+      openai_key_configured: openAIConfigured,
+      missing_env: ["OPENROUTER_API_KEY"],
+      message:
+        "ARBOR_HIVE_MODEL_PROVIDER=openrouter is set, but OPENROUTER_API_KEY is missing.",
+    };
+  }
+  if (preference.preferred === "anthropic" && preference.forced && !anthropicConfigured) {
+    return {
+      ready: false,
+      status: "blocked",
+      provider: "unavailable",
+      model,
+      anthropic_key_configured: false,
+      openrouter_key_configured: openRouterConfigured,
+      openai_key_configured: openAIConfigured,
+      missing_env: ["ANTHROPIC_API_KEY"],
+      message:
+        "ARBOR_HIVE_MODEL_PROVIDER=anthropic is set, but ANTHROPIC_API_KEY is missing.",
     };
   }
   if (anthropicConfigured) {
@@ -140,32 +255,36 @@ export function describeClaudeRuntime(
         "ANTHROPIC_API_KEY is missing in Convex; Hive Claude calls use the configured OpenRouter fallback.",
     };
   }
-  if (openAIConfigured) {
-    const runtime = describeModelRuntime("planner");
-    if (runtime.provider === "disabled") {
-      return {
-        ready: false,
-        status: "blocked",
-        provider: "unavailable",
-        model: runtime.model,
-        anthropic_key_configured: false,
-        openrouter_key_configured: false,
-        openai_key_configured: true,
-        missing_env: ["ANTHROPIC_API_KEY", "OPENROUTER_API_KEY"],
-        message: "The configured OpenAI fallback is disabled by model routing.",
-      };
-    }
+  // Gate the final fallback on provider usability, not on OPENAI_API_KEY —
+  // a pure-Azure/Foundry deployment has no OpenAI key but callOpenAI works.
+  if (openAIPath.usable) {
+    const viaAzure =
+      openAIPath.provider === "azure-openai" || openAIPath.provider === "foundry";
     return {
       ready: true,
       status: "fallback",
       provider: "openai",
-      model: runtime.model,
+      model: openAIPath.model,
+      anthropic_key_configured: false,
+      openrouter_key_configured: false,
+      openai_key_configured: openAIConfigured,
+      missing_env: ["ANTHROPIC_API_KEY", "OPENROUTER_API_KEY"],
+      message: viaAzure
+        ? "Claude runtime keys are missing in Convex; Hive model calls use the configured Azure fallback."
+        : "Claude runtime keys are missing in Convex; Hive model calls use the configured OpenAI fallback.",
+    };
+  }
+  if (openAIConfigured && openAIPath.provider === "disabled") {
+    return {
+      ready: false,
+      status: "blocked",
+      provider: "unavailable",
+      model: openAIPath.model,
       anthropic_key_configured: false,
       openrouter_key_configured: false,
       openai_key_configured: true,
       missing_env: ["ANTHROPIC_API_KEY", "OPENROUTER_API_KEY"],
-      message:
-        "Claude runtime keys are missing in Convex; Hive model calls use the configured OpenAI fallback.",
+      message: "The configured OpenAI fallback is disabled by model routing.",
     };
   }
   return {
@@ -175,11 +294,13 @@ export function describeClaudeRuntime(
     model,
     anthropic_key_configured: false,
     openrouter_key_configured: false,
-    openai_key_configured: false,
+    openai_key_configured: openAIConfigured,
     missing_env: [
       "ANTHROPIC_API_KEY",
       "OPENROUTER_API_KEY",
-      "OPENAI_API_KEY",
+      ...(openAIPath.missing_env.length > 0
+        ? openAIPath.missing_env
+        : ["OPENAI_API_KEY"]),
     ],
     message:
       "Convex has no model runtime key. Hive planning collapses to one node and evaluation uses plain output concatenation.",
@@ -256,44 +377,46 @@ export async function callClaude(opts: ClaudeCallOptions): Promise<string> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     assertModelSpendEnabled();
     let attempted = false;
-    if (env("ANTHROPIC_API_KEY")) {
-      attempted = true;
-      try {
-        return await postClaudeMessage(resolved);
-      } catch (err) {
-        lastErr = err;
+    for (const provider of providerOrder()) {
+      if (provider === "anthropic" && env("ANTHROPIC_API_KEY")) {
+        attempted = true;
+        try {
+          return await postClaudeMessage(resolved);
+        } catch (err) {
+          lastErr = err;
+        }
       }
-    }
-    if (env("OPENROUTER_API_KEY")) {
-      attempted = true;
-      try {
-        return await callOpenRouter({
-          ...resolved,
-          model: openRouterModel(model),
-          retries: 0,
-        });
-      } catch (err) {
-        lastErr = err;
+      if (provider === "openrouter" && env("OPENROUTER_API_KEY")) {
+        attempted = true;
+        try {
+          return await callOpenRouter({
+            ...resolved,
+            model: openRouterModel(model),
+            retries: 0,
+          });
+        } catch (err) {
+          lastErr = err;
+        }
       }
-    }
-    if (env("OPENAI_API_KEY")) {
-      attempted = true;
-      try {
-        return await callOpenAI({
-          systemPrompt,
-          userPrompt,
-          maxTokens,
-          timeoutMs,
-          retries: 0,
-          purpose: "planner",
-        });
-      } catch (err) {
-        lastErr = err;
+      if (provider === "openai" && describeOpenAIPathReadiness("planner").usable) {
+        attempted = true;
+        try {
+          return await callOpenAI({
+            systemPrompt,
+            userPrompt,
+            maxTokens,
+            timeoutMs,
+            retries: 0,
+            purpose: "planner",
+          });
+        } catch (err) {
+          lastErr = err;
+        }
       }
     }
     if (!attempted) {
       lastErr = new Error(
-        "ANTHROPIC_API_KEY, OPENROUTER_API_KEY, or OPENAI_API_KEY must be set for Hive model calls",
+        "ANTHROPIC_API_KEY, OPENROUTER_API_KEY, or a usable OpenAI-path provider (OPENAI_API_KEY, or Azure/Foundry credentials with ARBOR_AZURE_ENABLED) must be set for Hive model calls",
       );
     }
   }

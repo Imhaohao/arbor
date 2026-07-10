@@ -1,4 +1,4 @@
-import { internalMutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, query } from "./_generated/server";
 import { v } from "convex/values";
 
 const WEIGHT = {
@@ -148,5 +148,67 @@ export const summaries = query({
       value: s.value / s.tasks,
       overall: s.overall / s.tasks,
     }));
+  },
+});
+
+/**
+ * Per-agent 4D reputation dimensions for W4 ranked discovery
+ * (rankAgents4D in lib/hive/rank-core.ts): reliability = accepted-rate,
+ * quality = mean quality_score, speed = mean speed_score. `safety` has no
+ * real signal yet — this returns a neutral 1.0 default for every agent until
+ * a dedicated safety-eval pipeline lands; treat it as a placeholder, not a
+ * verified score.
+ */
+export const _dimensionsForAgents = internalQuery({
+  args: { agent_ids: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const result = new Map<
+      string,
+      {
+        agent_id: string;
+        tasks: number;
+        accepted: number;
+        speed: number;
+        quality: number;
+      }
+    >();
+    for (const agent_id of args.agent_ids) {
+      const rows = await ctx.db
+        .query("reputation_dimensions")
+        .withIndex("by_agent", (q) => q.eq("agent_id", agent_id))
+        .collect();
+      const acc = { agent_id, tasks: 0, accepted: 0, speed: 0, quality: 0 };
+      for (const r of rows) {
+        acc.tasks += 1;
+        acc.accepted += r.accepted ? 1 : 0;
+        acc.speed += r.speed_score;
+        acc.quality += r.quality_score;
+      }
+      result.set(agent_id, acc);
+    }
+    return args.agent_ids.map((agent_id) => {
+      const acc = result.get(agent_id);
+      if (!acc || acc.tasks === 0) {
+        // No settled history: neutral 0.5 reliability/quality/speed rather
+        // than penalizing unseen agents, matching profile-core's empty-prior
+        // convention. Safety stays 1.0 (see doc comment above).
+        return {
+          agent_id,
+          reliability: 0.5,
+          quality: 0.5,
+          safety: 1.0,
+          speed: 0.5,
+        };
+      }
+      return {
+        agent_id,
+        reliability: clamp01(acc.accepted / acc.tasks),
+        quality: clamp01(acc.quality / acc.tasks),
+        // Safety: no dedicated safety-eval signal exists yet. Default to a
+        // neutral 1.0 (no known safety issues) until one is built.
+        safety: 1.0,
+        speed: clamp01(acc.speed / acc.tasks),
+      };
+    });
   },
 });

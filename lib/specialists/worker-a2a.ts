@@ -12,8 +12,7 @@
 //   ARBOR_WORKER_BEARER             — optional; bearer token if the worker's
 //                                     agent card requires auth
 
-import { makeA2aForwardingSpecialist } from "./a2a-forwarding";
-import type { SpecialistConfig, SpecialistRunner } from "../types";
+import type { SpecialistConfig } from "../types";
 
 const endpoint = process.env.ARBOR_WORKER_A2A_ENDPOINT?.trim();
 const cardUrl = process.env.ARBOR_WORKER_A2A_AGENT_CARD_URL?.trim();
@@ -38,7 +37,3 @@ export const WORKER_A2A_CONFIG: SpecialistConfig = {
   a2a_agent_card_url: cardUrl,
   a2a_api_key_env: "ARBOR_WORKER_BEARER",
 };
-
-export const workerA2a: SpecialistRunner | null = endpoint
-  ? makeA2aForwardingSpecialist(WORKER_A2A_CONFIG)
-  : null;

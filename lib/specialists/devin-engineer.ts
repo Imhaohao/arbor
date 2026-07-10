@@ -6,8 +6,7 @@
 //   https://docs.devin.ai/work-with-devin/devin-mcp confirmed live endpoint.
 //   curl -I https://mcp.devin.ai/mcp returns HTTP 405 (live, auth required).
 
-import { makeDevinMcpBridgeSpecialist } from "./devin-bridge";
-import type { SpecialistConfig, SpecialistRunner } from "../types";
+import type { SpecialistConfig } from "../types";
 
 const configuredDevinKey = process.env.DEVIN_API_KEY?.trim();
 
@@ -36,6 +35,3 @@ export const DEVIN_ENGINEER_CONFIG: SpecialistConfig = {
   is_verified:
     configuredDevinKey !== undefined && !configuredDevinKey.startsWith("apk_"),
 };
-
-export const devinEngineer: SpecialistRunner =
-  makeDevinMcpBridgeSpecialist(DEVIN_ENGINEER_CONFIG);

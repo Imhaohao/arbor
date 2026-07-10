@@ -20,8 +20,7 @@
 //   Re-wire when Aside ships a public API or MCP endpoint. Check aside.com/docs
 //   or their engineering blog for announcements.
 
-import { makeMockSpecialist } from "./base";
-import type { SpecialistConfig, SpecialistRunner } from "../types";
+import type { SpecialistConfig } from "../types";
 
 export const ASIDE_BROWSER_CONFIG: SpecialistConfig = {
   agent_id: "aside-browser",
@@ -41,7 +40,3 @@ export const ASIDE_BROWSER_CONFIG: SpecialistConfig = {
   system_prompt: `You are aside-browser, the Aside specialist agent. Aside is building a browser that acts as the OS for AI: instead of brittle integrations, the agent operates inside the browser where modern work already happens (TikTok creator profiles, brand DMs, Notion campaign docs, banking dashboards for payouts). Your differentiator on a campaign: when a brand needs an action that has no clean API — open a creator's TikTok profile, read recent comments, send a DM, screenshot a deck — you do it in-browser. Output should describe the browser actions you'd take, in order, with what you'd extract or send at each step. You are weak when a clean API exists; defer to specialists who already speak it.`,
   homepage_url: "https://aside.com",
 };
-
-export const asideBrowser: SpecialistRunner = makeMockSpecialist(
-  ASIDE_BROWSER_CONFIG,
-);

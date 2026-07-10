@@ -72,6 +72,11 @@ export default defineSchema({
     invited_agent_ids: v.optional(v.array(v.string())),
     hive_dag_id: v.optional(v.id("hive_dags")),
     hive_node_id: v.optional(v.string()),
+    // Sakana best-of-N (ARBOR_HIVE_BESTOFN_ENABLED): when a node fans out into
+    // several candidate executions, each child task carries its candidate index.
+    // Unset on the legacy single-winner path, so onNodeSettled behaves exactly
+    // as before when best-of-N is off.
+    hive_candidate_index: v.optional(v.number()),
     success_criteria: v.optional(v.string()),
   }).index("by_parent", ["parent_task_id"]),
 
@@ -338,6 +343,32 @@ export default defineSchema({
     .index("by_agent", ["agent_id"])
     .index("by_task", ["task_id"]),
 
+  /**
+   * FlyRoute-style capability profiles (W3): one row per (agent, task-class),
+   * EWMA-updated from every settled hive node. `uncertainty` shrinks with
+   * evidence and buys router exploration; the router blends profileScore into
+   * the semantic shortlist order (lib/hive/profile-core.ts).
+   */
+  agent_profiles: defineTable({
+    agent_id: v.string(),
+    task_class: v.string(),
+    /** Number of settled-node outcomes folded into this profile. */
+    tasks: v.number(),
+    /** EWMA of success (node reached complete), 0..1. */
+    success_rate: v.number(),
+    /** EWMA of judge quality_score, 0..1. */
+    avg_quality: v.number(),
+    /** EWMA of wall-clock seconds from child-task mint to settle. */
+    avg_latency_seconds: v.number(),
+    /** EWMA of price_paid on settled child tasks. */
+    avg_price: v.number(),
+    /** 1/sqrt(tasks+1) — exploration term, 1.0 at zero evidence. */
+    uncertainty: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_agent", ["agent_id"])
+    .index("by_agent_and_class", ["agent_id", "task_class"]),
+
   lifecycle_events: defineTable({
     task_id: v.id("tasks"),
     event_type: v.string(),
@@ -409,6 +440,7 @@ export default defineSchema({
     created_at: v.number(),
     discovery_source: v.optional(
       v.union(
+        v.literal("google"),
         v.literal("catalog"),
         v.literal("registry"),
         v.literal("synthesized"),
@@ -477,6 +509,21 @@ export default defineSchema({
     updated_at: v.number(),
   }).index("by_run_id", ["run_id"]),
 
+  /**
+   * Conversational negotiation memory for the A2A market gateway. The A2A
+   * protocol never retransmits history, so the server keeps one row per turn
+   * keyed by contextId; replies stay on-topic across message/send exchanges
+   * from foreign agents. Read/written by convex/a2aNegotiations.ts.
+   */
+  a2a_negotiation_turns: defineTable({
+    context_id: v.string(),
+    role: v.union(v.literal("counterparty"), v.literal("agent")),
+    text: v.string(),
+    requester_agent_id: v.optional(v.string()),
+    intent: v.optional(v.string()),
+    created_at: v.number(),
+  }).index("by_context_id", ["context_id"]),
+
   // ─── Hive mind: Layer 1 registry embeddings ──────────────────────────────
   hive_agent_embeddings: defineTable({
     agent_id: v.string(),
@@ -533,11 +580,89 @@ export default defineSchema({
     output_text: v.optional(v.string()),
     eval_score: v.optional(v.number()),
     revision_count: v.optional(v.number()),
+    // Cost telemetry (W2): per-node spend + budget data for the SeqRoute
+    // budget allocator (see hiveData._dagSpend) and a future offline-RL
+    // router. Populated in onNodeSettled from the child task row.
+    cost_paid: v.optional(v.number()),
+    bid_price: v.optional(v.number()),
+    allocated_budget: v.optional(v.number()),
+    settled_at: v.optional(v.number()),
+    // Sakana best-of-N fan-out (ARBOR_HIVE_BESTOFN_ENABLED). expected_candidates
+    // is the K this node fanned out into; onNodeSettled waits for K candidates to
+    // settle (the barrier) before selecting a winner. promotion_claimed is the
+    // atomic latch that guarantees exactly one settle delivery promotes a winner.
+    // Both unset on the single-winner path (byte-for-byte unchanged when off).
+    expected_candidates: v.optional(v.number()),
+    promotion_claimed: v.optional(v.boolean()),
     updated_at: v.number(),
   })
     .index("by_dag", ["dag_id"])
     .index("by_dag_and_node_id", ["dag_id", "node_id"])
     .index("by_task_id", ["task_id"]),
+
+  // ─── Hive mind: Sakana best-of-N candidate archive ───────────────────────
+  // One row per candidate execution of a node under best-of-N (the "orchestrator
+  // branches"/"artifacts" of the Sakana report). The judge selects among the
+  // contenders; the winner is promoted onto the node and the losers are kept as
+  // a replayable archive + extra flywheel training signal.
+  hive_node_candidates: defineTable({
+    dag_id: v.id("hive_dags"),
+    node_id: v.string(),
+    candidate_index: v.number(),
+    task_id: v.optional(v.id("tasks")),
+    agent_id: v.optional(v.string()),
+    output_text: v.optional(v.string()),
+    calibrated_score: v.optional(v.number()),
+    confidence: v.optional(v.number()),
+    cost_paid: v.optional(v.number()),
+    quality: v.optional(v.any()),
+    status: v.union(
+      v.literal("contender"),
+      v.literal("promoted"),
+      v.literal("rejected"),
+    ),
+    generation: v.optional(v.number()),
+    parent_candidate_id: v.optional(v.id("hive_node_candidates")),
+    created_at: v.number(),
+  })
+    .index("by_dag", ["dag_id"])
+    .index("by_dag_and_node", ["dag_id", "node_id"])
+    .index("by_task_id", ["task_id"]),
+
+  // ─── Hive mind: Sakana evolution archive (reversible artifacts) ──────────
+  // Proposed/evaluated/promoted genomes for evolvable artifacts (prompt
+  // templates, rubric weights, DAG priors, role specs, tool allowlists). Never
+  // auto-promoted: promotion requires approved_by. Gated by
+  // ARBOR_HIVE_EVOLUTION_ENABLED.
+  evolution_genomes: defineTable({
+    kind: v.union(
+      v.literal("prompt_template"),
+      v.literal("rubric_weights"),
+      v.literal("dag_prior"),
+      v.literal("role_spec"),
+      v.literal("tool_allowlist"),
+    ),
+    genome_id: v.string(),
+    content: v.string(),
+    lineage_parent_ids: v.array(v.string()),
+    generation: v.number(),
+    op: v.optional(v.string()),
+    behavior_descriptor: v.optional(v.string()),
+    score: v.optional(v.number()),
+    status: v.union(
+      v.literal("proposed"),
+      v.literal("evaluated"),
+      v.literal("promoted"),
+      v.literal("rejected"),
+    ),
+    harness_id: v.optional(v.string()),
+    approved_by: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_kind", ["kind"])
+    .index("by_kind_and_status", ["kind", "status"])
+    .index("by_genome_id", ["genome_id"]),
 
   // ─── Hive mind: Layer 4 agentic blackboard ──────────────────────────────
   scratchpad_entries: defineTable({
@@ -568,6 +693,20 @@ export default defineSchema({
     confidence: v.number(),
     embedding: v.optional(v.array(v.float64())),
     embedding_model: v.optional(v.string()),
+    // DELM (arXiv:2510.01285) curated-blackboard properties. Both optional so
+    // existing rows and callers are unaffected when ARBOR_BLACKBOARD_VERIFY_ENABLED
+    // is off (the default).
+    // Admit-on-verify: curation label, not a rejection gate — unverified entries
+    // are still stored. Only set when the verify flag is on.
+    verification: v.optional(
+      v.union(v.literal("evidence_backed"), v.literal("unverified")),
+    ),
+    // Entry ids the writer claims as supporting evidence (must resolve in the
+    // same DAG to earn "evidence_backed").
+    supporting_entry_ids: v.optional(v.array(v.id("scratchpad_entries"))),
+    // Gist-unfold: compact deterministic summary (<=240 chars), always safe to
+    // populate since it costs no model call.
+    gist: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_dag", ["dag_id"])

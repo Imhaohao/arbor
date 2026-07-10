@@ -135,6 +135,9 @@ export const writeSigned = action({
           | undefined,
         revision: payload.revision,
         confidence: payload.confidence,
+        supporting_entry_ids: payload.supporting_entry_ids as
+          | Id<"scratchpad_entries">[]
+          | undefined,
       },
     );
 

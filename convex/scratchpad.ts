@@ -9,7 +9,10 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import {
+  blackboardVerifyEnabled,
+  makeGist,
   normalizeBlackboardNamespace,
+  resolveBlackboardVerification,
   type BlackboardKind,
 } from "../lib/hive/blackboard-core";
 
@@ -31,8 +34,6 @@ const contentFormatValidator = v.union(
 );
 
 const MAX_CONTENT_CHARS = 16_000;
-const RECENT_DEFAULT = 5;
-const RECENT_MAX = 50;
 const FOR_DAG_LIMIT = 200;
 const FOR_NODE_LIMIT = 50;
 
@@ -55,6 +56,11 @@ const entryWithoutEmbeddingValidator = v.object({
   revision: v.optional(v.number()),
   confidence: v.number(),
   embedding_model: v.optional(v.string()),
+  verification: v.optional(
+    v.union(v.literal("evidence_backed"), v.literal("unverified")),
+  ),
+  supporting_entry_ids: v.optional(v.array(v.id("scratchpad_entries"))),
+  gist: v.optional(v.string()),
   created_at: v.number(),
 });
 
@@ -83,6 +89,10 @@ export const _write = internalMutation({
     supersedes_entry_id: v.optional(v.id("scratchpad_entries")),
     revision: v.optional(v.number()),
     confidence: v.number(),
+    // DELM admit-on-verify (optional, backward-compatible): entry ids the
+    // writer claims as supporting evidence. Only consulted when
+    // ARBOR_BLACKBOARD_VERIFY_ENABLED is on; ignored (and unstored) otherwise.
+    supporting_entry_ids: v.optional(v.array(v.id("scratchpad_entries"))),
   },
   returns: v.id("scratchpad_entries"),
   handler: async (ctx, args): Promise<Id<"scratchpad_entries">> => {
@@ -101,6 +111,33 @@ export const _write = internalMutation({
         throw new Error("revision must increase when superseding an entry");
       }
     }
+
+    // Gist-unfold: cheap deterministic summary, populated unconditionally
+    // (no env flag — it costs no model call and is purely additive).
+    const gist = makeGist(content);
+
+    // Admit-on-verify: gated behind ARBOR_BLACKBOARD_VERIFY_ENABLED (default
+    // off = current behavior, no verification field written at all).
+    const verifyEnabled = blackboardVerifyEnabled();
+    let verification: "evidence_backed" | "unverified" | undefined;
+    let supporting_entry_ids: Id<"scratchpad_entries">[] | undefined;
+    if (verifyEnabled) {
+      const declared = args.supporting_entry_ids ?? [];
+      const resolved: Id<"scratchpad_entries">[] = [];
+      for (const supportId of declared) {
+        const supportEntry = await ctx.db.get(supportId);
+        if (supportEntry && supportEntry.dag_id === args.dag_id) {
+          resolved.push(supportId);
+        }
+      }
+      verification = resolveBlackboardVerification({
+        enabled: true,
+        declaredSupportingIds: declared,
+        resolvedSupportingIds: resolved,
+      });
+      supporting_entry_ids = declared;
+    }
+
     return await ctx.db.insert("scratchpad_entries", {
       dag_id: args.dag_id,
       node_id: args.node_id,
@@ -116,6 +153,9 @@ export const _write = internalMutation({
       supersedes_entry_id: args.supersedes_entry_id,
       revision: args.revision ?? 0,
       confidence,
+      verification,
+      supporting_entry_ids,
+      gist,
       created_at: Date.now(),
     });
   },
@@ -138,21 +178,7 @@ export const _patchEmbedding = internalMutation({
   },
 });
 
-// 3. The N most-recent entries for a DAG (newest first).
-export const _recent = internalQuery({
-  args: { dag_id: v.id("hive_dags"), limit: v.optional(v.number()) },
-  returns: v.array(v.any()),
-  handler: async (ctx, args): Promise<Array<Doc<"scratchpad_entries">>> => {
-    const limit = Math.max(1, Math.min(RECENT_MAX, args.limit ?? RECENT_DEFAULT));
-    return await ctx.db
-      .query("scratchpad_entries")
-      .withIndex("by_dag", (q) => q.eq("dag_id", args.dag_id))
-      .order("desc")
-      .take(limit);
-  },
-});
-
-// 4. Up to 200 entries for a DAG (newest first).
+// 3. Up to 200 entries for a DAG (newest first).
 export const _forDag = internalQuery({
   args: { dag_id: v.id("hive_dags") },
   returns: v.array(v.any()),

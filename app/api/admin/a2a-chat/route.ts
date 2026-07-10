@@ -58,7 +58,7 @@ interface DiscoveredRow {
   a2a_agent_card_url?: string;
   a2a_api_key_env?: string;
   a2a_auth_mode?: "none" | "card";
-  discovery_source?: "catalog" | "registry" | "a2a" | "synthesized";
+  discovery_source?: "google" | "catalog" | "registry" | "a2a" | "synthesized";
 }
 
 /** Static registry + Convex-discovered rows. */

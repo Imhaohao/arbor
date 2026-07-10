@@ -10,11 +10,13 @@
 
 import type * as a2aAuth from "../a2aAuth.js";
 import type * as a2aAuthCore from "../a2aAuthCore.js";
+import type * as a2aNegotiations from "../a2aNegotiations.js";
 import type * as a2aNonces from "../a2aNonces.js";
 import type * as a2aOutboundKeys from "../a2aOutboundKeys.js";
 import type * as a2aTaskRuns from "../a2aTaskRuns.js";
 import type * as agentKeys from "../agentKeys.js";
 import type * as agentKeysAdmin from "../agentKeysAdmin.js";
+import type * as agentProfiles from "../agentProfiles.js";
 import type * as agentReadiness from "../agentReadiness.js";
 import type * as agentReadinessActions from "../agentReadinessActions.js";
 import type * as agentToolCalls from "../agentToolCalls.js";
@@ -29,7 +31,9 @@ import type * as discoveredSpecialists from "../discoveredSpecialists.js";
 import type * as disputes from "../disputes.js";
 import type * as escalations from "../escalations.js";
 import type * as escrow from "../escrow.js";
+import type * as evolutionArchive from "../evolutionArchive.js";
 import type * as hiveBaselineBackstop from "../hiveBaselineBackstop.js";
+import type * as hiveCandidates from "../hiveCandidates.js";
 import type * as hiveData from "../hiveData.js";
 import type * as hiveEvalGate from "../hiveEvalGate.js";
 import type * as hiveEvaluator from "../hiveEvaluator.js";
@@ -51,6 +55,7 @@ import type * as scratchpadActions from "../scratchpadActions.js";
 import type * as seed from "../seed.js";
 import type * as settlement from "../settlement.js";
 import type * as settlementData from "../settlementData.js";
+import type * as taskAgentDiscovery from "../taskAgentDiscovery.js";
 import type * as taskContexts from "../taskContexts.js";
 import type * as tasks from "../tasks.js";
 import type * as userContext from "../userContext.js";
@@ -64,11 +69,13 @@ import type {
 declare const fullApi: ApiFromModules<{
   a2aAuth: typeof a2aAuth;
   a2aAuthCore: typeof a2aAuthCore;
+  a2aNegotiations: typeof a2aNegotiations;
   a2aNonces: typeof a2aNonces;
   a2aOutboundKeys: typeof a2aOutboundKeys;
   a2aTaskRuns: typeof a2aTaskRuns;
   agentKeys: typeof agentKeys;
   agentKeysAdmin: typeof agentKeysAdmin;
+  agentProfiles: typeof agentProfiles;
   agentReadiness: typeof agentReadiness;
   agentReadinessActions: typeof agentReadinessActions;
   agentToolCalls: typeof agentToolCalls;
@@ -83,7 +90,9 @@ declare const fullApi: ApiFromModules<{
   disputes: typeof disputes;
   escalations: typeof escalations;
   escrow: typeof escrow;
+  evolutionArchive: typeof evolutionArchive;
   hiveBaselineBackstop: typeof hiveBaselineBackstop;
+  hiveCandidates: typeof hiveCandidates;
   hiveData: typeof hiveData;
   hiveEvalGate: typeof hiveEvalGate;
   hiveEvaluator: typeof hiveEvaluator;
@@ -105,6 +114,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   settlement: typeof settlement;
   settlementData: typeof settlementData;
+  taskAgentDiscovery: typeof taskAgentDiscovery;
   taskContexts: typeof taskContexts;
   tasks: typeof tasks;
   userContext: typeof userContext;

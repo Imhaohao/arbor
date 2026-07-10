@@ -19,8 +19,7 @@
 // When HYPERSPELL_API_KEY is set → tier:"mcp-forwarding" against Smithery proxy.
 // When absent → tier:"mock" (loud console warning, no silent execution).
 
-import { makeMcpForwardingSpecialist } from "./mcp-forwarding";
-import type { SpecialistConfig, SpecialistRunner } from "../types";
+import type { SpecialistConfig } from "../types";
 
 /**
  * Build the Smithery-hosted Hyperspell MCP URL using HYPERSPELL_API_KEY.
@@ -80,13 +79,3 @@ export const HYPERSPELL_BRAIN_CONFIG: SpecialistConfig = {
   homepage_url: "https://hyperspell.com",
   is_verified: false, // set true once exercised end-to-end with real credentials
 };
-
-// When HYPERSPELL_API_KEY is present, forward to the real Hyperspell MCP via Smithery.
-// When not, fall through to makeMockSpecialist via the registry's tier dispatch.
-export const hyperspellBrain: SpecialistRunner = resolvedEndpoint
-  ? makeMcpForwardingSpecialist(HYPERSPELL_BRAIN_CONFIG)
-  : (() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { makeMockSpecialist } = require("./base") as typeof import("./base");
-      return makeMockSpecialist(HYPERSPELL_BRAIN_CONFIG);
-    })();

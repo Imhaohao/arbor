@@ -10,8 +10,7 @@
 //   DEVIN_A2A_AGENT_CARD_URL — optional; overrides /.well-known/agent.json
 //   DEVIN_API_KEY            — optional; bearer token if agent card requires auth
 
-import { makeA2aForwardingSpecialist } from "./a2a-forwarding";
-import type { SpecialistConfig, SpecialistRunner } from "../types";
+import type { SpecialistConfig } from "../types";
 
 const a2aEndpoint = process.env.DEVIN_A2A_ENDPOINT?.trim();
 const cardUrl = process.env.DEVIN_A2A_AGENT_CARD_URL?.trim();
@@ -40,7 +39,3 @@ export const DEVIN_A2A_CONFIG: SpecialistConfig = {
   a2a_api_key_env: "DEVIN_API_KEY",
   homepage_url: "https://devin.ai",
 };
-
-export const devinA2a: SpecialistRunner | null = a2aEndpoint
-  ? makeA2aForwardingSpecialist(DEVIN_A2A_CONFIG)
-  : null;

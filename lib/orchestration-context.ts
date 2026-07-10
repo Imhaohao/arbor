@@ -1,4 +1,5 @@
 import { isImplementationTask } from "./campaign-context";
+import { buildAgenticContextLayer } from "./agentic-context-layer";
 
 export interface ContextInput {
   prompt: string;
@@ -143,6 +144,11 @@ export function buildOrchestrationContext(input: ContextInput): OrchestrationCon
     ],
   };
 
+  const agenticContext = buildAgenticContextLayer({
+    userId: process.env.HYPERSPELL_USER_ID,
+    repoUrl: sourceHints.find((hint) => hint.includes("github.com")),
+  });
+
   const prompt_addendum = [
     "Context handoff packet:",
     "Hyperspell business context:",
@@ -160,6 +166,8 @@ export function buildOrchestrationContext(input: ContextInput): OrchestrationCon
     "Auction-house routing context:",
     `- execution rule: ${routing.execution_rule}`,
     `- context contract: ${routing.context_contract.join(" | ")}`,
+    "",
+    agenticContext.prompt_addendum,
   ].join("\n");
 
   return {

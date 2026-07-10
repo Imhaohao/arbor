@@ -41,10 +41,13 @@ function findRepoRoot(start) {
 const repoRoot = findRepoRoot(process.cwd());
 const commandTimeoutMs = numberEnv("ARBOR_CHECK_COMMAND_TIMEOUT_MS", 180000);
 const e2eTimeoutMs = numberEnv("ARBOR_CHECK_E2E_TIMEOUT_MS", 420000);
+const readinessMaxAgeMs = 24 * 60 * 60 * 1000;
+const ephemeralTunnelReadinessMaxAgeMs = 15 * 60 * 1000;
 const checks = [];
 const issues = [];
 const envFiles = [".env.local", ".env"];
 const loadedEnv = {};
+let readinessSnapshot = null;
 
 function numberEnv(name, fallback) {
   const raw = process.env[name];
@@ -130,6 +133,37 @@ function envValue(key) {
 
 function present(key) {
   return envValue(key).trim().length > 0;
+}
+
+function endpointOrigin(value) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function readinessMaxAge(endpoint) {
+  const origin = endpointOrigin(endpoint);
+  return origin?.endsWith(".trycloudflare.com")
+    ? ephemeralTunnelReadinessMaxAgeMs
+    : readinessMaxAgeMs;
+}
+
+function readinessIsFresh(run, endpoint, now = Date.now()) {
+  return Boolean(
+    run?.status === "complete" &&
+      run.processed_agents === run.total_agents &&
+      run.completed_at &&
+      now - run.completed_at <= readinessMaxAge(endpoint),
+  );
+}
+
+function readinessCounts(summary) {
+  return Object.entries(summary?.by_readiness ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([status, count]) => `${status}=${count}`)
+    .join(", ");
 }
 
 function envCheck() {
@@ -230,9 +264,10 @@ async function registrySnapshot() {
     const apiPath = pathToFileURL(resolve(repoRoot, "convex/_generated/api.js")).href;
     const { api } = await import(apiPath);
     const client = new ConvexHttpClient(url);
-    const [agents, discovered] = await Promise.all([
+    const [agents, discovered, latestRun] = await Promise.all([
       client.query(api.agents.list, {}),
       client.query(api.discoveredSpecialists.list, {}),
+      client.query(api.agentReadiness.latestCompleteRun, {}),
     ]);
     const passed = discovered.filter((row) => row.eval_status === "passed").length;
     const failed = discovered.filter((row) => row.eval_status === "failed").length;
@@ -247,6 +282,39 @@ async function registrySnapshot() {
         "agents",
         "No discovered A2A agents are eval-passed.",
         "Run hive registry/eval backfill and inspect A2A endpoint failures before relying on live auctions.",
+      );
+    }
+
+    if (!latestRun) {
+      addCheck("agent smoke readiness", "fail", "no completed smoke run");
+      addIssue(
+        "P1",
+        "agents",
+        "No completed agent-smoke run is available.",
+        "Run npm run agents:smoke so market readiness has current reachability evidence.",
+      );
+      return;
+    }
+
+    const [summary, results] = await Promise.all([
+      client.query(api.agentReadiness.runSummary, { run_id: latestRun.run_id }),
+      client.query(api.agentReadiness.resultsForRun, { run_id: latestRun.run_id }),
+    ]);
+    readinessSnapshot = { run: latestRun, summary, results };
+    const ageMs = Date.now() - (latestRun.completed_at ?? latestRun.updated_at);
+    const fresh = readinessIsFresh(latestRun, undefined);
+    addCheck(
+      "agent smoke readiness",
+      fresh ? "pass" : "fail",
+      `${latestRun.run_id}: ${latestRun.processed_agents}/${latestRun.total_agents}, ${readinessCounts(summary)}, age=${Math.max(0, Math.round(ageMs / 60000))}m`,
+    );
+    if (!fresh) {
+      addIssue(
+        "P1",
+        "agents",
+        "The latest completed agent-smoke run has expired.",
+        "Run npm run agents:smoke to refresh market readiness; configured endpoints are not considered ready until then.",
+        latestRun.run_id,
       );
     }
   } catch (error) {
@@ -312,17 +380,34 @@ async function tunnelChecks() {
   }
 
   let failed = 0;
+  let changedSinceSmoke = 0;
   for (const url of urls) {
     const base = url.replace(/\/+$/, "");
     const direct = await probeUrl(base);
     const card = await probeUrl(`${base}/.well-known/agent-card.json`);
     const legacy = card.ok ? null : await probeUrl(`${base}/.well-known/agent.json`);
     const ok = direct.ok || card.ok || legacy?.ok;
-    if (!ok) failed += 1;
+    const origin = endpointOrigin(base);
+    const related = (readinessSnapshot?.results ?? []).filter(
+      (row) => endpointOrigin(row.endpoint) === origin,
+    );
+    const smokeStatuses = Array.from(
+      new Set(related.map((row) => row.readiness_status)),
+    );
+    const fresh = readinessIsFresh(readinessSnapshot?.run, base);
+    const smokeClaimsReady =
+      fresh && related.some((row) => row.readiness_status === "ready");
+    const smokeClaimsDown =
+      fresh && related.some((row) => row.readiness_status === "endpoint_down");
+    if (!ok && smokeClaimsReady) failed += 1;
+    if (ok && (!fresh || smokeClaimsDown)) {
+      changedSinceSmoke += 1;
+    }
+    const status = ok ? "pass" : smokeClaimsReady ? "fail" : "warn";
     addCheck(
       `tunnel ${base}`,
-      ok ? "pass" : "fail",
-      `base=${direct.status}, card=${card.status}, legacy=${legacy?.status ?? "skipped"}`,
+      status,
+      `base=${direct.status}, card=${card.status}, legacy=${legacy?.status ?? "skipped"}, smoke=${smokeStatuses.join("|") || "none"}, lease=${fresh ? "fresh" : "expired"}`,
     );
   }
 
@@ -330,8 +415,16 @@ async function tunnelChecks() {
     addIssue(
       "P1",
       "tunnels",
-      `${failed} trycloudflare tunnel probe(s) failed.`,
-      "Restart cloudflared, update stale tunnel URLs in .env.local/Convex env, and re-run A2A discovery/eval.",
+      `${failed} trycloudflare tunnel probe(s) failed despite fresh ready evidence.`,
+      "Restart cloudflared, update the active tunnel URL, and re-run npm run agents:smoke.",
+    );
+  }
+  if (changedSinceSmoke > 0) {
+    addIssue(
+      "P1",
+      "tunnels",
+      `${changedSinceSmoke} trycloudflare tunnel probe(s) recovered or changed after the latest smoke run.`,
+      "Run npm run agents:smoke to refresh the readiness lease before routing market work to those origins.",
     );
   }
 }

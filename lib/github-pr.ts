@@ -212,7 +212,7 @@ export async function commitFile(args: {
   path: string;
   content: string;
   message: string;
-  fileSha: string;
+  fileSha?: string;
   token: string;
 }): Promise<void> {
   const r = await gh(`/repos/${args.ref.owner}/${args.ref.repo}/contents/${encodeURI(args.path)}`, {
@@ -221,13 +221,43 @@ export async function commitFile(args: {
     body: JSON.stringify({
       message: args.message,
       content: Buffer.from(args.content, "utf-8").toString("base64"),
-      sha: args.fileSha,
       branch: args.branch,
+      ...(args.fileSha ? { sha: args.fileSha } : {}),
     }),
   });
   if (r.status !== 200 && r.status !== 201) {
     throw new Error(`commitFile HTTP ${r.status}: ${describeBody(r.body, r.raw)}`);
   }
+}
+
+export async function openRepositoryPR(args: {
+  ref: RepoRef;
+  branch: string;
+  base: string;
+  title: string;
+  body: string;
+  token: string;
+  draft?: boolean;
+}): Promise<{ url: string; number: number }> {
+  const r = await gh<{ html_url: string; number: number }>(
+    `/repos/${args.ref.owner}/${args.ref.repo}/pulls`,
+    {
+      method: "POST",
+      token: args.token,
+      body: JSON.stringify({
+        title: args.title,
+        body: args.body,
+        head: args.branch,
+        base: args.base,
+        draft: args.draft ?? false,
+        maintainer_can_modify: true,
+      }),
+    },
+  );
+  if (r.status !== 201 || typeof r.body === "string") {
+    throw new Error(`openRepositoryPR HTTP ${r.status}: ${describeBody(r.body, r.raw)}`);
+  }
+  return { url: r.body.html_url, number: r.body.number };
 }
 
 export async function openCrossRepoPR(args: {

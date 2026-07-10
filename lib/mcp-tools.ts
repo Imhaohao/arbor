@@ -24,6 +24,12 @@ import {
   type ReputationMap,
 } from "@/lib/specialists/suggest";
 import { discoverSpecialist } from "@/lib/specialists/discover";
+import { assessMarketReadiness } from "@/lib/agent-readiness";
+import { attachMarketRankDimensions } from "@/lib/specialists/a2a-market-card";
+import {
+  buildAgenticContextLayer,
+  verifyGithubAutonomy,
+} from "@/lib/agentic-context-layer";
 import type { SpecialistConfig } from "@/lib/types";
 
 function convex() {
@@ -85,9 +91,11 @@ export interface DiscoverSpecialistArgs {
   verify?: boolean;
   /**
    * Restrict / reorder discovery sources. Default order:
-   * catalog → registry → a2a → synthesized.
+   * google → catalog → registry → a2a → synthesized.
    */
-  preferred_sources?: Array<"catalog" | "registry" | "a2a" | "synthesized">;
+  preferred_sources?: Array<
+    "google" | "catalog" | "registry" | "a2a" | "synthesized"
+  >;
 }
 
 export interface UpsertProductContextArgs {
@@ -146,6 +154,27 @@ export interface ScratchpadRecallArgs {
   query: string;
   limit?: number;
   namespace?: string;
+}
+
+export interface GetAgenticContextArgs {
+  agent_id?: string;
+  repo_url?: string;
+}
+
+export interface ListAccountConnectorsArgs {
+  agent_id?: string;
+  repo_url?: string;
+  include_unavailable?: boolean;
+}
+
+export interface VerifyGithubAutonomyArgs {
+  repo_url?: string;
+  owner?: string;
+  repo?: string;
+  mode?: "read_only" | "smoke_branch" | "smoke_pr";
+  branch_prefix?: string;
+  file_path?: string;
+  title?: string;
 }
 
 // ─── tool definitions ─────────────────────────────────────────────────────
@@ -304,7 +333,7 @@ export const TOOLS: ToolDefinition[] = [
   {
     name: "discover_specialist",
     description:
-      "Synthesize a brand-new specialist agent tailored to a goal that the existing roster cannot cover well. Persists the new specialist so it can compete in future auctions. Use this when suggest_specialists returns low_confidence: true.",
+      "Discover a specialist agent tailored to a goal that the existing roster cannot cover well. Searches Google, MCP registry, A2A directories, and the curated catalog before falling back to synthesis. Persists the specialist so it can compete in future auctions.",
     inputSchema: {
       type: "object",
       required: ["prompt"],
@@ -318,6 +347,20 @@ export const TOOLS: ToolDefinition[] = [
           type: "boolean",
           description:
             "If false, the discovered config is returned without persisting. Defaults to true.",
+        },
+        verify: {
+          type: "boolean",
+          description:
+            "If true, attempt tools/list against MCP endpoints before returning them.",
+        },
+        preferred_sources: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["google", "catalog", "registry", "a2a", "synthesized"],
+          },
+          description:
+            "Optional source order. Default: google, catalog, registry, a2a, synthesized.",
         },
       },
     },
@@ -535,6 +578,90 @@ export const TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    name: "get_agentic_context",
+    description:
+      "Return Arbor's agentic context layer: durable memory sources, account connector readiness, action policies, and the prompt addendum attached to downstream specialists.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        agent_id: {
+          type: "string",
+          description:
+            "Optional caller/user id. Defaults to HYPERSPELL_USER_ID or unknown.",
+        },
+        repo_url: {
+          type: "string",
+          description: "Optional GitHub repository URL to bind into the context layer.",
+        },
+      },
+    },
+  },
+  {
+    name: "list_account_connectors",
+    description:
+      "List preliminary account and MCP connectors Arbor can use for context or actions, including Google, Notion, Discord, TikTok/social, Nia, Hyperspell, and GitHub readiness.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        agent_id: {
+          type: "string",
+          description:
+            "Optional caller/user id. Defaults to HYPERSPELL_USER_ID or unknown.",
+        },
+        repo_url: {
+          type: "string",
+          description: "Optional GitHub repository URL to bind into the context layer.",
+        },
+        include_unavailable: {
+          type: "boolean",
+          description:
+            "If false, return only connectors with status ready. Defaults to true.",
+        },
+      },
+    },
+  },
+  {
+    name: "verify_github_autonomy",
+    description:
+      "Verify Arbor can act through an authenticated GitHub account. Default mode is read_only. Set mode=smoke_branch or mode=smoke_pr only when the user explicitly asks Arbor to write to the repo.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        repo_url: {
+          type: "string",
+          description: "GitHub repository URL, e.g. https://github.com/owner/repo.",
+        },
+        owner: {
+          type: "string",
+          description: "GitHub owner if repo_url is omitted.",
+        },
+        repo: {
+          type: "string",
+          description: "GitHub repository name if repo_url is omitted.",
+        },
+        mode: {
+          type: "string",
+          enum: ["read_only", "smoke_branch", "smoke_pr"],
+          description:
+            "read_only checks auth and repo permissions. smoke_branch creates a branch and file. smoke_pr also opens a pull request.",
+        },
+        branch_prefix: {
+          type: "string",
+          description: "Optional branch prefix for smoke writes.",
+        },
+        file_path: {
+          type: "string",
+          description:
+            "Optional smoke file path. Defaults to .arbor/agentic-github-smoke.txt.",
+        },
+        title: {
+          type: "string",
+          description: "Optional PR title for smoke_pr.",
+        },
+      },
+    },
+  },
 ];
 
 // ─── tool handlers ────────────────────────────────────────────────────────
@@ -581,36 +708,43 @@ export async function handleGetTask(args: GetTaskArgs) {
 }
 
 export async function handleListSpecialists(_args: ListSpecialistsArgs) {
-  // Combine the static registry (capabilities, sponsor) with live reputation.
+  // Combine the registry with reputation and the latest completed smoke run.
   const c = convex();
-  const [live, all] = await Promise.all([
+  const [live, all, latestRun] = await Promise.all([
     c.query(api.agents.list, {}),
     loadAllSpecialists(),
+    c.query(api.agentReadiness.latestCompleteRun, {}),
   ]);
+  const readiness = latestRun
+    ? await c.query(api.agentReadiness.resultsForRun, {
+        run_id: latestRun.run_id,
+      })
+    : [];
   const liveById = new Map(
     (live as Array<{ agent_id: string; reputation_score: number; total_tasks_completed: number }>).map(
       (a) => [a.agent_id, a],
     ),
   );
-  return all.map((s) => {
+  const readinessById = new Map(
+    (readiness as Array<{
+      agent_id: string;
+      run_id: string;
+      readiness_status: string;
+      created_at: number;
+    }>).map((row) => [row.agent_id, row]),
+  );
+  const rows = all.map((s) => {
     const l = liveById.get(s.agent_id);
-    // market_ready: a single boolean callers can filter on without
-    // assembling three fields. Predicate is intentionally weak — we don't
-    // yet have runtime connection probes or tool_availability on bids,
-    // so the strongest signal we have is "endpoint configured and any
-    // required credential is set". Verified status is reported separately
-    // via `mcp_connected` for stricter callers.
-    const hasEndpoint = !!s.mcp_endpoint || !!s.a2a_endpoint;
-    // A2A auth is card-driven at call time; no pre-check beyond the existing
-    // mcp_api_key_env convention (a2a_api_key_env is resolved lazily by the runner).
+    const endpoint = s.mcp_endpoint ?? s.a2a_endpoint;
     const credSatisfied =
       !s.mcp_api_key_env || !!process.env[s.mcp_api_key_env];
-    const marketReady = hasEndpoint && credSatisfied;
-    const marketReadyReason: string | null = marketReady
-      ? null
-      : !hasEndpoint
-        ? "no_endpoint"
-        : "missing_credential";
+    const marketReadiness = assessMarketReadiness({
+      endpoint,
+      credential_satisfied: credSatisfied,
+      run: latestRun,
+      evidence: readinessById.get(s.agent_id) ?? null,
+    });
+    const smokeEvidence = readinessById.get(s.agent_id);
     return {
       agent_id: s.agent_id,
       sponsor: s.sponsor,
@@ -635,10 +769,17 @@ export async function handleListSpecialists(_args: ListSpecialistsArgs) {
       homepage_url: s.homepage_url,
       discovered: !!s.discovered,
       discovered_for: s.discovered_for,
-      market_ready: marketReady,
-      market_ready_reason: marketReadyReason,
+      market_ready: marketReadiness.ready,
+      market_ready_reason: marketReadiness.reason,
+      readiness_status: smokeEvidence?.readiness_status ?? "unknown",
+      readiness_run_id: latestRun?.run_id,
+      readiness_checked_at: smokeEvidence?.created_at,
     };
   });
+  // Agentverse 4D rank (W4): attach market-wide rank dimensions (price +
+  // availability are live; reputation dims default neutral at this surface) so
+  // discover consumers see the same ranking signal the hive router uses.
+  return attachMarketRankDimensions(rows);
 }
 
 async function loadAllSpecialists(): Promise<SpecialistConfig[]> {
@@ -656,7 +797,7 @@ async function loadAllSpecialists(): Promise<SpecialistConfig[]> {
     openrouter_model_id?: string;
     openrouter_api_key_env?: string;
     discovered_for: string;
-    discovery_source?: "catalog" | "registry" | "a2a" | "synthesized";
+    discovery_source?: "google" | "catalog" | "registry" | "a2a" | "synthesized";
     mcp_endpoint?: string;
     mcp_api_key_env?: string;
     homepage_url?: string;
@@ -947,6 +1088,46 @@ export async function handleScratchpadRecall(args: ScratchpadRecallArgs) {
   return { dag_id: args.dag_id, query: args.query, results };
 }
 
+export async function handleGetAgenticContext(args: GetAgenticContextArgs) {
+  return buildAgenticContextLayer({
+    userId: args.agent_id,
+    repoUrl: args.repo_url,
+  });
+}
+
+export async function handleListAccountConnectors(
+  args: ListAccountConnectorsArgs,
+) {
+  const layer = buildAgenticContextLayer({
+    userId: args.agent_id,
+    repoUrl: args.repo_url,
+  });
+  const includeUnavailable = args.include_unavailable !== false;
+  return {
+    version: layer.version,
+    user_id: layer.user_id,
+    repo: layer.repo,
+    connectors: includeUnavailable
+      ? layer.connectors
+      : layer.connectors.filter((connector) => connector.status === "ready"),
+    action_contract: layer.action_contract,
+  };
+}
+
+export async function handleVerifyGithubAutonomy(
+  args: VerifyGithubAutonomyArgs,
+) {
+  return await verifyGithubAutonomy({
+    repoUrl: args.repo_url,
+    owner: args.owner,
+    repo: args.repo,
+    mode: args.mode,
+    branchPrefix: args.branch_prefix,
+    filePath: args.file_path,
+    title: args.title,
+  });
+}
+
 // ─── unified dispatch ─────────────────────────────────────────────────────
 
 export async function dispatchTool(
@@ -987,6 +1168,18 @@ export async function dispatchTool(
     case "scratchpad_recall":
       return await handleScratchpadRecall(
         args as unknown as ScratchpadRecallArgs,
+      );
+    case "get_agentic_context":
+      return await handleGetAgenticContext(
+        args as unknown as GetAgenticContextArgs,
+      );
+    case "list_account_connectors":
+      return await handleListAccountConnectors(
+        args as unknown as ListAccountConnectorsArgs,
+      );
+    case "verify_github_autonomy":
+      return await handleVerifyGithubAutonomy(
+        args as unknown as VerifyGithubAutonomyArgs,
       );
     default:
       throw new Error(`unknown tool: ${name}`);

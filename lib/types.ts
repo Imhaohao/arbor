@@ -279,12 +279,13 @@ export interface SpecialistConfig {
   discovered?: boolean;
   /**
    * Where the discovered specialist came from:
+   *   - "google"       → Google Custom Search lead with MCP/A2A verification
    *   - "catalog"      → curated list of known production HTTP MCP servers
    *   - "registry"     → live search against an MCP registry
    *   - "a2a"          → runtime A2A directory probe (ARBOR_A2A_DIRECTORY)
    *   - "synthesized"  → LLM-designed in-persona agent (no real MCP backend)
    */
-  discovery_source?: "catalog" | "registry" | "a2a" | "synthesized";
+  discovery_source?: "google" | "catalog" | "registry" | "a2a" | "synthesized";
   /** Free-form note explaining what query triggered discovery. */
   discovered_for?: string;
 }

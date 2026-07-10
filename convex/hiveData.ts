@@ -229,6 +229,15 @@ const nodeDocValidator = v.object({
   output_text: v.optional(v.string()),
   eval_score: v.optional(v.number()),
   revision_count: v.optional(v.number()),
+  // Cost telemetry (W2) + best-of-N fan-out fields. Listed here so index reads
+  // that return whole node docs pass the return validator once these optional
+  // columns are populated (they are strict: an unlisted field would throw).
+  cost_paid: v.optional(v.number()),
+  bid_price: v.optional(v.number()),
+  allocated_budget: v.optional(v.number()),
+  settled_at: v.optional(v.number()),
+  expected_candidates: v.optional(v.number()),
+  promotion_claimed: v.optional(v.boolean()),
   updated_at: v.number(),
 });
 
@@ -280,6 +289,11 @@ export const _patchNode = internalMutation({
     eval_score: v.optional(v.number()),
     task_class: v.optional(v.string()),
     revision_count: v.optional(v.number()),
+    cost_paid: v.optional(v.number()),
+    bid_price: v.optional(v.number()),
+    allocated_budget: v.optional(v.number()),
+    settled_at: v.optional(v.number()),
+    expected_candidates: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
@@ -303,11 +317,24 @@ export const _patchNode = internalMutation({
     if (args.revision_count !== undefined) {
       patch.revision_count = args.revision_count;
     }
+    if (args.cost_paid !== undefined) patch.cost_paid = args.cost_paid;
+    if (args.bid_price !== undefined) patch.bid_price = args.bid_price;
+    if (args.allocated_budget !== undefined) {
+      patch.allocated_budget = args.allocated_budget;
+    }
+    if (args.settled_at !== undefined) patch.settled_at = args.settled_at;
+    if (args.expected_candidates !== undefined) {
+      patch.expected_candidates = args.expected_candidates;
+    }
 
     await ctx.db.patch(node._id, patch);
     return null;
   },
 });
+
+// 8c. The Sakana best-of-N promotion latch (promotion_claimed) is owned by
+// hiveCandidates._settleBarrier, which claims it and settles the node in one
+// transaction so a crash can never burn the latch without settling.
 
 // 8b. Return a completed node to the ready queue after evaluator critique.
 // The revision counter is monotonic and the status guard makes the claim
@@ -391,6 +418,50 @@ export const _countNodesByStatus = internalQuery({
   },
 });
 
+// 11b. Realized spend for a DAG: sum of price_paid across the child tasks its
+// nodes minted. Feeds the SeqRoute budget allocator (W2) — allocation always
+// works from remaining = max_budget - spend, never from the original budget.
+export const _dagSpend = internalQuery({
+  args: { dag_id: v.id("hive_dags") },
+  returns: v.object({ spent: v.number() }),
+  handler: async (ctx, args): Promise<{ spent: number }> => {
+    const nodes = await ctx.db
+      .query("hive_nodes")
+      .withIndex("by_dag", (q) => q.eq("dag_id", args.dag_id))
+      .collect();
+    let spent = 0;
+    const countedTasks = new Set<string>();
+    for (const node of nodes) {
+      if (!node.task_id) continue;
+      const task = await ctx.db.get(node.task_id);
+      const paid = (task as { price_paid?: unknown } | null)?.price_paid;
+      if (typeof paid === "number" && Number.isFinite(paid) && paid > 0) {
+        spent += paid;
+        countedTasks.add(String(node.task_id));
+      }
+    }
+    // Best-of-N (ARBOR_HIVE_BESTOFN_ENABLED): candidate executions spend against
+    // the same DAG budget but are not referenced by node.task_id (only the
+    // promoted winner becomes node.task_id). Add their realized cost so the
+    // SeqRoute allocator sees true remaining budget. The countedTasks guard keeps
+    // the promoted winner from being double-counted. Empty when best-of-N is off.
+    const candidates = await ctx.db
+      .query("hive_node_candidates")
+      .withIndex("by_dag", (q) => q.eq("dag_id", args.dag_id))
+      .collect();
+    for (const candidate of candidates) {
+      if (candidate.task_id && countedTasks.has(String(candidate.task_id))) {
+        continue;
+      }
+      const paid = candidate.cost_paid;
+      if (typeof paid === "number" && Number.isFinite(paid) && paid > 0) {
+        spent += paid;
+      }
+    }
+    return { spent: Number(spent.toFixed(2)) };
+  },
+});
+
 // 12. Patch the hive linkage fields onto a task row.
 export const _patchTaskHiveFields = internalMutation({
   args: {
@@ -399,6 +470,7 @@ export const _patchTaskHiveFields = internalMutation({
     hive_node_id: v.string(),
     invited_agent_ids: v.optional(v.array(v.string())),
     success_criteria: v.optional(v.string()),
+    hive_candidate_index: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
@@ -411,6 +483,9 @@ export const _patchTaskHiveFields = internalMutation({
     }
     if (args.success_criteria !== undefined) {
       patch.success_criteria = args.success_criteria;
+    }
+    if (args.hive_candidate_index !== undefined) {
+      patch.hive_candidate_index = args.hive_candidate_index;
     }
     await ctx.db.patch(args.task_id, patch);
     return null;

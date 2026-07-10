@@ -18,8 +18,10 @@ import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { makeFunctionReference } from "convex/server";
 import { readyNodes, type PlannedNode } from "../lib/hive/dag";
-import { isPrReviewTask } from "../lib/specialists/pr-review-detect";
-import { BACKSTOP_FAILED_PREFIX } from "./hiveBaselineBackstop";
+import {
+  BACKSTOP_FAILED_PREFIX,
+  LEGACY_BACKSTOP_FAILED_PREFIX,
+} from "./hiveBaselineBackstop";
 import { didForAgent } from "../lib/hive/blackboard-core";
 
 // Task 15 implements hiveEvaluator.evaluateDag. Referenced by string so this
@@ -52,9 +54,38 @@ export const advance = internalAction({
       dag_id: args.dag_id,
     });
 
+    // 1b. Terminal-executor guarantee (W6): EVERY failed node — regardless of
+    //     task class — gets one hand-off to the Arbor floor before its failure
+    //     can cascade or fail the DAG. runForFailedNode claims atomically
+    //     (failed -> executing), so duplicate advance deliveries are safe.
+    //     Excluded: nodes whose backstop already conclusively failed
+    //     (BACKSTOP_FAILED_PREFIX — a genuine model outage must fail honestly,
+    //     never loop) and dependency-skipped nodes (their inputs are missing;
+    //     their fate is decided by the dependency's own backstop).
+    const backstopPending = new Set<string>();
+    for (const node of nodes) {
+      if (node.status !== "failed") continue;
+      const output = node.output_text ?? "";
+      if (
+        output.startsWith(BACKSTOP_FAILED_PREFIX) ||
+        output.startsWith(LEGACY_BACKSTOP_FAILED_PREFIX) ||
+        output.startsWith("skipped: dependency")
+      ) {
+        continue;
+      }
+      backstopPending.add(node.node_id);
+      await ctx.scheduler.runAfter(
+        0,
+        internal.hiveBaselineBackstop.runForFailedNode,
+        { dag_id: args.dag_id, node_id: node.node_id },
+      );
+    }
+
     // 2. Failure propagation to a fixpoint. A pending node whose dependency has
     //    failed can never run, so mark it failed too (and record which dep).
     //    Loop because a freshly-failed node may cascade onto its own dependents.
+    //    Nodes pending a backstop attempt are NOT treated as failed here — the
+    //    floor may still complete them.
     let changed = true;
     while (changed) {
       changed = false;
@@ -64,7 +95,7 @@ export const advance = internalAction({
       for (const node of nodes) {
         if (node.status !== "pending") continue;
         const failedDep = node.depends_on.find(
-          (dep) => statusById[dep] === "failed",
+          (dep) => statusById[dep] === "failed" && !backstopPending.has(dep),
         );
         if (failedDep !== undefined) {
           await ctx.runMutation(internal.hiveData._patchNode, {
@@ -119,39 +150,22 @@ export const advance = internalAction({
       });
     }
 
-    // 4. Completion check. If nothing is in flight, the DAG is done.
+    // 4. Completion check. If nothing is in flight, the DAG is done. Nodes
+    //    awaiting a backstop attempt (scheduled in 1b) count as in flight —
+    //    the floor's own re-advance will re-run this check once they settle.
     const counts = await ctx.runQuery(internal.hiveData._countNodesByStatus, {
       dag_id: args.dag_id,
     });
     const inFlight =
-      counts.pending + counts.ready + counts.auctioned + counts.executing;
+      counts.pending +
+      counts.ready +
+      counts.auctioned +
+      counts.executing +
+      backstopPending.size;
     if (inFlight === 0) {
       if (counts.complete === 0) {
-        // No-bid backstop (Agent Task 23): before failing the DAG, give any
-        // failed PR-review node to arbor-baseline directly so it terminates with
-        // a judged, honestly-labeled deliverable instead of a silent
-        // hive_dag_failed. Skip nodes the backstop already tried and could not
-        // complete (output marked with BACKSTOP_FAILED_PREFIX) so a genuine
-        // model outage fails honestly rather than looping.
-        const backstopNode = nodes.find(
-          (node) =>
-            node.status === "failed" &&
-            !(node.output_text ?? "").startsWith(BACKSTOP_FAILED_PREFIX) &&
-            isPrReviewTask(
-              `${node.description}\n${node.success_criteria ?? ""}`,
-              node.task_class,
-            ),
-        );
-        if (backstopNode) {
-          await ctx.scheduler.runAfter(
-            0,
-            internal.hiveBaselineBackstop.runForFailedNode,
-            { dag_id: args.dag_id, node_id: backstopNode.node_id },
-          );
-          return null;
-        }
-
-        // Every node failed and no backstop applies.
+        // Every node failed and no backstop applies (each failed node already
+        // had its one floor attempt in 1b, or was dependency-skipped).
         await ctx.runMutation(internal.hiveData._setDagStatus, {
           dag_id: args.dag_id,
           status: "failed",
@@ -194,7 +208,30 @@ export const onNodeSettled = internalAction({
     const node = await ctx.runQuery(internal.hiveData._getNodeByTaskId, {
       task_id: args.task_id,
     });
-    if (node === null) return null;
+    if (node === null) {
+      // Sakana best-of-N (ARBOR_HIVE_BESTOFN_ENABLED): candidate children are
+      // deliberately NOT node.task_id-linked (only the promoted winner becomes
+      // node.task_id at barrier time), so they land here. Delegate them to the
+      // candidate archive + barrier. The persisted marker — not the current env
+      // flag — decides, so a candidate always settles as a candidate even if
+      // the flag is toggled mid-DAG. Everything else about this branch
+      // (node === null → return) is the pre-existing non-hive no-op.
+      try {
+        const orphan = await ctx.runQuery(internal.tasks._get, {
+          task_id: args.task_id,
+        });
+        if (typeof orphan.hive_candidate_index === "number") {
+          await ctx.scheduler.runAfter(
+            0,
+            internal.hiveCandidates.recordAndMaybePromote,
+            { task_id: args.task_id },
+          );
+        }
+      } catch {
+        // Task gone — preserve the legacy quiet no-op for unlinked tasks.
+      }
+      return null;
+    }
     if (node.status === "complete" || node.status === "failed") return null;
 
     // 6. Load the settled task and extract its material. Mirror planning.ts
@@ -297,6 +334,12 @@ export const onNodeSettled = internalAction({
 
     const truncatedOutput = resultText.slice(0, MAX_OUTPUT_CHARS);
 
+    // Cost telemetry (W2): cost_paid mirrors the escrowed price actually paid
+    // for this node's child task; allocated_budget is the ceiling the router
+    // set on that same task (its max_budget). bid_price is left unset here —
+    // the winning bid price is not directly available on the task row (only
+    // winning_bid_id, a foreign key into `bids`), and cross-table lookups are
+    // out of scope for this settle path.
     await ctx.runMutation(internal.hiveData._patchNode, {
       dag_id: node.dag_id,
       node_id: node.node_id,
@@ -304,7 +347,36 @@ export const onNodeSettled = internalAction({
       assigned_agent_id: agentId,
       output_text: truncatedOutput,
       eval_score: qualityScore,
+      cost_paid: task.price_paid,
+      allocated_budget: task.max_budget,
+      settled_at: Date.now(),
     });
+
+    // FlyRoute data flywheel (W3): fold this outcome into the executing
+    // agent's durable capability profile. Best-effort — profile updates must
+    // never block or fail node settlement.
+    if (agentId) {
+      const latencySeconds = Math.max(
+        0,
+        (Date.now() - task._creationTime) / 1000,
+      );
+      try {
+        await ctx.runMutation(internal.agentProfiles._recordOutcome, {
+          agent_id: agentId,
+          task_class: node.task_class,
+          success: nodeStatus === "complete",
+          quality_score: qualityScore,
+          latency_seconds: latencySeconds,
+          price_paid: task.price_paid,
+        });
+      } catch (err) {
+        console.warn(
+          `[hive-orchestrator] profile update failed for ${agentId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
 
     // 7. On successful completion with material output, persist a scratchpad
     //    memory and kick off its embedding.
