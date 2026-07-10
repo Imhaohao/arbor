@@ -23,6 +23,7 @@ import {
   LEGACY_BACKSTOP_FAILED_PREFIX,
 } from "./hiveBaselineBackstop";
 import { didForAgent } from "../lib/hive/blackboard-core";
+import { profileOutcomeSucceeded } from "../lib/hive/profile-core";
 
 // Task 15 implements hiveEvaluator.evaluateDag. Referenced by string so this
 // file pushes cleanly before that module exists.
@@ -254,15 +255,29 @@ export const onNodeSettled = internalAction({
         : task.result !== undefined && task.result !== null
           ? JSON.stringify(task.result)
           : "";
-    const agentId =
+    let agentId =
       typeof task.result === "object" &&
       task.result &&
       "agent_id" in task.result
         ? (task.result as { agent_id?: string }).agent_id
         : undefined;
 
+    // Failed executions have no result payload, but the winning bid still
+    // identifies the attempted agent. Without this fallback, failures vanish
+    // from the profile flywheel and confidence becomes positively biased.
+    if (!agentId && task.winning_bid_id) {
+      try {
+        const winningBid = await ctx.runQuery(internal.bids._get, {
+          bid_id: task.winning_bid_id,
+        });
+        agentId = winningBid.agent_id;
+      } catch {
+        // Best-effort attribution; settlement must continue if the bid vanished.
+      }
+    }
+
     const verdict = task.judge_verdict as
-      | { quality_score?: number }
+      | { verdict?: string; quality_score?: number }
       | undefined
       | null;
     const qualityScore =
@@ -306,6 +321,29 @@ export const onNodeSettled = internalAction({
           },
         );
         if (claimed) {
+          // The failed shortlist attempt is a real negative training signal.
+          // Record only in the winning retry claimant so duplicate settle
+          // deliveries cannot fold the same failure more than once.
+          if (agentId) {
+            try {
+              await ctx.runMutation(internal.agentProfiles._recordOutcome, {
+                agent_id: agentId,
+                task_class: node.task_class,
+                success: false,
+                latency_seconds: Math.max(
+                  0,
+                  (Date.now() - task._creationTime) / 1000,
+                ),
+                price_paid: task.price_paid,
+              });
+            } catch (err) {
+              console.warn(
+                `[hive-orchestrator] failed-attempt profile update failed for ${agentId}: ${
+                  err instanceof Error ? err.message : String(err)
+                }`,
+              );
+            }
+          }
           const retryDag = await ctx.runQuery(internal.hiveData._getDag, {
             dag_id: node.dag_id,
           });
@@ -364,7 +402,7 @@ export const onNodeSettled = internalAction({
         await ctx.runMutation(internal.agentProfiles._recordOutcome, {
           agent_id: agentId,
           task_class: node.task_class,
-          success: nodeStatus === "complete",
+          success: profileOutcomeSucceeded(task.status, verdict?.verdict),
           quality_score: qualityScore,
           latency_seconds: latencySeconds,
           price_paid: task.price_paid,

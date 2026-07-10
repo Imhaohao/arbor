@@ -354,7 +354,13 @@ export default defineSchema({
     task_class: v.string(),
     /** Number of settled-node outcomes folded into this profile. */
     tasks: v.number(),
-    /** EWMA of success (node reached complete), 0..1. */
+    /** Cumulative judge-accepted outcomes. Optional for pre-migration rows;
+     * agentProfiles backfills an estimate until the next exact write. */
+    successful_tasks: v.optional(v.number()),
+    /** Exact trials backing successful_tasks. Legacy rows start at zero so
+     * pre-migration EWMA history cannot authorize direct routing. */
+    success_trials: v.optional(v.number()),
+    /** EWMA of judge-accepted success, 0..1. */
     success_rate: v.number(),
     /** EWMA of judge quality_score, 0..1. */
     avg_quality: v.number(),

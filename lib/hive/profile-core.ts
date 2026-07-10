@@ -11,13 +11,23 @@ const ALPHA = 0.3;
 /** Exploration weight for uncertain (thin-evidence) profiles. */
 const UNCERTAINTY_BONUS = 0.15;
 
-/** How much the profile blend can swing the router's similarity score. */
-const PROFILE_WEIGHT = 0.4;
+/** Profile history is a bounded tiebreaker around the query-conditioned 4D
+ * rank. At 0.15, even a near-perfect veteran gets <15% uplift, so generic
+ * history cannot erase a materially stronger capability match. */
+const PROFILE_WEIGHT = 0.15;
+/** Learned expert heads already encode a query-conditioned prior, so live
+ * profile history gets a smaller online correction to avoid double-counting
+ * incumbency while still closing the outcome flywheel. */
+export const EXPERT_PROFILE_WEIGHT = 0.03;
 
 export interface AgentProfile {
   agent_id: string;
   task_class: string;
   tasks: number;
+  /** Cumulative accepted outcomes for conservative confidence bounds. */
+  successful_tasks: number;
+  /** Outcomes measured since exact cumulative counting was introduced. */
+  success_trials: number;
   success_rate: number;
   avg_quality: number;
   avg_latency_seconds: number;
@@ -60,6 +70,8 @@ export function emptyProfile(
     agent_id,
     task_class,
     tasks: 0,
+    successful_tasks: 0,
+    success_trials: 0,
     success_rate: 0.5,
     avg_quality: 0.5,
     avg_latency_seconds: 0,
@@ -80,9 +92,17 @@ export function updateProfile(
 ): AgentProfile {
   const first = prev.tasks === 0;
   const tasks = prev.tasks + 1;
+  const successful_tasks =
+    Math.max(0, Number.isFinite(prev.successful_tasks) ? prev.successful_tasks : 0) +
+    (outcome.success ? 1 : 0);
+  const success_trials =
+    Math.max(0, Number.isFinite(prev.success_trials) ? prev.success_trials : 0) +
+    1;
   return {
     ...prev,
     tasks,
+    successful_tasks,
+    success_trials,
     success_rate: clamp01(
       ewma(prev.success_rate, outcome.success ? 1 : 0, first),
     ),
@@ -115,6 +135,16 @@ export function updateProfile(
   };
 }
 
+/** Profile success is judge acceptance, not DAG materiality. A rejected result
+ * may remain usable for synthesis/revision while still being a failed worker
+ * outcome for routing. */
+export function profileOutcomeSucceeded(
+  taskStatus: string,
+  judgeVerdict: string | undefined,
+): boolean {
+  return taskStatus === "complete" && judgeVerdict === "accept";
+}
+
 /**
  * Scalar compatibility score for routing: mostly success x quality, plus an
  * exploration bonus that decays with evidence. Always in [0, 1].
@@ -128,6 +158,10 @@ export function profileScore(profile: AgentProfile): number {
 export interface RankableCandidate {
   agent_id: string;
   similarity: number;
+  /** Combined 4D discovery score, when available. */
+  rank_score?: number;
+  /** Query-conditioned learned score, when a prior stage supplied one. */
+  routing_score?: number;
 }
 
 /**
@@ -139,14 +173,26 @@ export interface RankableCandidate {
 export function profileWeightedRank<C extends RankableCandidate>(
   candidates: C[],
   profiles: Map<string, AgentProfile>,
+  options?: { profileWeight?: number },
 ): Array<C & { routing_score: number }> {
+  const profileWeight = Math.max(
+    0,
+    Math.min(0.3, options?.profileWeight ?? PROFILE_WEIGHT),
+  );
   const scored = candidates.map((candidate, index) => {
     const profile = profiles.get(candidate.agent_id);
     const blend = profile ? profileScore(profile) : 0.5;
+    const baseScore =
+      candidate.routing_score !== undefined &&
+      Number.isFinite(candidate.routing_score)
+        ? candidate.routing_score
+        : candidate.rank_score !== undefined && Number.isFinite(candidate.rank_score)
+          ? candidate.rank_score
+          : candidate.similarity;
     const routing_score = Number(
       (
-        candidate.similarity *
-        (1 - PROFILE_WEIGHT + PROFILE_WEIGHT * 2 * blend)
+        baseScore *
+        (1 - profileWeight + profileWeight * 2 * blend)
       ).toFixed(6),
     );
     return { candidate, index, routing_score };

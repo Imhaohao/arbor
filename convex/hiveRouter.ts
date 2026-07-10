@@ -15,10 +15,15 @@ import type { Id } from "./_generated/dataModel";
 import { BID_WINDOW_SECONDS } from "./tasks";
 import { callClaudeJSON, CLAUDE_FAST_MODEL } from "../lib/anthropic";
 import {
+  adaptiveInviteCount,
   allocateNodeBudget,
   buildRoutingQuery,
   decideRouteMode,
   directRouteLiquidity,
+  expertDelegationEnabled,
+  expertDelegationShadowEnabled,
+  expertMinTasks,
+  FULL_SHORTLIST_INVITES,
   orchestratorFirstEnabled,
   shouldFallbackOpen,
 } from "../lib/hive/router-core";
@@ -31,9 +36,14 @@ import {
 } from "../lib/hive/candidate-search-core";
 import { assembleBlackboardPointers } from "../lib/hive/context-store";
 import {
+  EXPERT_PROFILE_WEIGHT,
   profileWeightedRank,
   type AgentProfile,
 } from "../lib/hive/profile-core";
+import {
+  BUNDLED_DELEGATION_HEAD,
+  rankWithBundledDelegationHead,
+} from "../lib/hive/delegation-head";
 import { ARBOR_FLOOR_AGENT_IDS } from "../lib/specialists/registry";
 
 // FlyRoute proven-bad filter (W3): with this much evidence and a success rate
@@ -392,7 +402,7 @@ export const routeNode = internalAction({
       ? []
       : await ctx.runAction(api.hiveRegistry.searchAgents, {
           query,
-          top_k: 6,
+          top_k: FULL_SHORTLIST_INVITES,
           min_reputation: 0.3,
           max_cost: budget,
           model_gateway: rootTask.model_gateway,
@@ -408,6 +418,7 @@ export const routeNode = internalAction({
     let ranked = candidates.map((c) => ({ ...c, routing_score: c.similarity }));
     // Observed per-agent prices from the W3 flywheel, for direct-mode pricing.
     const profilePrices = new Map<string, number>();
+    let profilesByAgent = new Map<string, AgentProfile>();
     if (candidates.length > 0) {
       try {
         const profileRows: AgentProfile[] = await ctx.runQuery(
@@ -417,14 +428,14 @@ export const routeNode = internalAction({
             task_class: taskClass,
           },
         );
-        const profiles = new Map(profileRows.map((p) => [p.agent_id, p]));
+        profilesByAgent = new Map(profileRows.map((p) => [p.agent_id, p]));
         for (const p of profileRows) {
           if (p.tasks > 0 && p.avg_price > 0) {
             profilePrices.set(p.agent_id, p.avg_price);
           }
         }
-        ranked = profileWeightedRank(candidates, profiles).filter((c) => {
-          const profile = profiles.get(c.agent_id);
+        ranked = profileWeightedRank(candidates, profilesByAgent).filter((c) => {
+          const profile = profilesByAgent.get(c.agent_id);
           return !(
             profile &&
             profile.tasks >= PROVEN_BAD_MIN_TASKS &&
@@ -440,24 +451,107 @@ export const routeNode = internalAction({
       }
     }
 
+    // Exact class profiles can authorize a direct expert assignment. A
+    // `general` fallback remains useful for ranking but is deliberately
+    // excluded here: generic success is not proof of class expertise.
+    const exactProfiles = new Map(
+      Array.from(profilesByAgent.entries()).filter(
+        ([, profile]) => profile.task_class === taskClass,
+      ),
+    );
+    const expertEnabled = expertDelegationEnabled();
+    const expertShadowEnabled = expertDelegationShadowEnabled();
+    const minExpertTasks = expertMinTasks();
+    const eligibleAgentIds = new Set(ranked.map((candidate) => candidate.agent_id));
+    const learnedInputs = candidates
+      .filter((candidate) => eligibleAgentIds.has(candidate.agent_id))
+      .map((candidate) => ({
+        ...candidate,
+        routing_score: candidate.rank_score ?? candidate.similarity,
+      }));
+    const prelearnedScores = new Map(
+      learnedInputs.map((candidate) => [candidate.agent_id, candidate.routing_score]),
+    );
+    const learnedRanked =
+      expertEnabled || expertShadowEnabled
+        ? profileWeightedRank(
+            rankWithBundledDelegationHead(query, learnedInputs),
+            profilesByAgent,
+            { profileWeight: EXPERT_PROFILE_WEIGHT },
+          )
+        : ranked.map((candidate) => ({
+            ...candidate,
+            learned_score: undefined as number | undefined,
+          }));
+    const learnedByAgent = new Map(
+      learnedRanked.map((candidate) => [candidate.agent_id, candidate]),
+    );
+    if (expertEnabled) ranked = learnedRanked;
+
     // Orchestrator-first gate (ARBOR_ORCHESTRATOR_FIRST_ENABLED, default off):
     // on a thin market, skip the bid round and directly assign the top
     // profile-ranked ready candidate. The decision is conservative — force_open
     // retries, best-of-N fan-outs, consensus revisions, and exhausted budgets
     // all stay on the auction path (see decideRouteMode).
-    const routeMode = decideRouteMode({
-      enabled: orchestratorFirstEnabled(),
+    const routeContext = {
       forceOpen: Boolean(args.force_open),
       isFanout,
       revisionCount: node.revision_count ?? 0,
       budget,
-      candidates: ranked,
       floorAgentIds: ARBOR_FLOOR_AGENT_IDS,
       liquidityThreshold: directRouteLiquidity(),
       profilePrices,
+      expertMinTasks: minExpertTasks,
+      taskClass,
+      profiles: exactProfiles,
+    };
+    const routeMode = decideRouteMode({
+      ...routeContext,
+      enabled: orchestratorFirstEnabled(),
+      expertEnabled,
+      candidates: ranked,
     });
+    // Shadow mode evaluates only the expert policy and never changes routing.
+    // It gives a counterfactual recommendation while the normal auction still
+    // supplies the realized winner/quality label needed for calibration.
+    const expertShadow =
+      !expertEnabled && expertShadowEnabled
+        ? decideRouteMode({
+            ...routeContext,
+            enabled: false,
+            expertEnabled: true,
+            candidates: learnedRanked,
+          })
+        : undefined;
     const isDirect =
       routeMode.mode === "direct" && Boolean(routeMode.direct_agent_id);
+
+    const openFallback =
+      Boolean(args.force_open) || shouldFallbackOpen(ranked);
+    const uniqueRanked = Array.from(
+      new Map(ranked.map((candidate) => [candidate.agent_id, candidate])).values(),
+    );
+    const auctionCandidateLimit = adaptiveInviteCount({
+      enabled: expertEnabled,
+      candidates: uniqueRanked,
+      profiles: exactProfiles,
+      minTasks: minExpertTasks,
+    });
+    const auctionCandidates = expertEnabled
+      ? uniqueRanked.slice(0, auctionCandidateLimit)
+      : ranked;
+    const shadowCandidateLimit = expertShadowEnabled
+      ? adaptiveInviteCount({
+          enabled: true,
+          candidates: Array.from(
+            new Map(
+              learnedRanked.map((candidate) => [candidate.agent_id, candidate]),
+            ).values(),
+          ),
+          profiles: exactProfiles,
+          minTasks: minExpertTasks,
+        })
+      : undefined;
 
     // Shortlisted auctions always also invite the Arbor-owned floor agents, so
     // every node has a guaranteed plausible bidder on the FIRST auction (not
@@ -468,14 +562,21 @@ export const routeNode = internalAction({
     // the single assignee — an audit trail; solicitBids never runs on it.
     const invited = isDirect
       ? [routeMode.direct_agent_id as string]
-      : args.force_open || shouldFallbackOpen(ranked)
+      : openFallback
         ? undefined
         : Array.from(
             new Set([
-              ...ranked.map((c) => c.agent_id),
+              ...auctionCandidates.map((c) => c.agent_id),
               ...ARBOR_FLOOR_AGENT_IDS,
             ]),
           );
+    const floorIds = new Set<string>(ARBOR_FLOOR_AGENT_IDS);
+    const nonFloorInviteCount = invited
+      ? invited.filter((agentId) => !floorIds.has(agentId)).length
+      : undefined;
+    const floorInviteCount = invited
+      ? invited.filter((agentId) => floorIds.has(agentId)).length
+      : undefined;
 
     // 4. Stable per-node step index: position of this node_id in the
     //    ascending-sorted list of all node_ids in the DAG.
@@ -544,11 +645,30 @@ export const routeNode = internalAction({
         invited: invited ?? "open",
         candidate_count: candidates.length,
         // Flywheel training data (W3): profile-blended scores per candidate.
-        routing_scores: ranked.map((c) => ({
-          agent_id: c.agent_id,
-          similarity: c.similarity,
-          routing_score: c.routing_score,
-        })),
+        routing_scores: ranked.map((candidate) => {
+          const profile = profilesByAgent.get(candidate.agent_id);
+          return {
+            agent_id: candidate.agent_id,
+            similarity: candidate.similarity,
+            rank_score: candidate.rank_score,
+            routing_score: candidate.routing_score,
+            prelearned_routing_score: prelearnedScores.get(candidate.agent_id),
+            learned_score: learnedByAgent.get(candidate.agent_id)?.learned_score,
+            availability_score: candidate.availability_score,
+            profile: profile
+              ? {
+                  source_class: profile.task_class,
+                  exact_class: profile.task_class === taskClass,
+                  tasks: profile.tasks,
+                  successful_tasks: profile.successful_tasks,
+                  success_trials: profile.success_trials,
+                  success_rate: profile.success_rate,
+                  avg_quality: profile.avg_quality,
+                  uncertainty: profile.uncertainty,
+                }
+              : undefined,
+          };
+        }),
         task_class: taskClass,
         budget,
         dag_budget: dag.max_budget,
@@ -558,9 +678,41 @@ export const routeNode = internalAction({
         candidate_index: isFanout ? candidateIndex : undefined,
         route_mode: routeMode.mode,
         route_mode_reason: routeMode.reason,
+        routing_policy: expertEnabled
+          ? "learned-expert-confidence-v1"
+          : "legacy-auction-v1",
+        delegation_head: expertEnabled || expertShadowEnabled
+          ? BUNDLED_DELEGATION_HEAD
+          : undefined,
         independent_ready_count: routeMode.independent_ready_count,
         direct_agent_id: isDirect ? routeMode.direct_agent_id : undefined,
         direct_price: isDirect ? routeMode.direct_price : undefined,
+        expert_tasks: routeMode.expert_tasks,
+        expert_success_lower_bound: routeMode.expert_success_lower_bound,
+        expert_score_margin: routeMode.expert_score_margin,
+        expert_capability_score: routeMode.expert_capability_score,
+        requested_candidate_count: candidates.length,
+        ranked_candidate_count: ranked.length,
+        auction_candidate_limit: auctionCandidateLimit,
+        non_floor_invite_count: nonFloorInviteCount,
+        floor_invite_count: floorInviteCount,
+        total_invite_count: invited?.length,
+        pruned_candidate_count:
+          invited && !isDirect
+            ? Math.max(0, ranked.length - nonFloorInviteCount!)
+            : undefined,
+        open_fallback: openFallback,
+        expert_shadow: expertShadow
+          ? {
+              mode: expertShadow.mode,
+              reason: expertShadow.reason,
+              direct_agent_id: expertShadow.direct_agent_id,
+              success_lower_bound: expertShadow.expert_success_lower_bound,
+              score_margin: expertShadow.expert_score_margin,
+              capability_score: expertShadow.expert_capability_score,
+              auction_candidate_limit: shadowCandidateLimit,
+            }
+          : undefined,
       },
     });
 
@@ -577,8 +729,9 @@ export const routeNode = internalAction({
         agent_id: routeMode.direct_agent_id as string,
         bid_price: routeMode.direct_price ?? budget,
         capability_claim:
-          "Direct assignment by the orchestrator-first router: top " +
-          "profile-ranked ready candidate on a thin market (no bid round).",
+          routeMode.reason === "expert_match"
+            ? "Direct assignment by Arbor's confidence-gated delegation expert: exact-class evidence, conservative success bound, semantic-fit floor, and a clear rank margin (no bid round)."
+            : "Direct assignment by the orchestrator-first router: top profile-ranked ready candidate on a thin market (no bid round).",
         estimated_seconds: 120,
         score: 1,
         plan_source: "direct_assignment",

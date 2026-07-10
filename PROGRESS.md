@@ -1,5 +1,27 @@
 # Arbor Hive Mind — Build Progress
 
+## Sakana-style expert delegation and auction compression (2026-07-10)
+
+Goal: turn the W3 profile flywheel into a confidence-aware delegation expert that can skip redundant auctions, shrink competitive auctions, and prove the change with replayable metrics while retaining a conservative fallback.
+
+1. Fully audit the supplied Sakana research, verify implementation-critical claims against primary sources, and resolve open questions.
+2. Specify observable routing behaviors and metrics: delegation accuracy, direct-route precision, auction invite count, fallback rate, and cost/latency proxies.
+3. Complete the pure expert-routing core with vertical RED/GREEN tests.
+4. Wire profile signals, adaptive shortlist sizing, telemetry, and default-off/kill-switch rollout through `convex/hiveRouter.ts`.
+5. Add a deterministic evaluation harness comparing baseline and expert policies on known routing cases; record measured deltas.
+6. Document switches, run focused tests/codegen/typecheck/full tests, perform standards/spec reviews, fix findings, and commit only the Sakana-delegation files.
+
+| Task | Model / executor |
+|---|---|
+| Cross-file architecture, integration, and uncertain decisions | Opus main agent |
+| Primary-source parity and open-weight availability | Sonnet research subagent (runtime-inherited) |
+| Router/data-flow seam audit | Sonnet architecture subagent (runtime-inherited) |
+| Focused test and metric-harness review | Sonnet test subagent (runtime-inherited) |
+| Standards and spec review | Sonnet review subagents (runtime-inherited) |
+| Build, codegen, typecheck, tests, benchmark | Deterministic local tooling |
+
+Checkpoint: research audit, profile-label repair, learned selection head, confidence policy, Convex wiring, shadow telemetry, and offline benchmark are complete. No public Fugu/Conductor/TRINITY weights exist, so no Sakana checkpoint was downloaded or targeted for Azure. Arbor now has its own open 2,048-feature query-conditioned head (22 curated EASY gold-proxy examples, 10 learned agents, 1,452 nonzero centroid parameters); `npm run delegation:train` regenerates the seed, while `npm run delegation:train -- --data <measured.jsonl>` trains the same runtime from real worker reward vectors. On the disjoint HARD near-duplicate routing suite, `npm run delegation:eval` moves 4D acc@1 from 13/14 (92.9%) to 14/14 (100%). In the explicitly synthetic mature-profile policy simulation: one of 14 tasks routes direct (100% point precision, but only 27.1% Wilson lower bound), every auction retains a gold agent, non-floor solicitations fall 6.0 -> 2.79 per task (-53.6%), and total invites fall 8.0 -> 4.64. These are internal routing/gold-path regression metrics, not independent or end-to-end task-success evidence; live outcome non-inferiority remains gated on `ARBOR_EXPERT_DELEGATION_SHADOW`. `npx convex codegen`, `npm run typecheck`, focused tests, and full `npm test` pass.
+
 ## Orchestrator-first direct assignment (2026-07-09)
 
 Step 1 of the orchestrator-first plan: thin-market nodes skip the bid round.

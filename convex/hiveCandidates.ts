@@ -25,6 +25,7 @@ import {
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { didForAgent } from "../lib/hive/blackboard-core";
+import { profileOutcomeSucceeded } from "../lib/hive/profile-core";
 import {
   scoreCandidate,
   selectBestCandidate,
@@ -400,11 +401,24 @@ export const recordAndMaybePromote = internalAction({
         : task.result !== undefined && task.result !== null
           ? JSON.stringify(task.result)
           : "";
-    const agentId =
+    let agentId =
       typeof task.result === "object" && task.result && "agent_id" in task.result
         ? (task.result as { agent_id?: string }).agent_id
         : undefined;
-    const verdict = task.judge_verdict as { quality_score?: number } | undefined | null;
+    if (!agentId && task.winning_bid_id) {
+      try {
+        const winningBid = await ctx.runQuery(internal.bids._get, {
+          bid_id: task.winning_bid_id,
+        });
+        agentId = winningBid.agent_id;
+      } catch {
+        // Preserve candidate settlement even if the bid row vanished.
+      }
+    }
+    const verdict = task.judge_verdict as
+      | { verdict?: string; quality_score?: number }
+      | undefined
+      | null;
     const qualityScore =
       verdict && typeof verdict.quality_score === "number"
         ? verdict.quality_score
@@ -446,7 +460,7 @@ export const recordAndMaybePromote = internalAction({
         await ctx.runMutation(internal.agentProfiles._recordOutcome, {
           agent_id: agentId,
           task_class: node.task_class,
-          success: usableOutput.trim().length > 0,
+          success: profileOutcomeSucceeded(task.status, verdict?.verdict),
           quality_score: qualityScore,
           latency_seconds: latencySeconds,
           price_paid: task.price_paid,

@@ -168,7 +168,7 @@ export const runForFailedNode = internalAction({
       await ctx.runMutation(internal.agentProfiles._recordOutcome, {
         agent_id: agentId,
         task_class: node.task_class,
-        success: true,
+        success: accepted,
         quality_score: qualityScore,
         latency_seconds: actualSeconds,
         price_paid: 0,

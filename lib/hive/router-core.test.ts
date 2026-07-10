@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  adaptiveInviteCount,
   allocateNodeBudget,
   buildRoutingQuery,
   decideRouteMode,
@@ -7,6 +8,7 @@ import {
   nodeDepths,
   perNodeBudget,
   shouldFallbackOpen,
+  wilsonLowerBound,
   type AllocatableNode,
   type RouteModeInput,
 } from "./router-core";
@@ -348,5 +350,226 @@ assert.equal(
   });
   assert.equal(ceiling.direct_price, 20, "no signal -> node ceiling");
 }
+
+// ─── expert delegation ─────────────────────────────────────────────────────
+{
+  const candidate = (
+    id: string,
+    routingScore: number,
+    similarity = 0.8,
+  ) => ({
+    agent_id: id,
+    availability_score: 1,
+    similarity,
+    capability_score: similarity,
+    routing_score: routingScore,
+    cost_baseline: 4,
+  });
+  const proven = (overrides: Record<string, number | string> = {}) => ({
+    task_class: "reasoning",
+    tasks: 12,
+    successful_tasks: 11,
+    success_trials: 12,
+    success_rate: 0.92,
+    avg_quality: 0.84,
+    ...overrides,
+  });
+  const base: RouteModeInput = {
+    enabled: false,
+    expertEnabled: true,
+    expertMinTasks: 8,
+    taskClass: "reasoning",
+    forceOpen: false,
+    isFanout: false,
+    revisionCount: 0,
+    budget: 10,
+    candidates: [candidate("expert", 0.9), candidate("runner", 0.72)],
+    floorAgentIds: [],
+    liquidityThreshold: 3,
+    profiles: new Map([["expert", proven()]]),
+  };
+
+  const direct = decideRouteMode(base);
+  assert.equal(direct.mode, "direct", "proven expert with a clear margin routes direct");
+  assert.equal(direct.reason, "expert_match", "expert reason is stable-cardinality");
+  assert.equal(direct.direct_agent_id, "expert");
+  assert.equal(direct.direct_price, 4);
+  assert.ok(
+    (direct.expert_success_lower_bound ?? 0) >= 0.6,
+    "decision exposes conservative success evidence",
+  );
+
+  assert.equal(
+    decideRouteMode({
+      ...base,
+      candidates: [candidate("expert", 0.79), candidate("runner", 0.72)],
+    }).mode,
+    "auction",
+    "narrow score margin abstains",
+  );
+  assert.equal(
+    decideRouteMode({
+      ...base,
+      candidates: [candidate("expert", 0.9, 0.14), candidate("runner", 0.72)],
+    }).mode,
+    "auction",
+    "weak semantic fit cannot bypass open-auction safety",
+  );
+  assert.equal(
+    decideRouteMode({ ...base, candidates: [candidate("expert", 0.9)] }).mode,
+    "auction",
+    "one candidate has no comparative confidence",
+  );
+  assert.equal(
+    decideRouteMode({
+      ...base,
+      profiles: new Map([["expert", proven({ task_class: "general" })]]),
+    }).mode,
+    "auction",
+    "general history is a ranking prior, not exact expertise evidence",
+  );
+  assert.equal(
+    decideRouteMode({
+      ...base,
+      profiles: new Map([
+        ["expert", proven({ tasks: 7, successful_tasks: 7, success_trials: 7 })],
+      ]),
+    }).mode,
+    "auction",
+    "insufficient evidence abstains",
+  );
+  assert.equal(
+    decideRouteMode({
+      ...base,
+      profiles: new Map([
+        ["expert", proven({ successful_tasks: 0, success_trials: 0 })],
+      ]),
+    }).mode,
+    "auction",
+    "legacy EWMA history without exact counts cannot authorize direct routing",
+  );
+  assert.equal(
+    decideRouteMode({
+      ...base,
+      profiles: new Map([["expert", proven({ avg_quality: 0.4 })]]),
+    }).mode,
+    "auction",
+    "low-quality history abstains",
+  );
+  assert.equal(
+    decideRouteMode({
+      ...base,
+      profiles: new Map([["expert", proven({ success_rate: Number.NaN })]]),
+    }).mode,
+    "auction",
+    "non-finite profile signals fail closed",
+  );
+
+  for (const guarded of [
+    { forceOpen: true },
+    { isFanout: true },
+    { revisionCount: 1 },
+    { budget: 0 },
+    { budget: Number.NaN },
+  ]) {
+    assert.equal(
+      decideRouteMode({ ...base, ...guarded }).mode,
+      "auction",
+      "safety paths beat expert routing",
+    );
+  }
+}
+
+// ─── confidence-aware auction size ─────────────────────────────────────────
+{
+  const inviteCandidate = (agent_id: string, availability_score = 1) => ({
+    agent_id,
+    availability_score,
+    similarity: 0.7,
+  });
+  const provenProfile = (overrides: Record<string, number> = {}) => ({
+    tasks: 12,
+    successful_tasks: 10,
+    success_trials: 12,
+    success_rate: 0.83,
+    avg_quality: 0.8,
+    ...overrides,
+  });
+  const candidates = [
+    inviteCandidate("a"),
+    inviteCandidate("b"),
+    inviteCandidate("c"),
+    inviteCandidate("d"),
+    inviteCandidate("e"),
+    inviteCandidate("f"),
+  ];
+
+  assert.equal(
+    adaptiveInviteCount({ enabled: false, candidates, minTasks: 8 }),
+    6,
+    "disabled policy retains the full shortlist",
+  );
+  assert.equal(
+    adaptiveInviteCount({
+      enabled: true,
+      candidates,
+      profiles: new Map([["a", provenProfile()]]),
+      minTasks: 8,
+    }),
+    6,
+    "one proven agent is not a competitive auction",
+  );
+  assert.equal(
+    adaptiveInviteCount({
+      enabled: true,
+      candidates,
+      profiles: new Map([
+        ["a", provenProfile()],
+        ["b", provenProfile()],
+      ]),
+      minTasks: 8,
+    }),
+    3,
+    "two proven top-three agents compress the auction to three",
+  );
+  assert.equal(
+    adaptiveInviteCount({
+      enabled: true,
+      candidates: [
+        inviteCandidate("a"),
+        inviteCandidate("a"),
+        inviteCandidate("b"),
+        inviteCandidate("c"),
+        inviteCandidate("d"),
+        inviteCandidate("e"),
+      ],
+      profiles: new Map([["a", provenProfile()]]),
+      minTasks: 8,
+    }),
+    5,
+    "duplicate ids never masquerade as independent proven agents",
+  );
+  assert.equal(
+    adaptiveInviteCount({
+      enabled: true,
+      candidates: [
+        inviteCandidate("a", 0.1),
+        inviteCandidate("b"),
+        inviteCandidate("c"),
+        inviteCandidate("d"),
+      ],
+      profiles: new Map([
+        ["a", provenProfile()],
+        ["b", provenProfile()],
+      ]),
+      minTasks: 8,
+    }),
+    4,
+    "unavailable history cannot justify pruning",
+  );
+}
+
+assert.ok(wilsonLowerBound(11, 12) > 0.6, "strong evidence clears the lower bound");
+assert.ok(wilsonLowerBound(3, 5) < 0.5, "weak evidence remains uncertain");
 
 console.log("router-core tests passed");

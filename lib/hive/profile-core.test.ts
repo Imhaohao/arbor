@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   emptyProfile,
+  profileOutcomeSucceeded,
   profileScore,
   profileWeightedRank,
   uncertaintyFor,
@@ -45,6 +46,8 @@ assert.ok(
   // First sample snaps to the observation (no stale prior drag).
   const first = updateProfile(emptyProfile("a", "reasoning", NOW), outcome());
   assert.equal(first.tasks, 1);
+  assert.equal(first.successful_tasks, 1, "first accepted outcome is counted");
+  assert.equal(first.success_trials, 1, "first exact success trial is counted");
   assert.equal(first.success_rate, 1, "first success snaps to 1");
   assert.equal(first.avg_quality, 0.9, "first quality snaps to sample");
   assert.equal(first.avg_latency_seconds, 30);
@@ -57,6 +60,8 @@ assert.ok(
     second.success_rate < 1 && second.success_rate > 0.5,
     `failure moves rate partway, got ${second.success_rate}`,
   );
+  assert.equal(second.successful_tasks, 1, "failure does not increment successes");
+  assert.equal(second.success_trials, 2, "failure still increments exact trials");
   assert.ok(
     second.avg_quality < 0.9 && second.avg_quality > 0.1,
     "quality EWMA between samples",
@@ -77,7 +82,15 @@ assert.ok(
   );
   assert.equal(third.avg_price, second.avg_price, "free run -> price kept");
   assert.equal(third.tasks, 3);
+  assert.equal(third.successful_tasks, 2);
+  assert.equal(third.success_trials, 3);
 }
+
+// Profile success follows the judge outcome, not merely whether material text
+// existed and allowed the DAG to continue.
+assert.equal(profileOutcomeSucceeded("complete", "accept"), true);
+assert.equal(profileOutcomeSucceeded("disputed", "reject"), false);
+assert.equal(profileOutcomeSucceeded("failed", undefined), false);
 
 // ─── profileScore ────────────────────────────────────────────────────────────
 {
@@ -142,10 +155,10 @@ assert.ok(
     "veteran-good",
     "proven agent overtakes higher-similarity bad agent",
   );
-  assert.equal(
-    ranked[ranked.length - 1].agent_id,
-    "veteran-bad",
-    "proven-bad agent sinks",
+  assert.ok(
+    ranked.findIndex((candidate) => candidate.agent_id === "veteran-bad") >
+      ranked.findIndex((candidate) => candidate.agent_id === "veteran-good"),
+    "proven-bad history cannot outrank a proven-good near-peer",
   );
   assert.ok(
     ranked.every((c) => typeof c.routing_score === "number"),
@@ -158,6 +171,43 @@ assert.ok(
     neutral.map((c) => c.agent_id),
     ["veteran-bad", "veteran-good", "stranger"],
     "no profiles -> similarity order preserved",
+  );
+
+  // When 4D discovery supplied a rank_score, the flywheel must blend from that
+  // combined capability/reputation/price/availability score rather than
+  // silently reverting to raw embedding similarity.
+  const ranked4d = profileWeightedRank(
+    [
+      { agent_id: "high-sim-low-4d", similarity: 0.95, rank_score: 0.4 },
+      { agent_id: "lower-sim-high-4d", similarity: 0.7, rank_score: 0.8 },
+    ],
+    new Map(),
+  );
+  assert.equal(ranked4d[0].agent_id, "lower-sim-high-4d");
+
+  const conservative = profileWeightedRank(
+    [
+      { agent_id: "known-generalist", similarity: 0.6, rank_score: 0.6 },
+      { agent_id: "unknown-specialist", similarity: 0.7, rank_score: 0.7 },
+    ],
+    new Map([
+      [
+        "known-generalist",
+        {
+          ...emptyProfile("known-generalist", "reasoning", NOW),
+          tasks: 30,
+          successful_tasks: 29,
+          success_rate: 0.97,
+          avg_quality: 0.95,
+          uncertainty: uncertaintyFor(30),
+        },
+      ],
+    ]),
+  );
+  assert.equal(
+    conservative[0].agent_id,
+    "unknown-specialist",
+    "broad history may break close ties but cannot erase a clear query-fit lead",
   );
 }
 

@@ -1142,6 +1142,15 @@ export const execute = internalAction({
         task_id: args.task_id,
         status: "failed",
       });
+      // Hive direct assignments have no runner-up bid. Wake settlement now so
+      // the bounded open retry can recover immediately; non-hive tasks are a
+      // cheap no-op in onNodeSettled. The router's delayed sweep remains as a
+      // liveness backstop and onNodeSettled is idempotent.
+      await ctx.scheduler.runAfter(
+        0,
+        internal.hiveOrchestrator.onNodeSettled,
+        { task_id: args.task_id },
+      );
     }
   },
 });
