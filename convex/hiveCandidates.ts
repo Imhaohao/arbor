@@ -27,9 +27,10 @@ import type { Id } from "./_generated/dataModel";
 import { didForAgent } from "../lib/hive/blackboard-core";
 import { profileOutcomeSucceeded } from "../lib/hive/profile-core";
 import {
+  pairCandidateArchive,
+  resolveWinnerPair,
   scoreCandidate,
   selectBestCandidate,
-  type CandidateRecord,
 } from "../lib/hive/candidate-search-core";
 
 const MAX_OUTPUT_CHARS = 50000;
@@ -188,7 +189,7 @@ export const _settleBarrier = internalMutation({
         q.eq("dag_id", args.dag_id).eq("node_id", args.node_id),
       )
       .collect();
-    const records: CandidateRecord[] = rows.map((r) => ({
+    const pairs = pairCandidateArchive(rows, (r) => ({
       candidate_index: r.candidate_index,
       agent_id: r.agent_id ?? "unknown",
       task_id: r.task_id ? String(r.task_id) : undefined,
@@ -198,7 +199,7 @@ export const _settleBarrier = internalMutation({
       cost_paid: r.cost_paid,
       status: r.status,
     }));
-    const selection = selectBestCandidate(records);
+    const selection = selectBestCandidate(pairs.map((p) => p.record));
     const totalCost = rows.reduce(
       (sum, r) => sum + (typeof r.cost_paid === "number" ? r.cost_paid : 0),
       0,
@@ -232,12 +233,44 @@ export const _settleBarrier = internalMutation({
       return true;
     }
 
-    const winnerRow = rows.find(
-      (r) => r.candidate_index === selection.winner!.candidate_index,
-    );
+    const winnerPair = resolveWinnerPair(pairs, selection.winner, {
+      taskIdOf: (r) => (r.task_id ? String(r.task_id) : undefined),
+    });
+    if (!winnerPair) {
+      // Winner selected but not mappable to exactly one archive row — fail
+      // closed so we never mark every candidate rejected or drop task_id.
+      await ctx.db.patch(node._id, {
+        promotion_claimed: true,
+        status: "failed",
+        output_text:
+          "best-of-N: selected winner could not be matched to candidate archive",
+        settled_at: Date.now(),
+        updated_at: Date.now(),
+      });
+      if (dag !== null) {
+        await ctx.scheduler.runAfter(0, internal.lifecycle.log, {
+          task_id: dag.root_task_id,
+          event_type: "hive_node_bestofn_failed",
+          payload: {
+            node_id: args.node_id,
+            candidates: rows.length,
+            trigger: args.trigger,
+            reason: "winner_row_unresolved",
+            winner_candidate_index: selection.winner.candidate_index,
+            winner_task_id: selection.winner.task_id,
+          },
+        });
+      }
+      await ctx.scheduler.runAfter(0, internal.hiveOrchestrator.advance, {
+        dag_id: args.dag_id,
+      });
+      return true;
+    }
+    const winnerRow = winnerPair.row;
+
     // Relabel the archive: winner promoted, everyone else rejected.
     for (const row of rows) {
-      const status = row._id === winnerRow?._id ? "promoted" : "rejected";
+      const status = row._id === winnerRow._id ? "promoted" : "rejected";
       if (row.status !== status) await ctx.db.patch(row._id, { status });
     }
 
@@ -248,7 +281,7 @@ export const _settleBarrier = internalMutation({
       assigned_agent_id: selection.winner.agent_id,
       output_text: winnerOutput,
       eval_score: selection.winner.calibrated_score,
-      task_id: winnerRow?.task_id,
+      task_id: winnerRow.task_id,
       cost_paid: Number(totalCost.toFixed(2)),
       settled_at: Date.now(),
       updated_at: Date.now(),
@@ -257,7 +290,7 @@ export const _settleBarrier = internalMutation({
     // Blackboard writes happen in a follow-up action (they call the scratchpad
     // mutation + embedding). Best-effort by design — the legacy settle treats
     // the blackboard the same way.
-    if (winnerOutput.length > 0 && winnerRow?.task_id) {
+    if (winnerOutput.length > 0 && winnerRow.task_id) {
       await ctx.scheduler.runAfter(
         0,
         internal.hiveCandidates.persistWinnerArtifacts,

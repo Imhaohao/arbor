@@ -28,8 +28,19 @@ import {
   buildMarketAgentCard,
   INTENT_TO_TOOL,
   INTENT_DESCRIPTIONS,
+  NEGOTIATE_INTENT,
   type MarketIntent,
+  type ToolBackedIntent,
 } from "@/lib/specialists/a2a-market-card";
+import {
+  buildArbitratorSystemPrompt,
+  buildNegotiationUserPrompt,
+  fallbackNegotiationReply,
+  looksConversational,
+  type NegotiationRosterEntry,
+  type NegotiationTurn,
+} from "@/lib/hive/negotiation-core";
+import { callOpenAI } from "@/lib/openai";
 import {
   ARBOR_ACP_VERSION,
   artifactDataPart,
@@ -78,6 +89,10 @@ interface JsonRpcRequest {
 interface MessageSendParams {
   message?: {
     parts?: AcpMessagePart[];
+    /** A2A multi-turn threading: clients echo the contextId we replied with. */
+    contextId?: string;
+    taskId?: string;
+    messageId?: string;
   };
   metadata?: Record<string, unknown>;
 }
@@ -142,16 +157,16 @@ function intentFromParams(
     return { error: `metadata.intent must be a string, got ${typeof raw}` };
   }
   const normalized = raw.toLowerCase();
-  if (normalized in INTENT_TO_TOOL) {
+  if (normalized in INTENT_TO_TOOL || normalized === NEGOTIATE_INTENT) {
     return normalized as MarketIntent;
   }
   return {
-    error: `unknown intent "${raw}"; supported: ${Object.keys(INTENT_TO_TOOL).join(", ")}`,
+    error: `unknown intent "${raw}"; supported: ${[...Object.keys(INTENT_TO_TOOL), NEGOTIATE_INTENT].join(", ")}`,
   };
 }
 
 function argsForIntent(
-  intent: MarketIntent,
+  intent: ToolBackedIntent,
   params: MessageSendParams | undefined,
 ): Record<string, unknown> {
   const meta = metadataObject(params);
@@ -219,6 +234,7 @@ function makeRunId() {
 interface A2ATaskShape {
   id: string;
   kind: "task";
+  contextId?: string;
   status: {
     state: AcpTaskState;
     message?: {
@@ -240,11 +256,13 @@ function buildSuccessTask(args: {
   description: string;
   artifactData?: unknown;
   format: AgentFormat;
+  contextId?: string;
   metadata?: Record<string, unknown>;
 }): A2ATaskShape {
   return {
     id: args.runId,
     kind: "task",
+    ...(args.contextId ? { contextId: args.contextId } : {}),
     status: {
       state: "completed",
       message: {
@@ -272,11 +290,13 @@ function buildFailureTask(args: {
   runId: string;
   text: string;
   state?: Extract<AcpTaskState, "failed" | "rejected" | "input-required" | "canceled">;
+  contextId?: string;
   metadata?: Record<string, unknown>;
 }): A2ATaskShape {
   return {
     id: args.runId,
     kind: "task",
+    ...(args.contextId ? { contextId: args.contextId } : {}),
     status: {
       state: args.state ?? "failed",
       message: {
@@ -405,6 +425,176 @@ async function persistedRun(runId: string) {
   }
 }
 
+// ─── conversational negotiation (intent: negotiate) ──────────────────────
+//
+// A2A never retransmits conversation history, so the gateway keeps its own
+// memory keyed by contextId (convex/a2aNegotiations.ts) and echoes that
+// contextId on every reply. Without this, a foreign agent's second turn
+// would land with no context and get an unrelated post_task response — the
+// documented root cause of off-topic/generic A2A replies.
+
+const NEGOTIATION_LLM_TIMEOUT_MS = 12_000;
+const NEGOTIATION_MAX_TOKENS = 400;
+
+function negotiationEnabled(): boolean {
+  return process.env.ARBOR_A2A_NEGOTIATION_ENABLED !== "false";
+}
+
+function makeContextId(): string {
+  return `arbor-ctx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function configuredMaxBudget(): number {
+  const parsed = Number(process.env.ARBOR_ACP_MAX_BUDGET ?? "10000");
+  return Number.isFinite(parsed) ? parsed : 10000;
+}
+
+async function loadNegotiationTurns(
+  contextId: string | undefined,
+): Promise<NegotiationTurn[]> {
+  if (!contextId) return [];
+  try {
+    const rows = await convex().query(api.a2aNegotiations.listByContext, {
+      context_id: contextId,
+    });
+    return rows.map((row) => ({ role: row.role, text: row.text }));
+  } catch (error) {
+    logPersistenceWarning("negotiation_list", contextId, error);
+    return [];
+  }
+}
+
+async function persistNegotiationTurn(args: {
+  contextId: string;
+  role: "counterparty" | "agent";
+  text: string;
+  requesterAgentId?: string;
+}) {
+  try {
+    await convex().mutation(api.a2aNegotiations.append, {
+      context_id: args.contextId,
+      role: args.role,
+      text: args.text,
+      requester_agent_id: args.requesterAgentId,
+      intent: NEGOTIATE_INTENT,
+    });
+  } catch (error) {
+    logPersistenceWarning("negotiation_append", args.contextId, error);
+  }
+}
+
+/** Live roster for grounding — on failure the arbitrator still answers. */
+async function negotiationRoster(): Promise<NegotiationRosterEntry[]> {
+  try {
+    const result = await dispatchTool("list_specialists", {});
+    if (!Array.isArray(result)) return [];
+    return result
+      .filter(
+        (row): row is Record<string, unknown> =>
+          typeof row === "object" && row !== null,
+      )
+      .map((row) => ({
+        agent_id: typeof row.agent_id === "string" ? row.agent_id : "",
+        one_liner: typeof row.one_liner === "string" ? row.one_liner : undefined,
+        capabilities: Array.isArray(row.capabilities)
+          ? row.capabilities.filter(
+              (cap): cap is string => typeof cap === "string",
+            )
+          : [],
+        cost_baseline:
+          typeof row.cost_baseline === "number" ? row.cost_baseline : 0,
+        reputation_score:
+          typeof row.reputation_score === "number"
+            ? row.reputation_score
+            : undefined,
+        market_ready:
+          typeof row.market_ready === "boolean" ? row.market_ready : undefined,
+      }))
+      .filter((entry) => entry.agent_id);
+  } catch {
+    return [];
+  }
+}
+
+async function handleNegotiate(args: {
+  rpcId: string | number | null;
+  params: MessageSendParams | undefined;
+  authenticatedAgentId?: string;
+  priorTurns: NegotiationTurn[];
+}) {
+  const incoming = promptFromMessage(args.params);
+  const contextId = args.params?.message?.contextId?.trim() || makeContextId();
+  const roster = await negotiationRoster();
+  const maxBudget = configuredMaxBudget();
+
+  let replyText: string;
+  let llmBacked = true;
+  if (incoming.trim()) {
+    try {
+      replyText = (
+        await callOpenAI({
+          systemPrompt: buildArbitratorSystemPrompt({
+            roster,
+            maxBudget,
+            intents: INTENT_DESCRIPTIONS,
+          }),
+          userPrompt: buildNegotiationUserPrompt(args.priorTurns, incoming),
+          maxTokens: NEGOTIATION_MAX_TOKENS,
+          timeoutMs: NEGOTIATION_LLM_TIMEOUT_MS,
+          retries: 0,
+          purpose: "agent",
+        })
+      ).trim();
+      if (!replyText) throw new Error("empty negotiation reply");
+    } catch {
+      // Never surface raw error text to a counterparty agent — degrade to a
+      // deterministic, on-topic negotiation turn instead.
+      replyText = fallbackNegotiationReply({ roster, maxBudget });
+      llmBacked = false;
+    }
+  } else {
+    replyText = fallbackNegotiationReply({ roster, maxBudget });
+    llmBacked = false;
+  }
+
+  if (incoming.trim()) {
+    await persistNegotiationTurn({
+      contextId,
+      role: "counterparty",
+      text: incoming,
+      requesterAgentId: args.authenticatedAgentId,
+    });
+  }
+  await persistNegotiationTurn({
+    contextId,
+    role: "agent",
+    text: replyText,
+    requesterAgentId: args.authenticatedAgentId,
+  });
+
+  // Reply as a Message (not a Task): this is one turn in an ongoing
+  // exchange. Clients continue the thread by echoing contextId.
+  return jsonOk({
+    jsonrpc: "2.0",
+    id: args.rpcId,
+    result: {
+      kind: "message",
+      role: "agent",
+      messageId: makeRunId(),
+      contextId,
+      parts: [{ kind: "text", text: replyText }],
+      metadata: {
+        intent: NEGOTIATE_INTENT,
+        market_gateway: true,
+        acp_version: ARBOR_ACP_VERSION,
+        llm_backed: llmBacked,
+        grounded_specialists: roster.length,
+        turns_in_context: args.priorTurns.length + (incoming.trim() ? 2 : 1),
+      },
+    },
+  });
+}
+
 // ─── handlers ────────────────────────────────────────────────────────────
 
 function summarizeResult(intent: MarketIntent, result: unknown): string {
@@ -452,7 +642,42 @@ async function handleMessageSend(args: {
       message: intentResult.error,
     });
   }
-  const intent = intentResult;
+  const requestedContextId = params?.message?.contextId?.trim() || undefined;
+
+  // Conversational path. Explicit intent:"negotiate" always negotiates; when
+  // no intent is given, an ongoing negotiation thread (contextId with stored
+  // turns) or clearly conversational text negotiates instead of silently
+  // posting a task — foreign agents asking "what would this cost?" get an
+  // on-topic arbitrator reply, not "post_task: task_x".
+  if (negotiationEnabled()) {
+    const rawIntent = metadataObject(params).intent;
+    const explicitNegotiate = intentResult === NEGOTIATE_INTENT;
+    const intentOmitted =
+      rawIntent === undefined || rawIntent === null || rawIntent === "";
+    if (explicitNegotiate || intentOmitted) {
+      const priorTurns = await loadNegotiationTurns(requestedContextId);
+      if (
+        explicitNegotiate ||
+        looksConversational(promptFromMessage(params), priorTurns.length > 0)
+      ) {
+        return await handleNegotiate({
+          rpcId,
+          params,
+          authenticatedAgentId: args.authenticatedAgentId,
+          priorTurns,
+        });
+      }
+    }
+  } else if (intentResult === NEGOTIATE_INTENT) {
+    return jsonRpcError({
+      id: rpcId,
+      code: -32602,
+      message:
+        "negotiation is disabled on this deployment (ARBOR_A2A_NEGOTIATION_ENABLED=false)",
+    });
+  }
+
+  const intent = intentResult as ToolBackedIntent;
   const toolName = INTENT_TO_TOOL[intent];
   const toolArgs = argsForIntent(intent, params);
   const runId = makeRunId();
@@ -467,16 +692,11 @@ async function handleMessageSend(args: {
     intent === "post_task" && typeof toolArgs.max_budget === "number"
       ? toolArgs.max_budget
       : undefined;
-  const configuredMaxBudget = Number(
-    process.env.ARBOR_ACP_MAX_BUDGET ?? "10000",
-  );
   const slaDecision = negotiateSla({
     request: slaFromParams(params),
     offeredCapabilities: Object.keys(INTENT_TO_TOOL),
     defaultBudget,
-    maxBudget: Number.isFinite(configuredMaxBudget)
-      ? configuredMaxBudget
-      : 10000,
+    maxBudget: configuredMaxBudget(),
   });
   const requesterDid = args.authenticatedAgentId
     ? didForAgent(args.authenticatedAgentId)
@@ -504,6 +724,7 @@ async function handleMessageSend(args: {
         runId,
         text: `SLA rejected: ${slaDecision.reason}`,
         state: "rejected",
+        contextId: requestedContextId,
         metadata: {
           intent,
           acp_version: ARBOR_ACP_VERSION,
@@ -523,6 +744,7 @@ async function handleMessageSend(args: {
         runId,
         text: message,
         state: "input-required",
+        contextId: requestedContextId,
         metadata: {
           intent,
           acp_version: ARBOR_ACP_VERSION,
@@ -548,6 +770,7 @@ async function handleMessageSend(args: {
       description: INTENT_DESCRIPTIONS[intent],
       artifactData: { intent, tool: toolName, result },
       format: slaDecision.sla.output_format,
+      contextId: requestedContextId,
       metadata: {
         intent,
         tool: toolName,
@@ -576,6 +799,7 @@ async function handleMessageSend(args: {
       result: buildFailureTask({
         runId,
         text,
+        contextId: requestedContextId,
         metadata: {
           intent,
           tool: toolName,

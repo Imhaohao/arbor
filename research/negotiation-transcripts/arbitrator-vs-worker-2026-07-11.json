@@ -1,0 +1,80 @@
+[
+  {
+    "turn": 1,
+    "speaker": "BRIDGE SEED (scripted, to worker)",
+    "endpoint": "http://localhost:4457/",
+    "text": "You are being connected to the Arbor Market arbitrator agent over A2A. Introduce yourself, pitch what work you can take on, and quote your pricing. Your goal: get hired for at least one concrete task at a fair rate."
+  },
+  {
+    "turn": 2,
+    "speaker": "ARBOR WORKER (agent-authored)",
+    "endpoint": "http://localhost:4457/",
+    "contextId": "worker-ctx-1783741128491-58zewj",
+    "llm_backed": true,
+    "text": "Hello, I’m Arbor Worker, an execution agent capable of delivering various services, including copywriting, summarization, research briefs, code explanation, and general analysis. My pricing typically ranges from $0.35 to $1.00 per deliverable, with quick turnaround times of about a minute. If you're looking for engaging content, concise summaries, or detailed analyses, I can assist with that. Feel free to share a specific task, and we can discuss the details, including scope and pricing. If you're ready, please send your task details for me to start."
+  },
+  {
+    "turn": 3,
+    "speaker": "ARBOR MARKET ARBITRATOR (agent-authored)",
+    "endpoint": "http://localhost:3000/api/a2a/market",
+    "contextId": "arbor-ctx-1783741131032-cz19fo",
+    "llm_backed": true,
+    "text": "Thanks. For Arbor Market, I can route or price tasks only against the live roster. The in-scope match for your stated services is arbor-worker-a2a: copywriting, summarization, research-brief, code-explanation, and general-analysis, baseline from $0.50. I can’t validate the $0.35 floor from the roster, so I’d quote $0.50+ depending on scope.\n\nIf you want to execute work through Arbor, send the brief, expected deliverable format, any source material, deadline, and max budget. For simple copy, summaries, or analysis, a typical starting max_budget of $0.50–$2.00 is reasonable; larger research briefs or multi-part analysis may need more.\n\nWhen ready to proceed, call message/send with metadata.intent \"post_task\" and include the prompt plus max_budget."
+  },
+  {
+    "turn": 4,
+    "speaker": "ARBOR WORKER (agent-authored)",
+    "endpoint": "http://localhost:4457/",
+    "contextId": "worker-ctx-1783741128491-58zewj",
+    "llm_backed": true,
+    "text": "Thank you for clarifying the pricing structure. I'm happy to work with a baseline of $0.50. My services include copywriting, summarization, research briefs, code explanation, and general analysis, all adaptable to your needs. \n\nPlease provide the specific task details, expected deliverable format, any supporting materials, the deadline, and your max budget. For most tasks, a budget of $0.50 to $2.00 would be reasonable. Once you share the details, I can begin working on it. If you're ready, just send your task with the intent \"post_task.\""
+  },
+  {
+    "turn": 5,
+    "speaker": "ARBOR MARKET ARBITRATOR (agent-authored)",
+    "endpoint": "http://localhost:3000/api/a2a/market",
+    "contextId": "arbor-ctx-1783741131032-cz19fo",
+    "llm_backed": true,
+    "text": "Understood. We’re aligned: in Arbor’s roster the executable match is arbor-worker-a2a, baseline from $0.50, for copywriting, summarization, research-brief, code-explanation, and general-analysis.\n\nI don’t have a work brief to post on your behalf in this negotiation thread. If you are the party seeking work, choose the task scope and send it via message/send with metadata.intent \"post_task\", including:\n- prompt: the task brief, source material, deliverable format, and deadline\n- max_budget: your ceiling, typically $0.50–$2.00 for simple worker tasks\n\nIf you’re offering capacity rather than requesting work, no posting is needed; Arbor will route matching tasks to rostered specialists when buyers submit them."
+  },
+  {
+    "turn": 6,
+    "speaker": "ARBOR WORKER (agent-authored)",
+    "endpoint": "http://localhost:4457/",
+    "contextId": "worker-ctx-1783741128491-58zewj",
+    "llm_backed": true,
+    "text": "Thank you for the information. I am here to offer my services on tasks like copywriting, summarization, research briefs, code explanations, and general analysis. If you have a specific task in mind, please provide the details—including a prompt, any source material, the deliverable format, deadline, and max budget (ideally between $0.50–$2.00). Once you share those specifics, I can proceed with the work. If you're ready, just send the task details with the intent \"post_task.\""
+  },
+  {
+    "turn": 7,
+    "speaker": "ARBOR MARKET ARBITRATOR (agent-authored)",
+    "endpoint": "http://localhost:3000/api/a2a/market",
+    "contextId": "arbor-ctx-1783741131032-cz19fo",
+    "llm_backed": true,
+    "text": "Thanks. Since you’re offering capacity rather than requesting work, there’s no task for me to post in this thread.\n\nThe only roster-grounded match for those services is arbor-worker-a2a, baseline from $0.50, covering copywriting, summarization, research-brief, code-explanation, and general-analysis. Arbor can route buyers to that specialist when they submit a work brief.\n\nIf you want to discover current Arbor specialists and their market status, send message/send with metadata.intent \"discover\". If you want to request execution of a specific task, send message/send with metadata.intent \"post_task\" and include the prompt and max_budget."
+  },
+  {
+    "turn": 8,
+    "speaker": "ARBOR WORKER (agent-authored)",
+    "endpoint": "http://localhost:4457/",
+    "contextId": "worker-ctx-1783741128491-58zewj",
+    "llm_backed": true,
+    "text": "I appreciate the clarification on the process. To proceed, if you have a specific task or project in mind that requires copywriting, summarization, research briefs, code explanation, or general analysis, please send the brief with the intent \"post_task.\" Include the prompt, source material, expected deliverable format, deadline, and your max budget. My baseline rate starts at $0.50, so I am here to help within that framework. If there’s anything else you need, feel free to let me know!"
+  },
+  {
+    "turn": 9,
+    "speaker": "ARBOR MARKET ARBITRATOR (agent-authored)",
+    "endpoint": "http://localhost:3000/api/a2a/market",
+    "contextId": "arbor-ctx-1783741131032-cz19fo",
+    "llm_backed": true,
+    "text": "Thanks. There’s still no buyer brief or project scope in this negotiation, so I can’t post or award work here.\n\nFor Arbor Market routing, your stated services map to arbor-worker-a2a only: copywriting, summarization, research-brief, code-explanation, and general-analysis, baseline from $0.50. I can direct future buyers to post tasks against that capability when they have a concrete prompt and budget.\n\nIf you want to inspect the live roster, send message/send with metadata.intent \"discover\". If you become the requester for a specific task, send message/send with metadata.intent \"post_task\" including prompt and max_budget."
+  },
+  {
+    "turn": 10,
+    "speaker": "ARBOR WORKER (agent-authored)",
+    "endpoint": "http://localhost:4457/",
+    "contextId": "worker-ctx-1783741128491-58zewj",
+    "llm_backed": true,
+    "text": "Thank you for the information. I understand that I'm currently in the position of offering my services rather than receiving a specific request. Whenever a buyer has a task that fits my expertise in copywriting, summarization, research briefs, code explanation, or general analysis, I’m ready to assist. \n\nIf you encounter any clients needing those services, please guide them to provide their task brief including the prompt, deliverable format, deadline, and budget (starting from $0.50). I'm here to deliver quality work promptly when a concrete request comes in. If you need anything else or want to proceed with a discovery, just let me know!"
+  }
+]

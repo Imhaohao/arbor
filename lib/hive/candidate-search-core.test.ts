@@ -9,6 +9,8 @@ import {
   scoreCandidate,
   selectBestCandidate,
   shouldSynthesize,
+  pairCandidateArchive,
+  resolveWinnerPair,
   ucbScore,
   type CandidateRecord,
   type SearchBranch,
@@ -236,6 +238,162 @@ function contender(
     s1.winner?.output_text,
     s2.winner?.output_text,
     "same winner regardless of arrival order",
+  );
+}
+
+// ─── winner row resolution ───────────────────────────────────────────────────
+
+{
+  type Row = {
+    _id: string;
+    candidate_index: number;
+    task_id?: string;
+    agent_id?: string;
+    output_text?: string;
+  };
+  const rows: Row[] = [
+    {
+      _id: "a",
+      candidate_index: 0,
+      task_id: "task-a",
+      agent_id: "agent-0",
+      output_text: "aaa",
+    },
+    {
+      _id: "b",
+      candidate_index: 1,
+      task_id: "task-b",
+      agent_id: "agent-1",
+      output_text: "bbb",
+    },
+  ];
+  const pairs = pairCandidateArchive(rows, (r) =>
+    contender(r.candidate_index, r.candidate_index === 1 ? 0.9 : 0.6, r.output_text ?? "", {
+      agent_id: r.agent_id ?? `agent-${r.candidate_index}`,
+      task_id: r.task_id,
+    }),
+  );
+  const selection = selectBestCandidate(pairs.map((p) => p.record));
+  const resolved = resolveWinnerPair(pairs, selection.winner!, {
+    taskIdOf: (r) => r.task_id,
+  });
+  assert.equal(resolved?.row._id, "b", "winner maps back to archive row");
+}
+
+{
+  type Row = {
+    _id: string;
+    candidate_index: number;
+    task_id?: string;
+    agent_id?: string;
+    output_text?: string;
+  };
+  const rows: Row[] = [
+    {
+      _id: "dup-a",
+      candidate_index: 0,
+      task_id: "task-a",
+      agent_id: "agent-a",
+      output_text: "first",
+    },
+    {
+      _id: "dup-b",
+      candidate_index: 0,
+      task_id: "task-b",
+      agent_id: "agent-b",
+      output_text: "second",
+    },
+  ];
+  const pairs = pairCandidateArchive(rows, (r) =>
+    contender(0, 0.8, r.output_text ?? "", {
+      agent_id: r.agent_id ?? "unknown",
+      task_id: r.task_id,
+    }),
+  );
+  const winner = pairs[1].record;
+  const resolved = resolveWinnerPair(pairs, winner, {
+    taskIdOf: (r) => r.task_id,
+  });
+  assert.equal(resolved?.row._id, "dup-b", "duplicate index disambiguated by task_id");
+}
+
+{
+  type Row = {
+    _id: string;
+    candidate_index: number;
+    task_id?: string;
+    agent_id?: string;
+    output_text?: string;
+  };
+  const rows: Row[] = [
+    {
+      _id: "dup-a",
+      candidate_index: 0,
+      task_id: "task-a",
+      agent_id: "agent-a",
+      output_text: "first",
+    },
+    {
+      _id: "dup-b",
+      candidate_index: 0,
+      task_id: "task-b",
+      agent_id: "agent-b",
+      output_text: "second",
+    },
+  ];
+  const pairs = pairCandidateArchive(rows, (r) =>
+    contender(99, 0.8, r.output_text ?? "", {
+      agent_id: r.agent_id ?? "unknown",
+      task_id: r.task_id,
+    }),
+  );
+  const winner = pairs[1].record;
+  const resolved = resolveWinnerPair(pairs, winner, {
+    taskIdOf: (r) => r.task_id,
+  });
+  assert.equal(
+    resolved?.row._id,
+    "dup-b",
+    "broken index repaired via task_id fallback",
+  );
+}
+
+{
+  type Row = {
+    _id: string;
+    candidate_index: number;
+    task_id?: string;
+    agent_id?: string;
+    output_text?: string;
+  };
+  const rows: Row[] = [
+    {
+      _id: "dup-a",
+      candidate_index: 0,
+      task_id: "task-a",
+      agent_id: "agent-a",
+      output_text: "same",
+    },
+    {
+      _id: "dup-b",
+      candidate_index: 0,
+      task_id: "task-b",
+      agent_id: "agent-a",
+      output_text: "same",
+    },
+  ];
+  const pairs = pairCandidateArchive(rows, (r) =>
+    contender(99, 0.8, r.output_text ?? "", {
+      agent_id: r.agent_id ?? "unknown",
+    }),
+  );
+  const unresolved = resolveWinnerPair(pairs, pairs[0].record, {
+    taskIdOf: (r) => r.task_id,
+  });
+  assert.equal(
+    unresolved,
+    undefined,
+    "broken index with duplicate content and no task_id stays unresolved",
   );
 }
 

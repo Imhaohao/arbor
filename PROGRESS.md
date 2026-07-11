@@ -228,3 +228,24 @@ Goal: make Hive coordination board-driven, authenticated, durable, and TOON-awar
 - [x] Verify focused tests, typecheck, full tests, live market output, and Arbor health.
 
 Fresh full run `agent-smoke-2026-06-21T05-59-44-060Z`: 232/232, 22 ready, scratchpad 41/41. A2A market now reports 15 ready among its 131 routable specialists; all four trycloudflare-backed agents are unavailable with current `endpoint_down`/`needs_key` reasons. Default `arbor-check` passes Convex, typecheck, tests, and hive E2E with no issues; the two dead `.env.local` tunnel origins are warnings backed by current smoke evidence, not P1 failures.
+
+## A2A agent-to-agent negotiation layer (2026-07-11)
+
+Goal: arbitrator/market agents hold coherent multi-turn negotiations with foreign A2A agents — no error text, no off-topic canned replies. Grounded in A2A spec findings: servers must keep conversation memory keyed by `contextId` (history is never retransmitted) and clients must echo `taskId`+`contextId` on follow-ups.
+
+| Step | State | Evidence |
+|---|---|---|
+| Negotiation core (classification, arbitrator prompt, fallback) | done | `lib/hive/negotiation-core.ts` + tests in npm chain |
+| Convex per-contextId turn memory | done | `a2a_negotiation_turns` table, `convex/a2aNegotiations.ts`, deployed |
+| Inbound gateway `negotiate` intent + conversational default | done | `/api/a2a/market` returns LLM arbitrator Message replies threading contextId; task results echo contextId; agent card advertises `negotiate` |
+| Outbound context threading + input-required handling | done | `a2a-forwarding.ts`: poll exits on input-required and answers once echoing taskId+contextId; bid→execute contextId cache; no more stringified-status deliverables |
+| a2a-worker conversational memory | done | per-contextId turns, `negotiate` intent, continuation heuristic, contextId on all tasks |
+| Verification | done | typecheck + full `npm test` green; live smoke: worker negotiate turn 1/2 threaded; market gateway turn 1 (`llm_backed:true`, 1131 grounded specialists) and turn 2 resolved "the cheaper one" from stored history (`turns_in_context:4`); explicit `discover` intent regression clean |
+
+Env: `ARBOR_A2A_NEGOTIATION_ENABLED=false` disables the conversational path (documented in docs/api-keys.md).
+
+| Work | Model |
+|---|---|
+| Protocol research fan-out (partial — rate-limited) | deep-research workflow subagents |
+| Cross-file design + implementation | Fable inline |
+| Build, codegen, tests, live smoke | deterministic local tooling |

@@ -46,6 +46,7 @@ or in the Convex dashboard.
 | `ARBOR_HIVE_DEFAULT` | Both | Optional | Set `true` to route new tasks through the hive DAG planner by default. Use `workflow_mode: "legacy"` to opt out per task. |
 | `model_gateway` (per-task `tasks.post` field) | n/a (task arg) | Optional | Per-task OpenRouter override: `"openrouter"` or `"native"` flips a single task's model calls regardless of the global `ARBOR_OPENROUTER_ENABLED` switch. Mirrors `workflow_mode`. |
 | `ARBOR_MIN_BID_RESPONSES` | Convex | Optional | Min number of bid responses per auction (1-50). When live bidders fall short, `solicitBids` backfills non-awardable standby bids (demo-lane weight, priced just above budget) so the auction always shows market interest. Unset/0 disables backfill. |
+| `ARBOR_A2A_NEGOTIATION_ENABLED` | Next.js | Optional | Set `false` to disable the conversational arbitrator on `/api/a2a/market` (explicit and heuristic `negotiate` turns both return a JSON-RPC error). Default on: conversational inbound A2A messages get an LLM arbitrator reply grounded in the live roster, threaded by `contextId` via the `a2a_negotiation_turns` table. |
 
 ## 2026 Frontier Model Roster (Purpose -> Deployment)
 

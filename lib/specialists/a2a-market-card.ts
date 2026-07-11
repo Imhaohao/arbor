@@ -116,7 +116,23 @@ export const INTENT_TO_TOOL = {
   raise_dispute: "raise_dispute",
 } as const;
 
-export type MarketIntent = keyof typeof INTENT_TO_TOOL;
+/** Tool-backed intents (dispatched to MCP tools). */
+export type ToolBackedIntent = keyof typeof INTENT_TO_TOOL;
+
+/**
+ * `negotiate` is conversational, not tool-backed: the gateway answers with an
+ * LLM-drafted arbitrator reply grounded in the live roster, threading
+ * contextId across turns (A2A multi-turn: the server keeps history keyed by
+ * contextId and echoes it on every reply).
+ */
+export const NEGOTIATE_INTENT = "negotiate" as const;
+
+export type MarketIntent = ToolBackedIntent | typeof NEGOTIATE_INTENT;
+
+export const ALL_MARKET_INTENTS: MarketIntent[] = [
+  ...(Object.keys(INTENT_TO_TOOL) as ToolBackedIntent[]),
+  NEGOTIATE_INTENT,
+];
 
 export const INTENT_DESCRIPTIONS: Record<MarketIntent, string> = {
   discover:
@@ -125,6 +141,8 @@ export const INTENT_DESCRIPTIONS: Record<MarketIntent, string> = {
     "Post a work brief with max_budget. The auction opens immediately.",
   get_task: "Fetch the latest state of a posted task by task_id.",
   raise_dispute: "Reopen a completed task for the judge to re-evaluate.",
+  negotiate:
+    "Converse with the Arbor arbitrator about scope, price, and terms before posting a task. Multi-turn: echo the contextId from each reply.",
 };
 
 /**
@@ -187,11 +205,14 @@ export function buildMarketAgentCard(req: { url: string; headers?: Headers }) {
     },
     defaultInputModes: ["application/json", TOON_MEDIA_TYPE, "text/plain"],
     defaultOutputModes: ["application/json", TOON_MEDIA_TYPE, "text/markdown"],
-    skills: (Object.keys(INTENT_TO_TOOL) as MarketIntent[]).map((intent) => ({
+    skills: ALL_MARKET_INTENTS.map((intent) => ({
       id: intent,
       name: intent,
       description: INTENT_DESCRIPTIONS[intent],
-      tags: ["arbor", "market", intent],
+      tags:
+        intent === NEGOTIATE_INTENT
+          ? ["arbor", "market", intent, "chat", "multi-turn"]
+          : ["arbor", "market", intent],
       inputModes: ["application/json", TOON_MEDIA_TYPE, "text/plain"],
       outputModes: ["application/json", TOON_MEDIA_TYPE, "text/markdown"],
     })),
@@ -211,10 +232,12 @@ export function buildMarketAgentCard(req: { url: string; headers?: Headers }) {
       did,
       market_agent: true,
       intents: Object.fromEntries(
-        (Object.keys(INTENT_TO_TOOL) as MarketIntent[]).map((intent) => [
+        ALL_MARKET_INTENTS.map((intent) => [
           intent,
           {
-            tool: INTENT_TO_TOOL[intent],
+            ...(intent in INTENT_TO_TOOL
+              ? { tool: INTENT_TO_TOOL[intent as ToolBackedIntent] }
+              : {}),
             description: INTENT_DESCRIPTIONS[intent],
           },
         ]),

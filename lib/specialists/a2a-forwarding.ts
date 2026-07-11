@@ -43,7 +43,14 @@ export interface A2AMessagePart {
 }
 
 interface A2ATaskStatus {
-  state: "submitted" | "working" | "completed" | "failed" | "canceled";
+  state:
+    | "submitted"
+    | "working"
+    | "input-required"
+    | "completed"
+    | "failed"
+    | "canceled"
+    | "rejected";
   message?: {
     role: string;
     parts: A2AMessagePart[];
@@ -90,6 +97,29 @@ const POLL_MAX_ATTEMPTS = 40; // up to 60 s
 const SEND_TIMEOUT_MS = 15_000;
 const POLL_TIMEOUT_MS = 5_000;
 const BID_TIMEOUT_MS = 12_000;
+/** How many input-required rounds execute answers before giving up. */
+const INPUT_REQUIRED_FOLLOWUP_LIMIT = 1;
+
+// Best-effort bid→execute context threading. The A2A spec groups a
+// conversation under a server-issued contextId; reusing the bid-time
+// contextId at execute time lets the remote agent link the auction exchange
+// to the awarded task instead of starting cold. Per-process cache only: when
+// bid and execute run in different processes the execute leg simply opens a
+// fresh context, which every A2A server must accept.
+const BID_CONTEXT_CACHE_MAX = 200;
+const lastBidContextByEndpoint = new Map<string, string>();
+
+function rememberBidContext(endpoint: string, contextId: string | undefined) {
+  if (!contextId) return;
+  if (
+    !lastBidContextByEndpoint.has(endpoint) &&
+    lastBidContextByEndpoint.size >= BID_CONTEXT_CACHE_MAX
+  ) {
+    const oldest = lastBidContextByEndpoint.keys().next().value;
+    if (oldest !== undefined) lastBidContextByEndpoint.delete(oldest);
+  }
+  lastBidContextByEndpoint.set(endpoint, contextId);
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────
 
@@ -162,6 +192,21 @@ function metadataFromResult(result: A2AResult): Record<string, unknown> {
   if (task?.metadata) return task.metadata;
   if (isRecord(result) && isRecord(result.metadata)) return result.metadata;
   return {};
+}
+
+function contextIdFromResult(result: A2AResult): string | undefined {
+  const task = normalizeTaskResult(result);
+  if (task?.contextId && typeof task.contextId === "string") {
+    return task.contextId;
+  }
+  if (!isRecord(result)) return undefined;
+  const wrapped = isRecord(result.message) ? result.message : undefined;
+  for (const candidate of [result, wrapped]) {
+    if (!candidate) continue;
+    const value = candidate.contextId;
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return undefined;
 }
 
 function idFromResult(result: A2AResult): string | undefined {
@@ -278,12 +323,38 @@ export async function pollUntilTerminal(
       throw new Error(`A2A tasks/get response was not task-shaped`);
     }
     const state = task.status.state;
-    if (state === "completed" || state === "failed") {
+    if (
+      state === "completed" ||
+      state === "failed" ||
+      state === "canceled" ||
+      state === "rejected" ||
+      // Not terminal, but polling can never resolve it — the remote is
+      // waiting for OUR next message. Callers must answer (echoing taskId +
+      // contextId) instead of polling to a timeout error.
+      state === "input-required"
+    ) {
       return task;
     }
     // submitted / working → keep polling
   }
   throw new Error(`A2A task ${taskId} did not reach terminal state after ${POLL_MAX_ATTEMPTS} polls`);
+}
+
+/** First artifact data part serialized — for remotes that deliver structured
+ * output with no text parts (better than returning stringified status). */
+function extractDataDeliverable(task: A2ATask): string | undefined {
+  for (const artifact of task.artifacts ?? []) {
+    for (const part of artifact.parts ?? []) {
+      if (part.data !== undefined && part.data !== null) {
+        try {
+          return JSON.stringify(part.data, null, 2);
+        } catch {
+          // non-serializable part — keep looking
+        }
+      }
+    }
+  }
+  return undefined;
 }
 
 /** Extract readable text from the first artifact, falling back to status message. */
@@ -436,6 +507,7 @@ export function makeA2aForwardingSpecialist(
           BID_TIMEOUT_MS,
           "a2a-bid",
         );
+        rememberBidContext(endpoint, contextIdFromResult(rpc.result));
         // If the remote completed and gave us a numeric cost in metadata, use it.
         const meta = metadataFromResult(rpc.result);
         const remoteCost =
@@ -540,7 +612,12 @@ export function makeA2aForwardingSpecialist(
       // events, artifact hash) — same audit trail as MCP-forwarding runners.
       const recorder = context?.toolRecorder;
 
+      // Thread the bid-time conversation into execution when we still have
+      // it (same-process auction), so the remote links auction → award.
+      const bidContextId = lastBidContextByEndpoint.get(endpoint);
+
       let taskId: string | undefined;
+      let contextId: string | undefined = bidContextId;
       let finalTask: A2ATask | undefined;
       try {
         const send = () =>
@@ -553,6 +630,7 @@ export function makeA2aForwardingSpecialist(
                 parts: [{ kind: "text", text: taskContext }],
                 messageId: nextRpcId(),
                 kind: "message",
+                ...(bidContextId ? { contextId: bidContextId } : {}),
               },
               metadata: {
                 intent: "post_task",
@@ -583,11 +661,15 @@ export function makeA2aForwardingSpecialist(
               }),
             )
           : await send();
+        contextId = contextIdFromResult(sendRpc.result) ?? contextId;
         const initialTask = normalizeTaskResult(sendRpc.result);
         if (initialTask) {
           const state = initialTask.status.state;
           const terminal =
-            state === "completed" || state === "failed" || state === "canceled";
+            state === "completed" ||
+            state === "failed" ||
+            state === "canceled" ||
+            state === "rejected";
           if (terminal) {
             finalTask = initialTask;
           } else {
@@ -626,18 +708,72 @@ export function makeA2aForwardingSpecialist(
       }
 
       // Poll until terminal state. Recorded as a single tasks/get leg whose
-      // outcome reflects the remote task's terminal state.
+      // outcome reflects the remote task's terminal state. `input-required`
+      // is answered inline (echoing taskId + contextId per the A2A spec —
+      // dropping either is the classic cause of derailed multi-turn threads)
+      // instead of polling to a timeout error.
       if (!finalTask) {
         if (!taskId) {
           throw new Error("A2A task id missing after message/send");
         }
-        try {
-          const poll = () =>
-            withTimeout(
-              pollUntilTerminal(endpoint, taskId, authHeaders),
+        const initialTaskId = taskId;
+        const resolveTerminal = async (): Promise<A2ATask> => {
+          let currentTaskId = initialTaskId;
+          let followUpsSent = 0;
+          for (;;) {
+            const task = await withTimeout(
+              pollUntilTerminal(endpoint, currentTaskId, authHeaders),
               POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS + POLL_TIMEOUT_MS + 2_000,
               "a2a-poll",
             );
+            contextId = task.contextId ?? contextId;
+            if (task.status.state !== "input-required") return task;
+            if (followUpsSent >= INPUT_REQUIRED_FOLLOWUP_LIMIT) return task;
+            followUpsSent++;
+            const question = extractText(task);
+            const followUp = await postJsonRpc(
+              endpoint,
+              "message/send",
+              {
+                message: {
+                  role: "user",
+                  parts: [
+                    {
+                      kind: "text",
+                      text:
+                        `${taskContext}\n\n` +
+                        `You asked: ${question.slice(0, 500)}\n` +
+                        `All available details are in the brief above. Proceed with your best-effort deliverable now; state any assumption you make instead of waiting for more input.`,
+                    },
+                  ],
+                  messageId: nextRpcId(),
+                  kind: "message",
+                  taskId: currentTaskId,
+                  ...(contextId ? { contextId } : {}),
+                },
+                metadata: { intent: "post_task", agent_id: config.agent_id },
+              },
+              SEND_TIMEOUT_MS,
+              authHeaders,
+            );
+            contextId = contextIdFromResult(followUp.result) ?? contextId;
+            const followTask = normalizeTaskResult(followUp.result);
+            if (followTask) {
+              const state = followTask.status.state;
+              if (
+                state === "completed" ||
+                state === "failed" ||
+                state === "canceled" ||
+                state === "rejected"
+              ) {
+                return followTask;
+              }
+              currentTaskId = followTask.id || currentTaskId;
+            }
+            // remote went back to working/submitted → poll again
+          }
+        };
+        try {
           finalTask = recorder
             ? await recorder.record(
                 {
@@ -650,19 +786,19 @@ export function makeA2aForwardingSpecialist(
                   tool_name: "tasks/get",
                   call_id: taskId,
                 },
-                poll,
+                resolveTerminal,
                 (t) => ({
                   ok: t.status.state === "completed",
                   result_preview: extractText(t).slice(0, 300),
                   error_message:
-                    t.status.state === "failed"
-                      ? extractText(t).slice(0, 300)
-                      : undefined,
+                    t.status.state === "completed"
+                      ? undefined
+                      : extractText(t).slice(0, 300),
                   external_session_id: taskId,
                   external_task_id: taskId,
                 }),
               )
-            : await poll();
+            : await resolveTerminal();
         } catch (err) {
           const reason = err instanceof Error ? err.message : String(err);
           const provenance: SpecialistProvenance = {
@@ -680,25 +816,51 @@ export function makeA2aForwardingSpecialist(
         }
       }
 
-      // Terminal state reached. Check success vs failure.
-      if (finalTask.status.state === "failed") {
-        const errorText = extractText(finalTask);
+      // Terminal (or unanswerable) state reached. Check success vs failure.
+      if (finalTask.status.state !== "completed") {
+        const state = finalTask.status.state;
+        const detail = extractText(finalTask);
+        const reason =
+          state === "input-required"
+            ? `remote agent still needs input after ${INPUT_REQUIRED_FOLLOWUP_LIMIT} follow-up(s): ${detail.slice(0, 200)}`
+            : `remote task ${state}: ${detail.slice(0, 200)}`;
         const provenance: SpecialistProvenance = {
           tier: toPublicTier(config.tier),
           live_tools_called: false,
           transport: "a2a",
           proof_level: "none",
           external_task_id: taskId,
-          fallback_reason: `remote task failed: ${errorText.slice(0, 200)}`,
+          fallback_reason: reason,
           endpoint,
         };
         const output: SpecialistOutput =
-          `[FALLBACK — A2A endpoint unreachable]\n\nRemote task ${taskId} failed: ${errorText}`;
+          `[FALLBACK — remote task did not complete]\n\nTask ${taskId ?? finalTask.id} ended in state "${state}": ${detail}`;
         return { output, provenance };
       }
 
-      // Completed successfully.
+      // Completed successfully. A completed task whose only "text" is the
+      // stringified status object carries no deliverable — surface the first
+      // structured data part instead, and fall back honestly when the remote
+      // returned nothing usable rather than emitting protocol JSON as output.
       const text = extractText(finalTask);
+      const statusFallback = JSON.stringify(finalTask.status);
+      const hasRealText = Boolean(text.trim()) && text !== statusFallback;
+      const deliverable = hasRealText ? text : extractDataDeliverable(finalTask);
+      if (!deliverable) {
+        const provenance: SpecialistProvenance = {
+          tier: toPublicTier(config.tier),
+          live_tools_called: false,
+          transport: "a2a",
+          proof_level: "none",
+          external_task_id: taskId,
+          fallback_reason: "remote task completed without text or data output",
+          endpoint,
+        };
+        return {
+          output: `[FALLBACK — remote task completed without usable output]\n\nTask ${taskId ?? finalTask.id} completed but returned no text or data parts.`,
+          provenance,
+        };
+      }
       const provenance: SpecialistProvenance = {
         tier: toPublicTier(config.tier),
         live_tools_called: true,
@@ -708,7 +870,7 @@ export function makeA2aForwardingSpecialist(
         external_task_id: taskId,
         endpoint,
       };
-      return { output: text, provenance };
+      return { output: deliverable, provenance };
     },
 
     async probe(taskType: string): Promise<ProbeResult> {

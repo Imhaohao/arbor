@@ -64,6 +64,7 @@ interface A2AArtifact {
 interface A2ATask {
   id: string;
   kind: "task";
+  contextId?: string;
   status: {
     state: TaskState;
     message?: {
@@ -88,6 +89,49 @@ const tasks = new Map<string, A2ATask>();
 
 function makeTaskId(): string {
   return `worker-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// ─── in-memory conversation store (A2A multi-turn) ────────────────────────────
+//
+// A2A never re-sends prior turns: the server must keep its own history keyed
+// by contextId and echo that contextId on every reply, or follow-up messages
+// from foreign agents land with no context and get generic/off-topic answers.
+
+interface ConversationTurn {
+  role: "counterparty" | "agent";
+  text: string;
+}
+
+const MAX_CONTEXTS = 500;
+const MAX_TURNS_PER_CONTEXT = 24;
+const conversations = new Map<string, ConversationTurn[]>();
+
+function makeContextId(): string {
+  return `worker-ctx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function rememberTurn(contextId: string, turn: ConversationTurn): void {
+  let turns = conversations.get(contextId);
+  if (!turns) {
+    if (conversations.size >= MAX_CONTEXTS) {
+      const oldest = conversations.keys().next().value;
+      if (oldest !== undefined) conversations.delete(oldest);
+    }
+    turns = [];
+    conversations.set(contextId, turns);
+  }
+  turns.push({ role: turn.role, text: turn.text.slice(0, 4_000) });
+  if (turns.length > MAX_TURNS_PER_CONTEXT) {
+    turns.splice(0, turns.length - MAX_TURNS_PER_CONTEXT);
+  }
+}
+
+function renderConversation(contextId: string): string {
+  const turns = conversations.get(contextId) ?? [];
+  if (turns.length === 0) return "";
+  return turns
+    .map((turn) => `${turn.role === "agent" ? "You" : "Counterparty"}: ${turn.text.slice(0, 600)}`)
+    .join("\n");
 }
 
 // ─── agent card ───────────────────────────────────────────────────────────────
@@ -172,6 +216,20 @@ function buildAgentCard(): Record<string, unknown> {
           "technical",
           "developer",
           "programming",
+        ],
+      },
+      {
+        id: "negotiate",
+        name: "Negotiation",
+        description:
+          "Discuss scope, price, and timing for a deliverable before committing. Send message/send with metadata.intent 'negotiate'; echo the contextId from each reply to continue the thread.",
+        tags: [
+          "negotiate",
+          "negotiation",
+          "chat",
+          "multi-turn",
+          "pricing",
+          "quote",
         ],
       },
       {
@@ -336,7 +394,11 @@ async function postJSON(
   return await res.json();
 }
 
-async function callOpenAI(prompt: string): Promise<string> {
+const DELIVERABLE_SYSTEM_PROMPT =
+  "You are a senior generalist specialist. Produce complete, concrete, ready-to-use deliverables in markdown. Do not hedge, do not ask clarifying questions — work with what you have and deliver the best possible artifact.";
+
+async function callOpenAI(prompt: string, systemPrompt?: string): Promise<string> {
+  const instructions = systemPrompt ?? DELIVERABLE_SYSTEM_PROMPT;
   if (["off", "disable", "disabled", "none"].includes(MODEL_PROVIDER)) {
     throw new Error("ARBOR_MODEL_PROVIDER=disabled — worker model calls are off");
   }
@@ -365,8 +427,7 @@ async function callOpenAI(prompt: string): Promise<string> {
           { "api-key": AZURE_OPENAI_API_KEY },
           {
             model: AZURE_OPENAI_AGENT_DEPLOYMENT,
-            instructions:
-              "You are a senior generalist specialist. Produce complete, concrete, ready-to-use deliverables in markdown. Do not hedge, do not ask clarifying questions — work with what you have and deliver the best possible artifact.",
+            instructions,
             input: prompt,
           },
           controller.signal,
@@ -389,8 +450,7 @@ async function callOpenAI(prompt: string): Promise<string> {
           messages: [
             {
               role: "system",
-              content:
-                "You are a senior generalist specialist. Produce complete, concrete, ready-to-use deliverables in markdown. Do not hedge, do not ask clarifying questions — work with what you have and deliver the best possible artifact.",
+              content: instructions,
             },
             {
               role: "user",
@@ -416,8 +476,7 @@ async function callOpenAI(prompt: string): Promise<string> {
         messages: [
           {
             role: "system",
-            content:
-              "You are a senior generalist specialist. Produce complete, concrete, ready-to-use deliverables in markdown. Do not hedge, do not ask clarifying questions — work with what you have and deliver the best possible artifact.",
+            content: instructions,
           },
           {
             role: "user",
@@ -451,7 +510,7 @@ async function callOpenAI(prompt: string): Promise<string> {
 
 // ─── async task execution (fire-and-forget) ───────────────────────────────────
 
-function runTaskAsync(taskId: string, prompt: string): void {
+function runTaskAsync(taskId: string, prompt: string, contextId?: string): void {
   (async () => {
     try {
       const text = await callOpenAI(prompt);
@@ -466,12 +525,17 @@ function runTaskAsync(taskId: string, prompt: string): void {
           completed_at: new Date().toISOString(),
         },
       });
+      if (contextId) {
+        completed.contextId = contextId;
+        rememberTurn(contextId, { role: "agent", text });
+      }
       tasks.set(taskId, completed);
       console.log(`[arbor-worker] task ${taskId} completed`);
     } catch (err) {
       const errorText =
         err instanceof Error ? err.message : String(err);
       const failed = buildFailedTask({ id: taskId, errorText });
+      if (contextId) failed.contextId = contextId;
       tasks.set(taskId, failed);
       console.log(`[arbor-worker] task ${taskId} failed: ${errorText}`);
     }
@@ -517,6 +581,8 @@ function checkBearer(req: http.IncomingMessage): boolean {
 interface MessageSendParams {
   message?: {
     parts?: Array<{ kind?: string; type?: string; text?: string }>;
+    contextId?: string;
+    taskId?: string;
   };
   metadata?: Record<string, unknown>;
 }
@@ -532,6 +598,12 @@ function normalizeMessageSendParams(
   if (!isRecord(value)) return null;
   const message = value.message;
   if (message !== undefined && !isRecord(message)) return null;
+  if (
+    message?.contextId !== undefined &&
+    typeof message.contextId !== "string"
+  ) {
+    return null;
+  }
   const parts = message?.parts;
   if (parts !== undefined && !Array.isArray(parts)) return null;
   if (
@@ -608,6 +680,58 @@ async function draftBidPlan(prompt: string): Promise<string | null> {
 
 // ─── JSON-RPC method handlers ─────────────────────────────────────────────────
 
+/**
+ * Conversational negotiation turn. Replies as a Message (not a Task),
+ * grounded in this worker's real skills and per-contextId history, and
+ * degrades to a deterministic on-topic reply when no model is reachable —
+ * a counterparty agent never receives raw error text for a negotiate turn.
+ */
+async function handleNegotiate(
+  rpcId: string | number | null,
+  contextId: string,
+  incoming: string,
+): Promise<string> {
+  const transcript = renderConversation(contextId);
+  const skillNames =
+    "copywriting, summarization, research briefs, code explanation, and general analysis";
+  let reply: string;
+  let llmBacked = true;
+  try {
+    const system =
+      `You are Arbor Worker, an execution agent speaking over the A2A protocol to another autonomous agent (not a human). ` +
+      `Your real skills: ${skillNames}. Typical pricing runs $0.35-$1.00 per deliverable, delivered within about a minute. ` +
+      `Negotiate scope, price, and timing for concrete work. Never claim skills outside that list. ` +
+      `When the counterparty is ready, tell them to send message/send with metadata.intent "post_task" (or no intent) and the full brief. ` +
+      `Answer their actual last message directly, plain text, under 150 words.`;
+    const user = transcript
+      ? `Conversation so far:\n${transcript}\n\nCounterparty's new message:\n${incoming.slice(0, 3_000)}\n\nWrite your next reply.`
+      : `Counterparty's message:\n${incoming.slice(0, 3_000)}\n\nWrite your reply.`;
+    reply = (await callOpenAI(user, system)).trim();
+    if (!reply) throw new Error("empty negotiation reply");
+  } catch (err) {
+    llmBacked = false;
+    reply =
+      `This is Arbor Worker. I handle ${skillNames}. ` +
+      `A typical deliverable runs $0.35-$1.00 and completes within about a minute. ` +
+      `Tell me the task and your budget, or resend with metadata.intent "post_task" and the full brief to start work immediately.`;
+    console.warn(
+      `[arbor-worker] negotiate fell back to deterministic reply: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  if (incoming.trim()) {
+    rememberTurn(contextId, { role: "counterparty", text: incoming });
+  }
+  rememberTurn(contextId, { role: "agent", text: reply });
+  return rpcOk(rpcId, {
+    kind: "message",
+    role: "agent",
+    messageId: makeTaskId(),
+    contextId,
+    parts: [{ kind: "text", text: reply }],
+    metadata: { intent: "negotiate", llm_backed: llmBacked },
+  });
+}
+
 async function handleMessageSend(
   rpcId: string | number | null,
   rawParams: unknown,
@@ -618,10 +742,26 @@ async function handleMessageSend(
   }
   const prompt = extractPrompt(params);
   const intent = extractIntent(params);
+  const requestedContextId = params?.message?.contextId?.trim();
+  const contextId = requestedContextId || makeContextId();
+  const rawIntent = params?.metadata?.intent;
+  const intentOmitted = !(typeof rawIntent === "string" && rawIntent.trim());
 
   console.log(
-    `[arbor-worker] message/send intent=${intent} promptLen=${prompt.length}`,
+    `[arbor-worker] message/send intent=${intent} promptLen=${prompt.length} contextId=${contextId}`,
   );
+
+  // Conversational path: explicit negotiate, or a continuation turn on a
+  // known contextId with no explicit intent (a follow-up in an ongoing
+  // exchange must not silently spawn a new task).
+  if (
+    intent === "negotiate" ||
+    (intentOmitted &&
+      requestedContextId &&
+      conversations.has(requestedContextId))
+  ) {
+    return await handleNegotiate(rpcId, contextId, prompt);
+  }
 
   if (intent === "probe") {
     const taskId = makeTaskId();
@@ -631,6 +771,7 @@ async function handleMessageSend(
       artifactName: "probe-result",
       artifactDescription: "Probe ping response",
     });
+    task.contextId = contextId;
     tasks.set(taskId, task);
     return rpcOk(rpcId, task);
   }
@@ -649,6 +790,13 @@ async function handleMessageSend(
       artifactDescription: "Plan, cost, and time estimate for this task",
       metadata: { cost_estimate, estimated_seconds },
     });
+    task.contextId = contextId;
+    // Remember the bid exchange so an execute or negotiate follow-up that
+    // echoes this contextId picks the thread up instead of starting cold.
+    if (prompt.trim()) {
+      rememberTurn(contextId, { role: "counterparty", text: prompt });
+    }
+    rememberTurn(contextId, { role: "agent", text: quoteText });
     tasks.set(taskId, task);
     return rpcOk(rpcId, task);
   }
@@ -656,10 +804,14 @@ async function handleMessageSend(
   // post_task (default) — respond immediately with working, run async
   const taskId = makeTaskId();
   const working = buildWorkingTask(taskId);
+  working.contextId = contextId;
   tasks.set(taskId, working);
+  if (prompt.trim()) {
+    rememberTurn(contextId, { role: "counterparty", text: prompt });
+  }
 
   console.log(`[arbor-worker] task ${taskId} started (working)`);
-  runTaskAsync(taskId, prompt || "No prompt provided.");
+  runTaskAsync(taskId, prompt || "No prompt provided.", contextId);
 
   return rpcOk(rpcId, working);
 }

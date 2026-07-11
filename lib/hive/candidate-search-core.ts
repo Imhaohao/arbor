@@ -308,6 +308,65 @@ export function selectBestCandidate(
   };
 }
 
+export interface CandidateArchivePair<R> {
+  row: R;
+  record: CandidateRecord;
+}
+
+/**
+ * Zip archive rows with the CandidateRecords passed to selectBestCandidate so
+ * the promoted winner can be mapped back to durable storage without a brittle
+ * re-find.
+ */
+export function pairCandidateArchive<R>(
+  rows: R[],
+  project: (row: R) => CandidateRecord,
+): CandidateArchivePair<R>[] {
+  return rows.map((row) => ({ row, record: project(row) }));
+}
+
+/**
+ * Resolve the archive row for a selected winner. Primary key is
+ * candidate_index; task_id and agent_id+output_text disambiguate duplicates or
+ * repair a broken index link. Returns undefined when the winner cannot be tied
+ * to exactly one row — callers must fail closed instead of promoting nobody.
+ */
+export function resolveWinnerPair<R>(
+  pairs: CandidateArchivePair<R>[],
+  winner: CandidateRecord,
+  opts: { taskIdOf?: (row: R) => string | undefined } = {},
+): CandidateArchivePair<R> | undefined {
+  const taskIdOf = opts.taskIdOf ?? (() => undefined);
+
+  const byIndex = pairs.filter(
+    (p) => p.record.candidate_index === winner.candidate_index,
+  );
+  if (byIndex.length === 1) return byIndex[0];
+  if (byIndex.length > 1) {
+    if (winner.task_id) {
+      const disambiguated = byIndex.find(
+        (p) => taskIdOf(p.row) === winner.task_id,
+      );
+      if (disambiguated) return disambiguated;
+    }
+    return undefined;
+  }
+
+  if (winner.task_id) {
+    const byTask = pairs.filter((p) => taskIdOf(p.row) === winner.task_id);
+    if (byTask.length === 1) return byTask[0];
+  }
+
+  const byContent = pairs.filter(
+    (p) =>
+      p.record.agent_id === winner.agent_id &&
+      p.record.output_text === winner.output_text,
+  );
+  if (byContent.length === 1) return byContent[0];
+
+  return undefined;
+}
+
 /**
  * Sakana review-debate-synthesize eligibility: worth merging the top two only
  * when they score within epsilon of each other (no clear winner) AND their
