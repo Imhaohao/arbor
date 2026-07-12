@@ -111,7 +111,7 @@ assert.doesNotMatch(bare, /Lesson outline/);
 assert.doesNotMatch(bare, /Sources referenced/);
 assert.match(bare, /## Two-host script/);
 
-// --- renderArtifactStatus: honest, flag-driven ---
+// --- renderArtifactStatus: honest, outcome-driven ---
 
 const prevAudio = process.env.ARBOR_EXPLAINER_AUDIO_ENABLED;
 const prevVideo = process.env.ARBOR_EXPLAINER_VIDEO_ENABLED;
@@ -122,10 +122,28 @@ assert.match(status, /Script \(this document\): produced/);
 assert.match(status, /Audio narration: not requested/);
 assert.match(status, /Video overview: not requested/);
 
+// Flag on but renderer never ran -> must NOT read as rendered.
 process.env.ARBOR_EXPLAINER_AUDIO_ENABLED = "true";
 status = renderArtifactStatus();
-assert.match(status, /Audio narration: flag on/);
+assert.match(status, /Audio narration: requested but FAILED to render — renderer did not run/);
 assert.match(status, /Video overview: not requested/);
+
+// Real outcome: rendered audio with detail, failed video with reason.
+status = renderArtifactStatus({
+  audio: {
+    requested: true,
+    path: "/tmp/x/audio.wav",
+    publicUrl: "/explainers/x/audio.wav",
+    detail: "3:05, 18 turns",
+  },
+  video: { requested: true, error: "ffmpeg-static is not available" },
+});
+assert.match(status, /Audio narration: rendered — \/explainers\/x\/audio\.wav \(3:05, 18 turns\)/);
+assert.match(status, /Video overview: requested but FAILED to render — ffmpeg-static is not available/);
+
+// Outcome with nothing requested mirrors the flag-off wording.
+status = renderArtifactStatus({ audio: { requested: false }, video: { requested: false } });
+assert.match(status, /Audio narration: not requested/);
 
 // Restore env.
 if (prevAudio === undefined) delete process.env.ARBOR_EXPLAINER_AUDIO_ENABLED;

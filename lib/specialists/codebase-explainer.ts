@@ -191,15 +191,41 @@ export function buildLessonMarkdown(lesson: LessonScript): string {
   return lines.join("\n");
 }
 
+/** Per-artifact render result, produced by lib/explainer/render.ts. Declared
+ *  here (not imported) so this module stays dependency-light for the registry. */
+export interface ArtifactStatusInput {
+  requested: boolean;
+  path?: string;
+  publicUrl?: string;
+  detail?: string;
+  error?: string;
+}
+
+function artifactRow(label: string, flag: string, a: ArtifactStatusInput): string {
+  if (!a.requested) return `- ${label}: not requested (set ${flag})`;
+  if (a.error) return `- ${label}: requested but FAILED to render — ${a.error}`;
+  const where = a.publicUrl ?? a.path ?? "unknown location";
+  return `- ${label}: rendered — ${where}${a.detail ? ` (${a.detail})` : ""}`;
+}
+
 /** Honest footer describing which output artifacts were actually produced vs
- *  gated. Keeps the deliverable from implying audio/video exist when they don't. */
-export function renderArtifactStatus(): string {
-  const audio = AUDIO_ENABLED();
-  const video = VIDEO_ENABLED();
+ *  requested vs failed. Keeps the deliverable from implying audio/video exist
+ *  when they don't. With no outcome (renderer unavailable), reports flags only. */
+export function renderArtifactStatus(outcome?: {
+  audio: ArtifactStatusInput;
+  video: ArtifactStatusInput;
+}): string {
+  const audio: ArtifactStatusInput = outcome?.audio ?? { requested: AUDIO_ENABLED() };
+  const video: ArtifactStatusInput = outcome?.video ?? { requested: VIDEO_ENABLED() };
+  if (!outcome) {
+    // Renderer never ran: a bare "requested" must not read as "rendered".
+    if (audio.requested) audio.error = "renderer did not run in this environment";
+    if (video.requested) video.error = "renderer did not run in this environment";
+  }
   const rows = [
     `- Script (this document): produced`,
-    `- Audio narration: ${audio ? "flag on — rendering pipeline not yet wired (slice 2)" : "not requested (set ARBOR_EXPLAINER_AUDIO_ENABLED)"}`,
-    `- Video overview: ${video ? "flag on — rendering pipeline not yet wired (slice 3)" : "not requested (set ARBOR_EXPLAINER_VIDEO_ENABLED)"}`,
+    artifactRow("Audio narration", "ARBOR_EXPLAINER_AUDIO_ENABLED", audio),
+    artifactRow("Video overview", "ARBOR_EXPLAINER_VIDEO_ENABLED", video),
   ];
   return `## Artifacts\n${rows.join("\n")}`;
 }
@@ -298,7 +324,7 @@ export const codebaseExplainer: SpecialistRunner = {
         )
       : await callModel();
 
-    let lesson = coerceLessonScript(rawJson);
+    const lesson = coerceLessonScript(rawJson);
 
     // Resilient fallback: if the structured call came back malformed, produce a
     // plain-markdown lesson directly rather than failing the task.
@@ -318,16 +344,33 @@ export const codebaseExplainer: SpecialistRunner = {
       body = md.trim();
     }
 
+    // Slices 2/3: render audio (OpenAI TTS) / video (sharp + ffmpeg) when the
+    // flags request them and we have a structured lesson. Lazy-imported and
+    // fail-soft: node-only deps stay out of environments that just bid, and a
+    // render failure degrades to an honest footer, never a failed task.
+    let outcome:
+      | { audio: ArtifactStatusInput; video: ArtifactStatusInput }
+      | undefined;
+    if (lesson && (AUDIO_ENABLED() || VIDEO_ENABLED())) {
+      try {
+        const { renderExplainerArtifacts } = await import("../explainer/render");
+        outcome = await renderExplainerArtifacts(lesson, context?.task_id ?? "local");
+      } catch {
+        outcome = undefined; // renderer unavailable; footer says so
+      }
+    }
+
+    const rendered = Boolean(outcome && (outcome.audio.path || outcome.video.path));
     const output: SpecialistOutput =
       `${CODEBASE_EXPLAINER_LABEL} Arbor-owned educational lesson — no external tools, repo checkout, or NotebookLM were used.\n\n` +
-      `${body}\n\n${renderArtifactStatus()}`;
+      `${body}\n\n${renderArtifactStatus(outcome)}`;
 
     const provenance: SpecialistProvenance = {
       tier: "not-a2a-yet",
       live_tools_called: false,
       transport: "api",
       proof_level: "api_call",
-      successful_tool_call_count: recorder ? 1 : 0,
+      successful_tool_call_count: (recorder ? 1 : 0) + (rendered ? 1 : 0),
       external_session_id: sessionId,
     };
 
