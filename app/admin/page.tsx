@@ -13,6 +13,11 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArborMark } from "@/components/ui/ArborMark";
 import { ArrowLeft, PaperPlaneTilt } from "@phosphor-icons/react";
+import {
+  buildAdminA2AChatBody,
+  nextA2AThread,
+  type A2AThreadIds,
+} from "@/lib/specialists/a2a-chat-threading";
 
 interface A2ASpecialist {
   agent_id: string;
@@ -30,6 +35,7 @@ interface ChatTurn {
   role: "user" | "agent" | "system";
   text: string;
   state?: string;
+  pending?: boolean;
   taskId?: string;
   raw?: unknown;
 }
@@ -38,7 +44,7 @@ export default function AdminPage() {
   const [specialists, setSpecialists] = useState<A2ASpecialist[]>([]);
   const [selected, setSelected] = useState<string>("");
   const [turnsByAgent, setTurnsByAgent] = useState<Record<string, ChatTurn[]>>({});
-  const [contextByAgent, setContextByAgent] = useState<Record<string, string>>({});
+  const [threadByAgent, setThreadByAgent] = useState<Record<string, A2AThreadIds>>({});
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -104,11 +110,9 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/a2a-chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          agent_id: agentId,
-          text,
-          context_id: contextByAgent[agentId],
-        }),
+        body: JSON.stringify(
+          buildAdminA2AChatBody(agentId, text, threadByAgent[agentId]),
+        ),
       });
       // The reply may be a gateway/HTML error page (timeout, 5xx) rather than
       // JSON — read text first and parse defensively so the user sees the real
@@ -131,13 +135,18 @@ export default function AdminPage() {
         return;
       }
       if (d.ok) {
-        if (d.context_id) {
-          setContextByAgent((prev) => ({ ...prev, [agentId]: d.context_id }));
-        }
+        setThreadByAgent((prev) => {
+          const current = prev[agentId] ?? {};
+          return {
+            ...prev,
+            [agentId]: nextA2AThread(current, d),
+          };
+        });
         pushTurn(agentId, {
           role: "agent",
           text: d.reply_text || "(empty reply)",
           state: d.state,
+          pending: d.pending,
           taskId: d.task_id,
           raw: d.raw,
         });
@@ -321,7 +330,11 @@ export default function AdminPage() {
                   <p className="whitespace-pre-wrap break-words">{t.text}</p>
                   {t.role === "agent" && (
                     <div className="mt-1.5 flex items-center gap-2 text-[11px] text-ink-muted">
-                      {t.state && <span>state: {t.state}</span>}
+                      {t.state && (
+                        <span>
+                          state: {t.state}{t.pending ? " (pending)" : ""}
+                        </span>
+                      )}
                       {t.raw !== undefined && (
                         <button
                           className="underline hover:text-brand-700"

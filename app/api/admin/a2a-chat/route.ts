@@ -3,7 +3,7 @@
  *
  * GET  -> list every specialist shown in the market/admin listing, with
  *         A2A-ready entries marked for direct chat.
- * POST -> { agent_id, text, context_id? }: send one user message to that
+ * POST -> { agent_id, text, context_id?, task_id? }: send one user message to that
  *         specialist over A2A JSON-RPC message/send, poll tasks/get to a
  *         terminal state when the reply is a task, and return the agent's
  *         reply text plus the raw protocol payload for debugging.
@@ -25,6 +25,10 @@ import {
   type A2ATask,
   type A2AMessagePart,
 } from "@/lib/specialists/a2a-forwarding";
+import {
+  buildThreadedA2AMessage,
+  describeA2ATaskSnapshot,
+} from "@/lib/specialists/a2a-chat-threading";
 import type { SpecialistConfig } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -139,13 +143,18 @@ function textFromParts(parts: A2AMessagePart[] | undefined): string {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { agent_id?: string; text?: string; context_id?: string };
+  let body: {
+    agent_id?: string;
+    text?: string;
+    context_id?: string;
+    task_id?: string;
+  };
   try {
     body = await req.json();
   } catch {
     return jsonOk({ ok: false, error: "invalid JSON body" }, 400);
   }
-  const { agent_id, text, context_id } = body;
+  const { agent_id, text, context_id, task_id } = body;
   if (!agent_id || !text?.trim()) {
     return jsonOk({ ok: false, error: "agent_id and text are required" }, 400);
   }
@@ -201,13 +210,10 @@ export async function POST(req: NextRequest) {
   if (auth.kind === "api-key") headers[auth.headerName] = auth.token;
 
   const rpcId = `admin-chat-${Date.now()}`;
-  const message: Record<string, unknown> = {
-    role: "user",
-    kind: "message",
-    messageId: crypto.randomUUID(),
-    parts: [{ kind: "text", text: text.trim() }],
-  };
-  if (context_id) message.contextId = context_id;
+  const message = buildThreadedA2AMessage(text.trim(), crypto.randomUUID(), {
+    contextId: context_id,
+    taskId: task_id,
+  });
 
   let raw: RawJsonRpc;
   try {
@@ -274,6 +280,7 @@ export async function POST(req: NextRequest) {
       kind: "message",
       reply_text: textFromParts(parts) || "(no text parts in reply)",
       context_id: (result as { contextId?: string }).contextId ?? context_id,
+      task_id: (result as { taskId?: string }).taskId ?? task_id,
       raw,
     });
   }
@@ -288,30 +295,49 @@ export async function POST(req: NextRequest) {
 
   if (isTaskShape && taskCandidate) {
     let task = taskCandidate as unknown as A2ATask;
+    const candidateTaskId =
+      typeof (taskCandidate as { id?: unknown }).id === "string"
+        ? (taskCandidate as { id: string }).id
+        : typeof (taskCandidate as { taskId?: unknown }).taskId === "string"
+          ? (taskCandidate as { taskId: string }).taskId
+          : task_id;
     const state = task.status?.state as string | undefined;
     const terminal =
-      state === "completed" || state === "failed" || state === "canceled";
+      state === "completed" ||
+      state === "failed" ||
+      state === "canceled" ||
+      state === "rejected";
+    let pollError: string | undefined;
     try {
       // Only poll when non-terminal AND the server gave us a task id to poll.
-      if (!terminal && task.id) {
-        task = await pollUntilTerminal(endpoint, task.id, headers);
+      if (!terminal && candidateTaskId) {
+        task = await pollUntilTerminal(endpoint, candidateTaskId, headers);
       }
-    } catch {
+    } catch (err) {
       // Poll failed (server doesn't support tasks/get, or task errored) — fall
       // back to whatever text the initial response already carried rather than
       // failing the turn. `input_required`/`working` snapshots still have text.
+      pollError = err instanceof Error ? err.message : String(err);
     }
-    const replyText = extractText(task);
+    const finalState = task.status?.state as string | undefined;
+    const extracted = extractText(task);
+    const { pending, replyText } = describeA2ATaskSnapshot(
+      finalState,
+      extracted,
+      JSON.stringify(task.status),
+    );
     return jsonOk({
       ok: true,
       agent_id,
       endpoint,
       kind: "task",
-      state: task.status?.state,
-      task_id: task.id,
-      reply_text: replyText || `(no text; task state: ${task.status?.state ?? "unknown"})`,
+      state: finalState,
+      pending,
+      task_id: task.id || candidateTaskId,
+      reply_text: replyText,
       context_id:
         (task as unknown as { contextId?: string }).contextId ?? context_id,
+      ...(pollError ? { poll_error: pollError } : {}),
       raw: { ...raw, result: task },
     });
   }
@@ -336,6 +362,9 @@ export async function POST(req: NextRequest) {
         wrappedMsg?.contextId ??
         (result as { contextId?: string })?.contextId ??
         context_id,
+      task_id:
+        (result as { taskId?: string })?.taskId ??
+        task_id,
       raw,
     });
   }
