@@ -26,6 +26,10 @@ import {
   arborHiveBackstop,
   ARBOR_HIVE_BACKSTOP_CONFIG,
 } from "./arbor-hive-backstop";
+import {
+  codebaseExplainer,
+  CODEBASE_EXPLAINER_CONFIG,
+} from "./codebase-explainer";
 import { githubPrReview, GITHUB_PR_REVIEW_CONFIG } from "./github-pr-review";
 import { openrouterEnabled, type ModelGateway } from "../openai";
 import type {
@@ -97,6 +101,11 @@ const BASE_SPECIALISTS: SpecialistConfig[] = [
   // the rollout to other task classes.
   GITHUB_PR_REVIEW_CONFIG,
   ARBOR_BASELINE_CONFIG,
+  // Arbor-owned educational lesson maker (NotebookLM-style codebase explainer).
+  // Bids only on explain/teach/walkthrough tasks; declines everything else with
+  // no model spend, so it never widens the roster. Audio/video render behind
+  // ARBOR_EXPLAINER_AUDIO_ENABLED / ARBOR_EXPLAINER_VIDEO_ENABLED.
+  CODEBASE_EXPLAINER_CONFIG,
   // Universal last-resort floor: bids on every task class so no hive node can
   // fail for lack of a plausible bidder. Last-resort economics keep it under any
   // live specialist; it only wins when nothing live qualifies.
@@ -214,6 +223,7 @@ const SPECIALIST_RUNNERS: Partial<Record<AgentId, SpecialistRunner>> = {
   "github-pr-review": githubPrReview,
   "arbor-baseline": arborBaseline,
   "arbor-hive-backstop": arborHiveBackstop,
+  "codebase-explainer": codebaseExplainer,
 };
 
 // Warn once at module load for every specialist that is explicitly mocked.
