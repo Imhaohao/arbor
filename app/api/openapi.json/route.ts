@@ -223,6 +223,97 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      "/api/v1/media": {
+        post: {
+          operationId: "move_media",
+          summary:
+            "Request an upload URL, import provider output, finalize an upload, or resolve an artifact for a DAG collaborator.",
+          parameters: [
+            {
+              name: "operation",
+              in: "query",
+              required: true,
+              schema: {
+                type: "string",
+                enum: [
+                  "request_upload",
+                  "import_url",
+                  "finalize_upload",
+                  "resolve",
+                ],
+              },
+            },
+          ],
+          responses: {
+            "200": { description: "Media operation completed." },
+            "201": { description: "Media artifact registered." },
+            "400": { $ref: "#/components/responses/BadRequest" },
+          },
+        },
+      },
+      "/api/v1/blackboard": {
+        post: {
+          operationId: "agent_blackboard",
+          summary: "Read or append DAG-scoped state with agent HMAC auth.",
+          parameters: [
+            {
+              name: "operation",
+              in: "query",
+              required: true,
+              schema: { type: "string", enum: ["read", "append"] },
+            },
+          ],
+          responses: {
+            "200": { description: "Blackboard entries returned." },
+            "201": { description: "Blackboard entry appended." },
+            "400": { $ref: "#/components/responses/BadRequest" },
+          },
+        },
+      },
+      "/api/v1/tiktok/uploads": {
+        post: {
+          operationId: "upload_video_to_tiktok_inbox",
+          summary: "Queue a stored task video for TikTok's Upload API.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["task_id", "artifact_id"],
+                  properties: {
+                    task_id: { type: "string" },
+                    artifact_id: { type: "string" },
+                    idempotency_key: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "202": { description: "TikTok upload queued." },
+            "400": { $ref: "#/components/responses/BadRequest" },
+          },
+        },
+      },
+      "/api/v1/tiktok/uploads/{jobId}": {
+        get: {
+          operationId: "get_tiktok_upload_status",
+          summary: "Poll TikTok processing and inbox-handoff state.",
+          parameters: [
+            {
+              name: "jobId",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": { description: "TikTok upload state." },
+            "404": { $ref: "#/components/responses/NotFound" },
+          },
+        },
+      },
     },
     components: {
       schemas: {

@@ -313,7 +313,9 @@ export const reacherSocial: SpecialistRunner = {
       return await context.toolRecorder.record(input, run, (result) =>
         mcpToolOutcome({
           result,
-          preview: previewValue(flattenToolResult(result)),
+          preview: previewValue(flattenToolResult(result), 700, {
+            redactUrls: true,
+          }),
         }),
       );
     };

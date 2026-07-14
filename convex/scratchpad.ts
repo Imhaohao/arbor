@@ -44,6 +44,7 @@ const entryWithoutEmbeddingValidator = v.object({
   dag_id: v.id("hive_dags"),
   node_id: v.optional(v.string()),
   task_id: v.optional(v.id("tasks")),
+  artifact_id: v.optional(v.id("media_artifacts")),
   agent_id: v.string(),
   kind: kindValidator,
   namespace: v.optional(v.string()),
@@ -78,6 +79,7 @@ export const _write = internalMutation({
     dag_id: v.id("hive_dags"),
     node_id: v.optional(v.string()),
     task_id: v.optional(v.id("tasks")),
+    artifact_id: v.optional(v.id("media_artifacts")),
     agent_id: v.string(),
     kind: kindValidator,
     namespace: v.optional(v.string()),
@@ -142,6 +144,7 @@ export const _write = internalMutation({
       dag_id: args.dag_id,
       node_id: args.node_id,
       task_id: args.task_id,
+      artifact_id: args.artifact_id,
       agent_id: args.agent_id,
       kind: args.kind,
       namespace,
@@ -240,6 +243,9 @@ export const forDag = query({
           .withIndex("by_dag", (q) => q.eq("dag_id", args.dag_id))
           .order("desc")
           .take(FOR_DAG_LIMIT);
-    return rows.map(stripEmbedding);
+    // Durable media pointers are only exposed through agentBlackboard.readSigned,
+    // where DAG collaboration is verified. Keep the legacy public scratchpad
+    // useful for text coordination without leaking artifact IDs.
+    return rows.filter((row) => !row.artifact_id).map(stripEmbedding);
   },
 });

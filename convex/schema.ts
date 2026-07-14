@@ -606,6 +606,109 @@ export default defineSchema({
     .index("by_dag_and_node_id", ["dag_id", "node_id"])
     .index("by_task_id", ["task_id"]),
 
+  // Durable media exchanged between users, specialists, and downstream
+  // providers. Provider URLs are never the system of record: uploaded or
+  // imported bytes live in Convex Storage and storage_id resolves to a
+  // short-lived download URL when an authorized participant asks for it.
+  media_artifacts: defineTable({
+    task_id: v.optional(v.id("tasks")),
+    dag_id: v.optional(v.id("hive_dags")),
+    node_id: v.optional(v.string()),
+    created_by_agent_id: v.string(),
+    source: v.union(
+      v.literal("user_upload"),
+      v.literal("agent_upload"),
+      v.literal("provider_output"),
+      v.literal("import"),
+    ),
+    media_kind: v.union(
+      v.literal("video"),
+      v.literal("audio"),
+      v.literal("image"),
+      v.literal("other"),
+    ),
+    status: v.union(
+      v.literal("uploading"),
+      v.literal("ready"),
+      v.literal("processing"),
+      v.literal("failed"),
+      v.literal("deleted"),
+    ),
+    storage_id: v.optional(v.id("_storage")),
+    file_name: v.string(),
+    mime_type: v.string(),
+    byte_size: v.optional(v.number()),
+    sha256: v.optional(v.string()),
+    duration_ms: v.optional(v.number()),
+    width: v.optional(v.number()),
+    height: v.optional(v.number()),
+    codec: v.optional(v.string()),
+    frame_rate: v.optional(v.number()),
+    provider: v.optional(v.string()),
+    external_artifact_id: v.optional(v.string()),
+    error_message: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_task", ["task_id"])
+    .index("by_dag", ["dag_id"])
+    .index("by_dag_and_node", ["dag_id", "node_id"])
+    .index("by_creator", ["created_by_agent_id"])
+    .index("by_storage", ["storage_id"])
+    .index("by_status", ["status"]),
+
+  // Provider-neutral execution ledger. Routing can swap Higgsfield, Clueso,
+  // or another provider while the orchestration and artifact handoff contract
+  // remains stable. One row records one provider operation; larger fan-out is
+  // represented by multiple rows instead of an unbounded artifact array.
+  provider_jobs: defineTable({
+    job_id: v.string(),
+    task_id: v.optional(v.id("tasks")),
+    dag_id: v.optional(v.id("hive_dags")),
+    node_id: v.optional(v.string()),
+    requested_by_agent_id: v.string(),
+    provider: v.string(),
+    operation: v.string(),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("submitted"),
+      v.literal("running"),
+      v.literal("retry_wait"),
+      v.literal("input_required"),
+      v.literal("succeeded"),
+      v.literal("failed"),
+      v.literal("cancelled"),
+    ),
+    idempotency_key: v.string(),
+    external_job_id: v.optional(v.string()),
+    input_artifact_id: v.optional(v.id("media_artifacts")),
+    output_artifact_id: v.optional(v.id("media_artifacts")),
+    quoted_cost: v.optional(
+      v.object({ amount: v.number(), currency: v.string() }),
+    ),
+    actual_cost: v.optional(
+      v.object({ amount: v.number(), currency: v.string() }),
+    ),
+    progress: v.optional(v.number()),
+    attempts: v.number(),
+    max_attempts: v.number(),
+    next_poll_at: v.optional(v.number()),
+    error_code: v.optional(v.string()),
+    error_retryable: v.optional(v.boolean()),
+    error_message: v.optional(v.string()),
+    provider_metadata: v.optional(v.any()),
+    started_at: v.optional(v.number()),
+    completed_at: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_job_id", ["job_id"])
+    .index("by_idempotency_key", ["idempotency_key"])
+    .index("by_task", ["task_id"])
+    .index("by_dag", ["dag_id"])
+    .index("by_provider_and_external_job", ["provider", "external_job_id"])
+    .index("by_status", ["status"]),
+
   // ─── Hive mind: Sakana best-of-N candidate archive ───────────────────────
   // One row per candidate execution of a node under best-of-N (the "orchestrator
   // branches"/"artifacts" of the Sakana report). The judge selects among the
@@ -675,6 +778,7 @@ export default defineSchema({
     dag_id: v.id("hive_dags"),
     node_id: v.optional(v.string()),
     task_id: v.optional(v.id("tasks")),
+    artifact_id: v.optional(v.id("media_artifacts")),
     agent_id: v.string(),
     kind: v.union(
       v.literal("observation"),

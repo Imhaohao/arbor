@@ -202,7 +202,10 @@ function normalizeSpecialistOutput(output: SpecialistOutput): {
 } {
   if (typeof output === "string") return { text: output };
   return {
-    text: output.summary,
+    text:
+      "summary" in output
+        ? output.summary
+        : `Delivered ${output.kind} artifact ${output.artifact_id}.`,
     artifact: output,
   };
 }
@@ -954,6 +957,45 @@ export const execute = internalAction({
       }
       const runner = getRunner(winner.agent_id as AgentId);
       const toolRecorder = makeToolCallRecorder(ctx, args.task_id, winner.agent_id);
+      const arborWorkspace =
+        task.hive_dag_id && task.hive_node_id
+          ? {
+              dag_id: String(task.hive_dag_id),
+              node_id: task.hive_node_id,
+              call: async (
+                tool:
+                  | "media_request_upload"
+                  | "media_import_url"
+                  | "media_finalize_upload"
+                  | "media_resolve"
+                  | "blackboard_read"
+                  | "blackboard_append",
+                payload: Record<string, unknown>,
+              ): Promise<unknown> => {
+                if (tool === "blackboard_read" || tool === "blackboard_append") {
+                  return await ctx.runAction(internal.agentBlackboard.invokeTrusted, {
+                    task_id: args.task_id,
+                    agent_id: winner.agent_id,
+                    operation: tool === "blackboard_read" ? "read" : "append",
+                    payload,
+                  });
+                }
+                return await ctx.runAction(internal.mediaActions.invokeTrusted, {
+                  task_id: args.task_id,
+                  agent_id: winner.agent_id,
+                  operation:
+                    tool === "media_request_upload"
+                      ? "request_upload"
+                      : tool === "media_import_url"
+                        ? "import_url"
+                      : tool === "media_finalize_upload"
+                        ? "finalize_upload"
+                        : "resolve",
+                  payload,
+                });
+              },
+            }
+          : undefined;
       // 180s cap on execute. MCP-forwarding specialists run multi-round
       // tool-calling loops (6 rounds × ~30s each worst case for Reacher /
       // Nia), so 60s would force a timeout before they finish. Plain
@@ -963,6 +1005,7 @@ export const execute = internalAction({
           task_id: args.task_id,
           agent_id: winner.agent_id,
           toolRecorder,
+          arborWorkspace,
         }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("execution timeout (180s)")), 180_000),

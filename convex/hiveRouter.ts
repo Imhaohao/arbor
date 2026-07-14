@@ -139,6 +139,7 @@ export const routeNode = internalAction({
     //    shared-context block injected into the child prompt below.
     type ContextEntry = {
       entry_id: string;
+      artifact_id?: string;
       agent_id: string;
       kind: string;
       confidence: number;
@@ -161,6 +162,9 @@ export const routeNode = internalAction({
         for (const row of results) {
           dependencyEntries.push({
             entry_id: String(row._id),
+            artifact_id: row.artifact_id
+              ? String(row.artifact_id)
+              : undefined,
             agent_id: row.agent_id,
             kind: row.kind,
             confidence: row.confidence,
@@ -194,6 +198,7 @@ export const routeNode = internalAction({
       for (const row of rows.filter((entry) => entry.kind === "critique").slice(0, 3)) {
         reviewEntries.push({
           entry_id: String(row._id),
+          artifact_id: row.artifact_id ? String(row.artifact_id) : undefined,
           agent_id: row.agent_id,
           kind: row.kind,
           confidence: row.confidence,
@@ -216,6 +221,7 @@ export const routeNode = internalAction({
     // returns `entry` as `any`, so we narrow each hit to RecallEntry at map.
     type RecallEntry = {
       _id: Id<"scratchpad_entries">;
+      artifact_id?: Id<"media_artifacts">;
       agent_id: string;
       kind: string;
       confidence: number;
@@ -244,6 +250,7 @@ export const routeNode = internalAction({
       const e = r.entry as RecallEntry;
       return {
         entry_id: String(e._id),
+        artifact_id: e.artifact_id ? String(e.artifact_id) : undefined,
         agent_id: e.agent_id,
         kind: e.kind,
         confidence: e.confidence,
@@ -585,12 +592,25 @@ export const routeNode = internalAction({
       .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     const stepIndex = Math.max(0, sortedNodeIds.indexOf(args.node_id));
 
+    const arborOrigin = (
+      process.env.ARBOR_PUBLIC_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? ""
+    )
+      .trim()
+      .replace(/\/$/, "");
+    const workspaceContext =
+      `\n\nArbor workspace scope (immutable): dag_id=${args.dag_id}, node_id=${args.node_id}. ` +
+      "In-process MCP specialists receive trusted media_* and blackboard_* tools with this scope injected. " +
+      (arborOrigin
+        ? `Out-of-process A2A specialists may use their provisioned Arbor agent HMAC credential at ${arborOrigin}/api/v1/media and ${arborOrigin}/api/v1/blackboard; sign the exact request body and never return the credential or signed URL in output.`
+        : "Out-of-process A2A specialists must use their provisioned Arbor agent HMAC credential with the configured Arbor media and blackboard endpoints; never return the credential or signed URL in output.");
+
     const childPrompt =
       node.description +
       (node.success_criteria
         ? `\n\nSuccess criteria: ${node.success_criteria}`
         : "") +
       `\n\nTask class: ${taskClass}` +
+      workspaceContext +
       (sharedContext
         ? "\n\n---\nAgentic blackboard context (follow bb:// pointers; verify " +
           "low-confidence entries and address review critiques):\n" +

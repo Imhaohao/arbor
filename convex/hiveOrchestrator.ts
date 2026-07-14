@@ -16,6 +16,7 @@
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { makeFunctionReference } from "convex/server";
 import { readyNodes, type PlannedNode } from "../lib/hive/dag";
 import {
@@ -24,6 +25,7 @@ import {
 } from "./hiveBaselineBackstop";
 import { didForAgent } from "../lib/hive/blackboard-core";
 import { profileOutcomeSucceeded } from "../lib/hive/profile-core";
+import { extractMediaArtifactId } from "../lib/media-artifacts";
 
 // Task 15 implements hiveEvaluator.evaluateDag. Referenced by string so this
 // file pushes cleanly before that module exists.
@@ -33,6 +35,8 @@ const evaluateDagRef = makeFunctionReference<"action">(
 
 const MAX_OUTPUT_CHARS = 50000;
 const MAX_SCRATCHPAD_CHARS = 8000;
+const ARTIFACT_REFERENCE_CONTENT_TYPE =
+  "application/vnd.arbor.artifact-reference+json";
 
 export const advance = internalAction({
   args: { dag_id: v.id("hive_dags") },
@@ -371,6 +375,31 @@ export const onNodeSettled = internalAction({
     }
 
     const truncatedOutput = resultText.slice(0, MAX_OUTPUT_CHARS);
+    const candidateArtifactId = extractMediaArtifactId(task.result);
+    let mediaArtifact:
+      | {
+          _id: Id<"media_artifacts">;
+          dag_id?: Id<"hive_dags">;
+          mime_type: string;
+          file_name: string;
+        }
+      | undefined;
+    if (candidateArtifactId) {
+      try {
+        const resolved = await ctx.runQuery(internal.mediaArtifacts._get, {
+          artifact_id: candidateArtifactId as Id<"media_artifacts">,
+        });
+        if (resolved?.dag_id === node.dag_id && resolved.status === "ready") {
+          mediaArtifact = resolved;
+        }
+      } catch (err) {
+        console.warn(
+          `[hive-orchestrator] ignored invalid media artifact ${candidateArtifactId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
 
     // Cost telemetry (W2): cost_paid mirrors the escrowed price actually paid
     // for this node's child task; allocated_budget is the ceiling the router
@@ -418,17 +447,31 @@ export const onNodeSettled = internalAction({
 
     // 7. On successful completion with material output, persist a scratchpad
     //    memory and kick off its embedding.
-    if (nodeStatus === "complete" && truncatedOutput.length > 0) {
+    if (
+      nodeStatus === "complete" &&
+      (truncatedOutput.length > 0 || mediaArtifact)
+    ) {
       const entry_id = await ctx.runMutation(internal.scratchpad._write, {
         dag_id: node.dag_id,
         node_id: node.node_id,
         task_id: args.task_id,
         agent_id: agentId ?? "unknown",
-        kind: "artifact",
+        artifact_id: mediaArtifact?._id,
+        kind: mediaArtifact ? "artifact" : "result",
         namespace: "artifacts",
-        content: truncatedOutput.slice(0, MAX_SCRATCHPAD_CHARS),
-        content_format: "text",
-        content_type: "text/plain",
+        content: mediaArtifact
+          ? JSON.stringify({
+              type: "artifact_reference",
+              version: 1,
+              artifact_id: String(mediaArtifact._id),
+              media_type: mediaArtifact.mime_type,
+              label: mediaArtifact.file_name,
+            })
+          : truncatedOutput.slice(0, MAX_SCRATCHPAD_CHARS),
+        content_format: mediaArtifact ? "json" : "text",
+        content_type: mediaArtifact
+          ? ARTIFACT_REFERENCE_CONTENT_TYPE
+          : "text/plain",
         writer_did: didForAgent(agentId ?? "unknown"),
         verified_writer: true,
         revision: node.revision_count ?? 0,
@@ -437,6 +480,27 @@ export const onNodeSettled = internalAction({
       await ctx.scheduler.runAfter(0, internal.scratchpadActions.embedEntry, {
         entry_id,
       });
+
+      if (mediaArtifact && truncatedOutput.length > 0) {
+        const summaryId = await ctx.runMutation(internal.scratchpad._write, {
+          dag_id: node.dag_id,
+          node_id: node.node_id,
+          task_id: args.task_id,
+          agent_id: agentId ?? "unknown",
+          kind: "result",
+          namespace: "artifacts",
+          content: truncatedOutput.slice(0, MAX_SCRATCHPAD_CHARS),
+          content_format: "text",
+          content_type: "text/plain",
+          writer_did: didForAgent(agentId ?? "unknown"),
+          verified_writer: true,
+          revision: node.revision_count ?? 0,
+          confidence: qualityScore ?? 0.5,
+        });
+        await ctx.scheduler.runAfter(0, internal.scratchpadActions.embedEntry, {
+          entry_id: summaryId,
+        });
+      }
 
       // Also write a compact "decision" entry summarizing who executed the
       // node, at what price, and the judge's quality verdict — cheap routing
@@ -479,6 +543,7 @@ export const onNodeSettled = internalAction({
           status: nodeStatus,
           agent_id: agentId,
           quality_score: qualityScore,
+          artifact_id: mediaArtifact ? String(mediaArtifact._id) : undefined,
         },
       });
     }

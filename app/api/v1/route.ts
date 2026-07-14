@@ -35,6 +35,14 @@ export async function GET(req: NextRequest) {
         "Read or append shared-scratchpad entries for a hive DAG.",
       "GET /api/v1/scratchpad/:dagId/recall?q=":
         "Semantic search over a hive DAG scratchpad.",
+      "POST /api/v1/blackboard?operation=read|append":
+        "HMAC-authenticated, DAG-scoped blackboard access for collaborating agents.",
+      "POST /api/v1/media?operation=request_upload|import_url|finalize_upload|resolve":
+        "Move durable media through Convex Storage with signed agent requests.",
+      "POST /api/v1/tiktok/uploads":
+        "Queue a stored task video for TikTok's Upload API inbox flow.",
+      "GET /api/v1/tiktok/uploads/:jobId":
+        "Poll TikTok processing and inbox-handoff status.",
     },
     discovery: {
       mcp: `${base}/.well-known/mcp.json`,

@@ -5,7 +5,7 @@ import type {
 } from "./types";
 
 const SECRET_KEY_PATTERN =
-  /(api[_-]?key|token|secret|password|authorization|bearer|cookie|session|credential)/i;
+  /(api[_-]?key|token|secret|password|authorization|bearer|cookie|session|credential|(?:source|download|upload|signed)[_-]?url|(?:^|[_-])(?:url|uri)$)/i;
 
 export function endpointHost(endpoint?: string): string | undefined {
   if (!endpoint) return undefined;
@@ -38,8 +38,12 @@ export function redactToolArguments(value: unknown, depth = 0): unknown {
   return out;
 }
 
-export function previewValue(value: unknown, max = 700): string {
-  const text =
+export function previewValue(
+  value: unknown,
+  max = 700,
+  options?: { redactUrls?: boolean },
+): string {
+  const raw =
     typeof value === "string"
       ? value
       : (() => {
@@ -49,6 +53,28 @@ export function previewValue(value: unknown, max = 700): string {
             return String(value);
           }
         })();
+  const text = raw.replace(/https:\/\/[^\s"'<>]+/g, (candidate) => {
+    try {
+      const url = new URL(candidate);
+      if (options?.redactUrls) {
+        return `${url.origin}/[redacted-capability-url]`;
+      }
+      let redacted = false;
+      for (const key of Array.from(url.searchParams.keys())) {
+        if (
+          /(?:token|key|signature|sig|credential|authorization|x-amz-)/i.test(
+            key,
+          )
+        ) {
+          url.searchParams.set(key, "[redacted]");
+          redacted = true;
+        }
+      }
+      return redacted ? url.toString() : candidate;
+    } catch {
+      return candidate;
+    }
+  });
   return text.length > max ? `${text.slice(0, max)}...` : text;
 }
 

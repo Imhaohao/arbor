@@ -1,3 +1,5 @@
+import type { ArtifactRef } from "./media-artifacts";
+
 // Public-facing tier shown in UI and provenance.
 export type SpecialistTier =
   | "native-a2a"
@@ -86,7 +88,28 @@ export interface SpecialistExecuteContext {
   task_id?: string;
   agent_id?: string;
   toolRecorder?: ToolCallRecorder;
+  /**
+   * Trusted, task-scoped bridge into Arbor's durable media store and Hive
+   * blackboard. The auction action supplies this only for an awarded Hive
+   * node, so remote provider tools never receive Arbor's server secrets.
+   */
+  arborWorkspace?: {
+    dag_id: string;
+    node_id: string;
+    call(
+      tool: ArborWorkspaceToolName,
+      args: Record<string, unknown>,
+    ): Promise<unknown>;
+  };
 }
+
+export type ArborWorkspaceToolName =
+  | "media_request_upload"
+  | "media_import_url"
+  | "media_finalize_upload"
+  | "media_resolve"
+  | "blackboard_read"
+  | "blackboard_append";
 
 /**
  * Static sponsor agents shipped in the registry. Discovered specialists use
@@ -208,7 +231,7 @@ export interface CampaignLaunchArtifact {
   }>;
 }
 
-export type ExecutionArtifact = CampaignLaunchArtifact;
+export type ExecutionArtifact = CampaignLaunchArtifact | ArtifactRef;
 
 export type SpecialistOutput = string | ExecutionArtifact;
 

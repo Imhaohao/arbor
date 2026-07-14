@@ -10,6 +10,7 @@ export interface ScratchpadWrite {
   dag_id: string;
   node_id?: string;
   task_id?: string;
+  artifact_id?: string;
   agent_id: string;
   kind: BlackboardKind;
   namespace?: string;
@@ -80,6 +81,7 @@ export function formatEntriesForPrompt(
 
 interface ContextEntry {
   entry_id?: string;
+  artifact_id?: string;
   agent_id: string;
   kind: string;
   confidence: number;
@@ -150,6 +152,9 @@ export function assembleBlackboardPointers(args: {
       ref: entry.entry_id
         ? `bb://${args.dagId}/${entry.namespace ?? "general"}/${entry.entry_id}`
         : `bb://${args.dagId}/${entry.namespace ?? "general"}`,
+      artifact_ref: entry.artifact_id
+        ? `artifact://${entry.artifact_id}`
+        : undefined,
       namespace: entry.namespace ?? "general",
       kind: entry.kind,
       writer: entry.agent_id,

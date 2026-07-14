@@ -40,3 +40,59 @@ Verification:
 - Reacher/TikTok social MCP probe passed with 69 tools.
 - Refreshed agent smoke readiness: 61 ready of 232, 94 needs_key, 51 endpoint_down, 17 mock_only, 6 protocol_mismatch, 3 needs_owner_action.
 - arbor-check --skip-e2e passed with no blocking fixes; active cloudflared tunnels are still warnings.
+
+Media pipeline first build
+
+Plan:
+1. Define and test media-artifact and asynchronous provider-job contracts.
+2. Add Convex Storage upload, registration, retrieval, and access-controlled artifact APIs.
+3. Extend the agent blackboard with artifact references and scoped collaboration access.
+4. Preserve artifacts through Hive settlement and dependent-node execution.
+5. Add TikTok Upload API initialization, transfer, status polling, and user handoff state.
+6. Add media upload and TikTok handoff product surfaces.
+7. Run focused tests, typecheck, full tests, Convex validation, review, and commit.
+
+Delegation table:
+Task | Model tier
+Schema and media contracts | Terra
+Blackboard and Hive propagation | Terra
+TikTok Upload API adapter | Terra
+UI/API wiring and focused tests | Sonnet/Luna
+Final integration review | Fable/Sol
+
+Status:
+- Plan and Convex guidance refresh: completed
+- Media contracts and storage: completed
+- Blackboard access: completed
+- Hive artifact propagation: completed
+- TikTok Upload API client: completed
+- UI/API wiring: completed
+- Verification and review: completed
+
+Checkpoint 1:
+- Added provider-neutral media and provider-job contracts with transition tests.
+- Added Convex Storage artifact schema, signed upload/finalize/resolve actions, and bounded task/DAG reads.
+- Added an authenticated, DAG-collaborator blackboard surface with durable artifact references.
+- Added a TikTok Upload API client for FILE_UPLOAD, chunk transfer, status polling, and inbox handoff.
+
+Checkpoint 2:
+- Added a deterministic short-form-video DAG: brief, generation, editing/sound, and compatibility review.
+- Kept Higgsfield and Clueso as replaceable candidates; the existing cost/reputation router selects each node's specialist.
+- Preserved durable artifact IDs through task results, Hive settlement, blackboard pointers, and downstream prompts.
+- Added REST and MCP media/blackboard surfaces plus an asynchronous TikTok job API and task-page upload panel.
+- Fixed the pre-existing Convex Node-runtime bundling error in the seed path; `npx convex codegen` now passes.
+
+Checkpoint 3:
+- Injected an immutable, task-scoped Arbor workspace into awarded MCP specialists so provider media can be imported/uploaded, resolved, and shared on the blackboard without exposing Arbor server credentials.
+- Added public-HTTPS provider media import with private-address, redirect, MIME, and byte-limit checks; signed media URLs are redacted from the tool audit trail.
+- Added exact DAG/node scope to A2A child tasks; external A2A collaborators use their provisioned Arbor HMAC identity.
+- Added TikTok initialization retries, encrypted resumable transfer sessions, Content-Range reconciliation, delayed status-poll resumption, and 24-hour inbox-state polling; fixed custom chunk sizing below TikTok's minimum.
+- Production TikTok upload stays disabled unless explicitly enabled for a single-account deployment; multi-user use still requires application auth and per-user TikTok OAuth/token storage.
+
+Verification:
+- `npm run typecheck` passed.
+- `npm test` passed.
+- `npm run build` passed.
+- `npx convex codegen` passed and uploaded the functions.
+- `npx convex dev --once` passed with `Convex functions ready`.
+- `git diff --check` passed.

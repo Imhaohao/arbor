@@ -156,6 +156,15 @@ export interface ScratchpadRecallArgs {
   namespace?: string;
 }
 
+export interface SignedAgentPayloadArgs {
+  signed_payload: string;
+  format?: "json" | "toon";
+  agent_id: string;
+  timestamp: string;
+  nonce: string;
+  signature: string;
+}
+
 export interface GetAgenticContextArgs {
   agent_id?: string;
   repo_url?: string;
@@ -575,6 +584,108 @@ export const TOOLS: ToolDefinition[] = [
           description: "Number of results, clamped to 1..20.",
         },
         namespace: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "blackboard_read_signed",
+    description:
+      "Read the shared blackboard as an authenticated agent assigned to a Hive node. The signed payload supplies dag_id, node_id, optional namespace, and limit.",
+    inputSchema: {
+      type: "object",
+      required: ["signed_payload", "agent_id", "timestamp", "nonce", "signature"],
+      properties: {
+        signed_payload: { type: "string" },
+        format: { type: "string", enum: ["json", "toon"] },
+        agent_id: { type: "string" },
+        timestamp: { type: "string" },
+        nonce: { type: "string" },
+        signature: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "blackboard_append_signed",
+    description:
+      "Append text or a durable media artifact reference to the shared blackboard as an authenticated Hive collaborator.",
+    inputSchema: {
+      type: "object",
+      required: ["signed_payload", "agent_id", "timestamp", "nonce", "signature"],
+      properties: {
+        signed_payload: { type: "string" },
+        format: { type: "string", enum: ["json", "toon"] },
+        agent_id: { type: "string" },
+        timestamp: { type: "string" },
+        nonce: { type: "string" },
+        signature: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "media_request_upload",
+    description:
+      "Request a short-lived Convex Storage upload URL as an authenticated Hive collaborator. The signed payload supplies dag_id, node_id, filename, MIME type, and media kind.",
+    inputSchema: {
+      type: "object",
+      required: ["signed_payload", "agent_id", "timestamp", "nonce", "signature"],
+      properties: {
+        signed_payload: { type: "string" },
+        format: { type: "string", enum: ["json", "toon"] },
+        agent_id: { type: "string" },
+        timestamp: { type: "string" },
+        nonce: { type: "string" },
+        signature: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "media_import_url",
+    description:
+      "Import provider media from a public HTTPS URL into durable Convex Storage as an authenticated Hive collaborator. The signed payload includes dag_id, node_id, source_url, provider, filename, MIME/media kind, and optional video metadata.",
+    inputSchema: {
+      type: "object",
+      required: ["signed_payload", "agent_id", "timestamp", "nonce", "signature"],
+      properties: {
+        signed_payload: { type: "string" },
+        format: { type: "string", enum: ["json", "toon"] },
+        agent_id: { type: "string" },
+        timestamp: { type: "string" },
+        nonce: { type: "string" },
+        signature: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "media_finalize_upload",
+    description:
+      "Register uploaded Convex Storage bytes as a durable media artifact. The signed payload includes the storage_id returned by the upload plus the original media metadata.",
+    inputSchema: {
+      type: "object",
+      required: ["signed_payload", "agent_id", "timestamp", "nonce", "signature"],
+      properties: {
+        signed_payload: { type: "string" },
+        format: { type: "string", enum: ["json", "toon"] },
+        agent_id: { type: "string" },
+        timestamp: { type: "string" },
+        nonce: { type: "string" },
+        signature: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "media_resolve",
+    description:
+      "Resolve a durable artifact_id to metadata and a download URL as an authenticated collaborator in the same Hive DAG.",
+    inputSchema: {
+      type: "object",
+      required: ["signed_payload", "agent_id", "timestamp", "nonce", "signature"],
+      properties: {
+        signed_payload: { type: "string" },
+        format: { type: "string", enum: ["json", "toon"] },
+        agent_id: { type: "string" },
+        timestamp: { type: "string" },
+        nonce: { type: "string" },
+        signature: { type: "string" },
       },
     },
   },
@@ -1088,6 +1199,68 @@ export async function handleScratchpadRecall(args: ScratchpadRecallArgs) {
   return { dag_id: args.dag_id, query: args.query, results };
 }
 
+function signedAgentEnvelope(args: SignedAgentPayloadArgs) {
+  if (!args.signed_payload?.trim()) throw new Error("signed_payload is required");
+  if (!args.agent_id?.trim()) throw new Error("agent_id is required");
+  if (!args.timestamp?.trim()) throw new Error("timestamp is required");
+  if (!args.nonce?.trim()) throw new Error("nonce is required");
+  if (!args.signature?.trim()) throw new Error("signature is required");
+  return {
+    raw_body: args.signed_payload,
+    format: args.format,
+    agent_id: args.agent_id,
+    timestamp: args.timestamp,
+    nonce: args.nonce,
+    signature: args.signature,
+  };
+}
+
+export async function handleBlackboardReadSigned(
+  args: SignedAgentPayloadArgs,
+) {
+  return await convex().action(
+    api.agentBlackboard.readSigned,
+    signedAgentEnvelope(args),
+  );
+}
+
+export async function handleBlackboardAppendSigned(
+  args: SignedAgentPayloadArgs,
+) {
+  return await convex().action(
+    api.agentBlackboard.appendSigned,
+    signedAgentEnvelope(args),
+  );
+}
+
+export async function handleMediaRequestUpload(args: SignedAgentPayloadArgs) {
+  return await convex().action(
+    api.mediaActions.requestUploadSigned,
+    signedAgentEnvelope(args),
+  );
+}
+
+export async function handleMediaFinalizeUpload(args: SignedAgentPayloadArgs) {
+  return await convex().action(
+    api.mediaActions.finalizeUploadSigned,
+    signedAgentEnvelope(args),
+  );
+}
+
+export async function handleMediaImportUrl(args: SignedAgentPayloadArgs) {
+  return await convex().action(
+    api.mediaActions.importUrlSigned,
+    signedAgentEnvelope(args),
+  );
+}
+
+export async function handleMediaResolve(args: SignedAgentPayloadArgs) {
+  return await convex().action(
+    api.mediaActions.resolveSigned,
+    signedAgentEnvelope(args),
+  );
+}
+
 export async function handleGetAgenticContext(args: GetAgenticContextArgs) {
   return buildAgenticContextLayer({
     userId: args.agent_id,
@@ -1168,6 +1341,30 @@ export async function dispatchTool(
     case "scratchpad_recall":
       return await handleScratchpadRecall(
         args as unknown as ScratchpadRecallArgs,
+      );
+    case "blackboard_read_signed":
+      return await handleBlackboardReadSigned(
+        args as unknown as SignedAgentPayloadArgs,
+      );
+    case "blackboard_append_signed":
+      return await handleBlackboardAppendSigned(
+        args as unknown as SignedAgentPayloadArgs,
+      );
+    case "media_request_upload":
+      return await handleMediaRequestUpload(
+        args as unknown as SignedAgentPayloadArgs,
+      );
+    case "media_import_url":
+      return await handleMediaImportUrl(
+        args as unknown as SignedAgentPayloadArgs,
+      );
+    case "media_finalize_upload":
+      return await handleMediaFinalizeUpload(
+        args as unknown as SignedAgentPayloadArgs,
+      );
+    case "media_resolve":
+      return await handleMediaResolve(
+        args as unknown as SignedAgentPayloadArgs,
       );
     case "get_agentic_context":
       return await handleGetAgenticContext(

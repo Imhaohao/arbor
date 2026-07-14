@@ -4,6 +4,7 @@ import {
   extractPrMetadata,
   finalizeProvenance,
   mcpToolOutcome,
+  previewValue,
   redactToolArguments,
 } from "./tool-call-audit";
 
@@ -12,17 +13,33 @@ function testRedaction() {
     redactToolArguments({
       prompt: "build tic tac toe",
       apiKey: "secret",
+      source_url: "https://cdn.example/video.mp4?token=secret",
+      video_url: "https://cdn.example/video.mp4",
+      url: "https://cdn.example/raw.mp4",
       nested: { authorization: "Bearer secret", safe: "ok" },
     }),
     {
       prompt: "build tic tac toe",
       apiKey: "[redacted]",
+      source_url: "[redacted]",
+      video_url: "[redacted]",
+      url: "[redacted]",
       nested: { authorization: "[redacted]", safe: "ok" },
     },
   );
 }
 
 function testMcpOutcome() {
+  assert.equal(
+    previewValue("https://cdn.example/video.mp4?token=secret&asset=42"),
+    "https://cdn.example/video.mp4?token=%5Bredacted%5D&asset=42",
+  );
+  assert.equal(
+    previewValue("https://cdn.example/capability-secret/video.mp4", 700, {
+      redactUrls: true,
+    }),
+    "https://cdn.example/[redacted-capability-url]",
+  );
   assert.equal(
     mcpToolOutcome({
       result: { isError: true },

@@ -122,6 +122,7 @@ export const writeSigned = action({
         dag_id: payload.dag_id as Id<"hive_dags">,
         node_id: payload.node_id,
         task_id: payload.task_id as Id<"tasks"> | undefined,
+        artifact_id: undefined,
         agent_id: verdict.agent_id,
         kind: payload.kind,
         namespace,
@@ -188,6 +189,7 @@ export const semanticRecall = action({
         { entry_id: hit._id },
       );
       if (!entry) continue;
+      if (entry.artifact_id) continue;
       if (args.namespace && entry.namespace !== args.namespace) continue;
       results.push({ entry: stripEmbedding(entry), score: hit._score });
       if (results.length >= limit) break;

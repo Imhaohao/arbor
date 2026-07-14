@@ -15,6 +15,7 @@ import { JudgeVerdictPanel } from "./JudgeVerdictPanel";
 import { SettlementPanel } from "./SettlementPanel";
 import { PlanPanel } from "./PlanPanel";
 import { ConversionDropDemo } from "./ConversionDropDemo";
+import { TikTokUploadPanel } from "./TikTokUploadPanel";
 import { isConversionDropPrompt } from "@/lib/conversion-drop-demo";
 import { useStickToLatest } from "@/lib/use-stick-to-latest";
 import { ArrowDown } from "@phosphor-icons/react";
@@ -134,6 +135,8 @@ function RegularTaskView({
           />
         </>
       )}
+
+      <TikTokUploadPanel taskId={taskId} />
 
       <div ref={sentinelRef} aria-hidden className="h-px" />
 

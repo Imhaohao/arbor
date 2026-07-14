@@ -87,7 +87,12 @@ export const runForFailedNode = internalAction({
         agent_id: agentId,
       });
       // Runners return string output; normalize defensively.
-      const reviewText = typeof output === "string" ? output : output.summary;
+      const reviewText =
+        typeof output === "string"
+          ? output
+          : "summary" in output
+            ? output.summary
+            : `Delivered ${output.kind} artifact ${output.artifact_id}.`;
       const actualSeconds = Math.max(0.1, (Date.now() - startedAt) / 1000);
 
       // 3. Lightweight judge so "verified" stays falsifiable, not vibes.

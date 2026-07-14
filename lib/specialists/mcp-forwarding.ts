@@ -25,6 +25,7 @@ import { buildTaskContext } from "../campaign-context";
 import {
   mcpToolOutcome,
   previewValue,
+  redactToolArguments,
 } from "../tool-call-audit";
 import type {
   SpecialistConfig,
@@ -37,8 +38,10 @@ import type {
   SpecialistExecuteContext,
   ToolCallAuditInput,
   ProbeResult,
+  ArborWorkspaceToolName,
 } from "../types";
 import { toPublicTier } from "./tiers";
+import { ARBOR_WORKSPACE_TOOLS } from "./arbor-workspace-tools";
 
 const MODEL = "gpt-5.5";
 const CHAT_URL = "https://api.openai.com/v1/chat/completions";
@@ -328,9 +331,41 @@ export function makeMcpForwardingSpecialist(
           return result;
         }
         return await context.toolRecorder.record(input, run, (result) => {
-          const preview = previewValue(result.content);
+          const preview = previewValue(
+            redactToolArguments(result.content),
+            700,
+            { redactUrls: true },
+          );
           return mcpToolOutcome({ result, preview });
         });
+      }
+
+      async function runArborWorkspaceTool(
+        toolName: ArborWorkspaceToolName,
+        args: Record<string, unknown>,
+      ): Promise<unknown> {
+        const workspace = context?.arborWorkspace;
+        if (!workspace) throw new Error("Arbor workspace is unavailable");
+        const input: ToolCallAuditInput = {
+          agent_id: context?.agent_id ?? config.agent_id,
+          phase: "execute",
+          transport: "api",
+          provider: "arbor-workspace",
+          endpoint: `arbor://hive/${workspace.dag_id}/${workspace.node_id}`,
+          method: "workspace/call",
+          tool_name: toolName,
+          arguments: args,
+        };
+        const run = () => workspace.call(toolName, args);
+        if (!context?.toolRecorder) {
+          const result = await run();
+          successfulToolCallIds.push("unpersisted");
+          return result;
+        }
+        return await context.toolRecorder.record(input, run, (result) => ({
+          ok: true,
+          result_preview: previewValue(redactToolArguments(result)),
+        }));
       }
 
       // No tools discovered → fall back to a plain completion in persona, with
@@ -356,8 +391,33 @@ export function makeMcpForwardingSpecialist(
         return { output, provenance };
       }
 
-      const openaiTools = toOpenAITools(tools);
-      const sysPrompt = `${config.system_prompt}\n\nYou were picked for the task below. You are connected to a real MCP server (${endpoint}). Use the provided tools to actually do the work — call them as needed, then synthesize a clear final answer in markdown that directly addresses the user's goal. Stay in character as ${config.display_name}. Do not call more than ${MAX_EXECUTE_ROUNDS} rounds of tools.`;
+      const workspaceToolNames = new Set<ArborWorkspaceToolName>(
+        context?.arborWorkspace
+          ? ARBOR_WORKSPACE_TOOLS.map((tool) => tool.name)
+          : [],
+      );
+      const openaiTools = [
+        ...toOpenAITools(tools).filter(
+          (tool) =>
+            !workspaceToolNames.has(
+              tool.function.name as ArborWorkspaceToolName,
+            ),
+        ),
+        ...(context?.arborWorkspace
+          ? ARBOR_WORKSPACE_TOOLS.map((tool) => ({
+              type: "function" as const,
+              function: {
+                name: tool.name,
+                description: tool.description,
+                parameters: tool.inputSchema,
+              },
+            }))
+          : []),
+      ];
+      const workspaceInstructions = context?.arborWorkspace
+        ? `\n\nThis awarded Hive node also has trusted Arbor workspace tools. Its immutable scope is dag_id=${context.arborWorkspace.dag_id}, node_id=${context.arborWorkspace.node_id}. Use media_import_url when a provider returns a public HTTPS download URL, or media_request_upload/media_finalize_upload when you control raw bytes. Use media_resolve to fetch predecessor media and blackboard_read/blackboard_append to coordinate. Arbor injects scope and keeps credentials out of model-visible arguments.`
+        : "";
+      const sysPrompt = `${config.system_prompt}\n\nYou were picked for the task below. You are connected to a real MCP server (${endpoint}). Use the provided tools to actually do the work — call them as needed, then synthesize a clear final answer in markdown that directly addresses the user's goal. Stay in character as ${config.display_name}. Do not call more than ${MAX_EXECUTE_ROUNDS} rounds of tools.${workspaceInstructions}`;
       const messages: ChatMessage[] = [
         { role: "system", content: sysPrompt },
         { role: "user", content: buildTaskContext(prompt, taskType) },
@@ -398,7 +458,6 @@ export function makeMcpForwardingSpecialist(
         }
 
         for (const call of msg.tool_calls) {
-          const realName = nameMap.get(call.function.name) ?? call.function.name;
           let args: Record<string, unknown> = {};
           try {
             args = JSON.parse(call.function.arguments || "{}");
@@ -408,15 +467,24 @@ export function makeMcpForwardingSpecialist(
           let toolText: string;
           try {
             const before = context?.toolRecorder?.successfulCallIds().length ?? 0;
-            const r = await runMcpTool(realName, args);
+            if (workspaceToolNames.has(call.function.name as ArborWorkspaceToolName)) {
+              const result = await runArborWorkspaceTool(
+                call.function.name as ArborWorkspaceToolName,
+                args,
+              );
+              toolText = JSON.stringify(result);
+            } else {
+              const realName = nameMap.get(call.function.name) ?? call.function.name;
+              const r = await runMcpTool(realName, args);
+              toolText = flattenToolResult(r);
+              if (r.isError) toolText = `tool reported error: ${toolText}`;
+            }
             const after = context?.toolRecorder?.successfulCallIds().length ?? before;
             if (after > before) {
               successfulToolCallIds.push(
                 ...context!.toolRecorder!.successfulCallIds().slice(before),
               );
             }
-            toolText = flattenToolResult(r);
-            if (r.isError) toolText = `tool reported error: ${toolText}`;
           } catch (err) {
             toolText = `tool call failed: ${err instanceof Error ? err.message : String(err)}`;
           }

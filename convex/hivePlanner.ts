@@ -20,6 +20,10 @@ import {
   type PlannedNode,
 } from "../lib/hive/dag";
 import {
+  isShortFormVideoPipeline,
+  planShortFormVideoPipeline,
+} from "../lib/hive/media-pipeline";
+import {
   didForAgent,
   serializeBlackboardContent,
 } from "../lib/hive/blackboard-core";
@@ -65,8 +69,17 @@ export const planDag = internalAction({
     let planned: PlannedNode[];
     let fallbackReason: string | null = null;
     let gatedSingle = false;
+    let plannerModel = CLAUDE_PLANNER_MODEL;
 
-    if (gate !== null && gate.mode === "single") {
+    if (isShortFormVideoPipeline(task.prompt, task.task_type)) {
+      planned = planShortFormVideoPipeline(task.prompt);
+      plannerModel = "arbor:short-form-video-v1";
+      await ctx.runMutation(internal.lifecycle.log, {
+        task_id: args.task_id,
+        event_type: "hive_plan_media_pipeline",
+        payload: { profile: plannerModel, node_count: planned.length },
+      });
+    } else if (gate !== null && gate.mode === "single") {
       gatedSingle = true;
       planned = [{ id: "main", description: task.prompt, depends_on: [] }];
       console.log(`[hive-planner] gated single-node: ${gate.reason}`);
@@ -113,7 +126,7 @@ export const planDag = internalAction({
       root_task_id: args.task_id,
       goal: task.prompt,
       status: "planning",
-      planner_model: CLAUDE_PLANNER_MODEL,
+      planner_model: plannerModel,
       max_budget: task.max_budget,
       created_at: now,
       updated_at: now,
@@ -197,6 +210,7 @@ export const planDag = internalAction({
         levels: topologicalLevels(planned),
         fallback_used: fallbackReason !== null,
         gated_single: gatedSingle,
+        planner_profile: plannerModel,
       },
     });
 
