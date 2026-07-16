@@ -1,5 +1,32 @@
 # Arbor Hive Mind — Build Progress
 
+## External-tool agentic harness + Sakana/Fugu integration (2026-07-15)
+
+Goal: give Arbor a first-class external-tool execution harness modeled on major coding agents and Sakana's population/evaluator loops, while reusing the existing Hive router, candidate archive, receipts, and rollout gates.
+
+1. Inventory current Codex external tools and Arbor tool/discovery/execution paths.
+2. Compare official harness patterns from Codex, Claude Code, Gemini CLI, OpenHands, and Sakana/Fugu research.
+3. Design the deep `ToolHarness` module twice-plus: minimal interface, extension-oriented interface, common-caller interface, and ports/adapters interface.
+4. Implement a pure policy/trajectory core, normalized tool catalog, execution receipts, bounded retries, and evaluator-guided branch selection behind a default-off switch.
+5. Add production adapters at existing MCP/A2A/GitHub/web seams and deterministic fake adapters at the same interface for tests.
+6. Wire the harness into the Hive orchestrator without weakening current budget, approval, audit, or terminal-fallback behavior.
+7. Run focused tests, Convex codegen, typecheck, full tests, and a deterministic harness benchmark; record measured behavior and remaining live-only gaps.
+
+| Task | Model tier / executor |
+|---|---|
+| Bulk tool-registry inventory | Local Ollama tier / deterministic local tooling |
+| Official coding-engine and Sakana research | Sonnet/Luna-tier parallel research agents |
+| Alternative interface designs | Sonnet/Luna and Terra-tier parallel design agents |
+| Cross-file harness architecture and integration decisions | Fable/Sol main agent |
+| Settled cross-file implementation | Terra-tier worker agents with disjoint file ownership |
+| Focused tests, reviews, and benchmark checks | Sonnet/Luna-tier agents + deterministic local tooling |
+
+Checkpoint: research-deep resume check found all 5 Sakana items complete and schema-valid (10/10 fields each). Existing Arbor already covers candidate fan-out, evaluator selection, evolution archive, learned delegation, direct routing, receipts, and fallback; the active gap is normalized external-tool discovery/execution with bounded tool trajectories and feedback into routing.
+
+Checkpoint: phase 1 landed. `lib/tool-harness.ts` is the deep protocol-neutral module: it normalizes tool schemas and names across adapters, rejects duplicate adapter IDs, enforces round/call/repetition/result limits, exposes an authorization hook, preserves deterministic transcript/receipt order, and parallelizes only tools an adapter marks safe. `lib/specialists/mcp-forwarding.ts` now supplies MCP and trusted Arbor-workspace adapters while retaining the existing external-call recorder and provenance gate. Focused tests, typecheck, and the full test suite pass. The existing Hive best-of-N/evaluator/evolution modules remain the Sakana/Fugu population layer above this deterministic trajectory executor.
+
+Remaining adapter work: register host-provided GitHub, web-search/fetch, browser, A2A, and shell adapters where those runtimes expose callable functions; do not hardcode Codex-only tools into the Arbor server. Receipt hardening remains for generic MCP servers that return no durable external session/task ID. Live external execution was not attempted because credentials/endpoints are environment-owned.
+
 ## Sakana-style expert delegation and auction compression (2026-07-10)
 
 Goal: turn the W3 profile flywheel into a confidence-aware delegation expert that can skip redundant auctions, shrink competitive auctions, and prove the change with replayable metrics while retaining a conservative fallback.

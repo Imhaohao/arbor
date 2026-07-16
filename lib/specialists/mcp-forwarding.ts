@@ -42,6 +42,12 @@ import type {
 } from "../types";
 import { toPublicTier } from "./tiers";
 import { ARBOR_WORKSPACE_TOOLS } from "./arbor-workspace-tools";
+import {
+  runToolHarness,
+  type ExternalToolAdapter,
+  type HarnessTool,
+  type HarnessTranscriptEntry,
+} from "../tool-harness";
 
 const MODEL = "gpt-5.5";
 const CHAT_URL = "https://api.openai.com/v1/chat/completions";
@@ -82,25 +88,6 @@ interface ChatChoice {
 
 interface ChatResponse {
   choices: ChatChoice[];
-}
-
-function toOpenAITools(remote: RemoteMcpTool[]) {
-  return remote.map((t) => ({
-    type: "function" as const,
-    function: {
-      name: sanitizeName(t.name),
-      description: t.description?.slice(0, 1024) ?? "",
-      parameters: (t.inputSchema as Record<string, unknown> | undefined) ?? {
-        type: "object",
-        properties: {},
-      },
-    },
-  }));
-}
-
-/** OpenAI requires tool names to match `^[a-zA-Z0-9_-]+$`. */
-function sanitizeName(n: string): string {
-  return n.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
 }
 
 function resolveMcpHeaders(config: SpecialistConfig): Record<string, string> {
@@ -391,139 +378,161 @@ export function makeMcpForwardingSpecialist(
         return { output, provenance };
       }
 
-      const workspaceToolNames = new Set<ArborWorkspaceToolName>(
-        context?.arborWorkspace
-          ? ARBOR_WORKSPACE_TOOLS.map((tool) => tool.name)
-          : [],
-      );
-      const openaiTools = [
-        ...toOpenAITools(tools).filter(
-          (tool) =>
-            !workspaceToolNames.has(
-              tool.function.name as ArborWorkspaceToolName,
-            ),
-        ),
-        ...(context?.arborWorkspace
-          ? ARBOR_WORKSPACE_TOOLS.map((tool) => ({
-              type: "function" as const,
-              function: {
-                name: tool.name,
-                description: tool.description,
-                parameters: tool.inputSchema,
-              },
-            }))
-          : []),
-      ];
       const workspaceInstructions = context?.arborWorkspace
         ? `\n\nThis awarded Hive node also has trusted Arbor workspace tools. Its immutable scope is dag_id=${context.arborWorkspace.dag_id}, node_id=${context.arborWorkspace.node_id}. Use media_import_url when a provider returns a public HTTPS download URL, or media_request_upload/media_finalize_upload when you control raw bytes. Use media_resolve to fetch predecessor media and blackboard_read/blackboard_append to coordinate. Arbor injects scope and keeps credentials out of model-visible arguments.`
         : "";
       const sysPrompt = `${config.system_prompt}\n\nYou were picked for the task below. You are connected to a real MCP server (${endpoint}). Use the provided tools to actually do the work — call them as needed, then synthesize a clear final answer in markdown that directly addresses the user's goal. Stay in character as ${config.display_name}. Do not call more than ${MAX_EXECUTE_ROUNDS} rounds of tools.${workspaceInstructions}`;
-      const messages: ChatMessage[] = [
-        { role: "system", content: sysPrompt },
-        { role: "user", content: buildTaskContext(prompt, taskType) },
-      ];
-      const nameMap = new Map<string, string>();
-      for (const t of tools) nameMap.set(sanitizeName(t.name), t.name);
-
-      for (let round = 0; round < MAX_EXECUTE_ROUNDS; round++) {
-        const res = await chatCompletion(
-          {
-            model: MODEL,
-            messages,
-            tools: openaiTools,
-            tool_choice: "auto",
-            // Tool-call rounds can't use reasoning_effort with gpt-5.5
-            // (chatCompletion strips it), so leave room for reasoning + the
-            // actual tool call / final answer.
-            max_completion_tokens: 4000,
+      const adapters: ExternalToolAdapter[] = [];
+      if (context?.arborWorkspace) {
+        adapters.push({
+          id: "arbor_workspace",
+          async discover() {
+            return ARBOR_WORKSPACE_TOOLS.map((tool) => ({
+              name: tool.name,
+              description: tool.description,
+              inputSchema: tool.inputSchema,
+              effect:
+                tool.name === "blackboard_read" || tool.name === "media_resolve"
+                  ? "read" as const
+                  : "write" as const,
+              parallelSafe:
+                tool.name === "blackboard_read" || tool.name === "media_resolve",
+            }));
           },
-          45_000,
-        );
-        const msg = res.choices[0]?.message;
-        if (!msg) throw new Error("OpenAI returned no message");
-        messages.push(msg);
-
-        if (!msg.tool_calls || msg.tool_calls.length === 0) {
-          const provenance: SpecialistProvenance = {
-            tier: toPublicTier(config.tier),
-            live_tools_called: successfulToolCallIds.length > 0,
-            transport: "mcp",
-            proof_level:
-              successfulToolCallIds.length > 0 ? "tool_call" : "none",
-            successful_tool_call_count: successfulToolCallIds.length,
-            tool_call_ids: successfulToolCallIds,
-            endpoint,
-          };
-          return { output: (msg.content ?? "").trim(), provenance };
-        }
-
-        for (const call of msg.tool_calls) {
-          let args: Record<string, unknown> = {};
-          try {
-            args = JSON.parse(call.function.arguments || "{}");
-          } catch {
-            // leave empty; remote may still tolerate
-          }
-          let toolText: string;
-          try {
-            const before = context?.toolRecorder?.successfulCallIds().length ?? 0;
-            if (workspaceToolNames.has(call.function.name as ArborWorkspaceToolName)) {
-              const result = await runArborWorkspaceTool(
-                call.function.name as ArborWorkspaceToolName,
-                args,
-              );
-              toolText = JSON.stringify(result);
-            } else {
-              const realName = nameMap.get(call.function.name) ?? call.function.name;
-              const r = await runMcpTool(realName, args);
-              toolText = flattenToolResult(r);
-              if (r.isError) toolText = `tool reported error: ${toolText}`;
-            }
-            const after = context?.toolRecorder?.successfulCallIds().length ?? before;
-            if (after > before) {
-              successfulToolCallIds.push(
-                ...context!.toolRecorder!.successfulCallIds().slice(before),
-              );
-            }
-          } catch (err) {
-            toolText = `tool call failed: ${err instanceof Error ? err.message : String(err)}`;
-          }
-          messages.push({
-            role: "tool",
-            tool_call_id: call.id,
-            content: toolText.slice(0, 8_000),
-          });
-        }
+          async call(toolName, args) {
+            const result = await runArborWorkspaceTool(
+              toolName as ArborWorkspaceToolName,
+              args,
+            );
+            return { ok: true, content: JSON.stringify(result) };
+          },
+        });
       }
-
-      // Hit the round cap — ask for a final synthesis.
-      messages.push({
-        role: "user",
-        content:
-          "You've used your tool-call budget. Synthesize your final answer now in markdown, citing what you found via the MCP tools.",
-      });
-      // gpt-5.5's max_completion_tokens includes reasoning tokens, so a 1500
-      // cap can leave only ~200 visible tokens after even minimal reasoning
-      // — that's why short outputs were getting truncated mid-sentence.
-      const final = await chatCompletion(
-        {
-          model: MODEL,
-          messages,
-          max_completion_tokens: 4000,
-          reasoning_effort: "none",
+      adapters.push({
+        id: "mcp",
+        async discover() {
+          return tools.map((tool) => ({
+            name: tool.name,
+            description: tool.description,
+            inputSchema: tool.inputSchema,
+            effect: "unknown" as const,
+            parallelSafe: false,
+          }));
         },
-        45_000,
-      );
+        async call(toolName, args) {
+          const result = await runMcpTool(toolName, args);
+          const text = flattenToolResult(result);
+          return {
+            ok: result.isError !== true,
+            content: result.isError ? `tool reported error: ${text}` : text,
+          };
+        },
+      });
+
+      const toMessages = (transcript: HarnessTranscriptEntry[]): ChatMessage[] =>
+        transcript.map((entry): ChatMessage => {
+          if (entry.role === "user") return { role: "user", content: entry.content };
+          if (entry.role === "tool") {
+            return {
+              role: "tool",
+              tool_call_id: entry.callId,
+              content: entry.content,
+            };
+          }
+          return {
+            role: "assistant",
+            content: entry.content,
+            tool_calls: entry.calls?.map((call) => ({
+              id: call.id,
+              type: "function" as const,
+              function: {
+                name: call.name,
+                arguments: JSON.stringify(call.arguments),
+              },
+            })),
+          };
+        });
+
+      const goal = buildTaskContext(prompt, taskType);
+      const harness = await runToolHarness({
+        goal,
+        adapters,
+        model: {
+          async decide({ tools: availableTools, transcript, forceFinal }) {
+            const messages: ChatMessage[] = [
+              { role: "system", content: sysPrompt },
+              ...toMessages(transcript),
+            ];
+            if (forceFinal) {
+              messages.push({
+                role: "user",
+                content:
+                  "You've used your tool-call budget. Synthesize your final answer now in markdown, citing what you found via the tools.",
+              });
+            }
+            const body: Record<string, unknown> = {
+              model: MODEL,
+              messages,
+              max_completion_tokens: 4000,
+            };
+            if (forceFinal) {
+              body.reasoning_effort = "none";
+            } else {
+              body.tools = availableTools.map((tool: HarnessTool) => ({
+                type: "function" as const,
+                function: {
+                  name: tool.modelName,
+                  description: tool.description?.slice(0, 1024) ?? "",
+                  parameters: tool.inputSchema ?? {
+                    type: "object",
+                    properties: {},
+                  },
+                },
+              }));
+              body.tool_choice = "auto";
+            }
+            const response = await chatCompletion(body, 45_000);
+            const message = response.choices[0]?.message;
+            if (!message) throw new Error("OpenAI returned no message");
+            if (forceFinal || !message.tool_calls || message.tool_calls.length === 0) {
+              return { type: "final" as const, content: (message.content ?? "").trim() };
+            }
+            return {
+              type: "tool_calls" as const,
+              content: message.content ?? undefined,
+              calls: message.tool_calls.map((call) => {
+                let args: Record<string, unknown> = {};
+                try {
+                  args = JSON.parse(call.function.arguments || "{}") as Record<string, unknown>;
+                } catch {
+                  // The harness records the resulting tool error without aborting the trajectory.
+                }
+                return { id: call.id, name: call.function.name, arguments: args };
+              }),
+            };
+          },
+        },
+        policy: {
+          maxRounds: MAX_EXECUTE_ROUNDS,
+          maxCalls: 24,
+          maxParallelCalls: 4,
+          maxResultChars: 8_000,
+          maxRepeatedCall: 2,
+        },
+      });
+      const attributableToolCallIds = context?.toolRecorder
+        ? context.toolRecorder.successfulCallIds()
+        : successfulToolCallIds;
       const provenance: SpecialistProvenance = {
         tier: toPublicTier(config.tier),
-        live_tools_called: successfulToolCallIds.length > 0,
+        live_tools_called: attributableToolCallIds.length > 0,
         transport: "mcp",
-        proof_level: successfulToolCallIds.length > 0 ? "tool_call" : "none",
-        successful_tool_call_count: successfulToolCallIds.length,
-        tool_call_ids: successfulToolCallIds,
+        proof_level: attributableToolCallIds.length > 0 ? "tool_call" : "none",
+        successful_tool_call_count: attributableToolCallIds.length,
+        tool_call_ids: attributableToolCallIds,
         endpoint,
       };
-      return { output: (final.choices[0]?.message?.content ?? "").trim(), provenance };
+      return { output: harness.output.trim(), provenance };
     },
   };
 }
