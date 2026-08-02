@@ -5,8 +5,10 @@ import {
   buildRoutingQuery,
   decideRouteMode,
   estimateNodeDifficulty,
+  explicitAgentMentions,
   nodeDepths,
   perNodeBudget,
+  promoteExplicitAgentMentions,
   shouldFallbackOpen,
   wilsonLowerBound,
   type AllocatableNode,
@@ -46,6 +48,39 @@ assert.equal(
   false,
   "strong candidates -> keep shortlist",
 );
+
+// Explicit worker names override generic reputation/profile ordering.
+{
+  const candidates = [
+    { agent_id: "marginalia", display_name: "Marginalia" },
+    { agent_id: "hello-world-agent", display_name: "Hello World Agent" },
+    { agent_id: "spatial-atlas", display_name: "Spatial Atlas" },
+  ];
+  assert.deepEqual(
+    promoteExplicitAgentMentions(
+      "Ask the Hello World external A2A specialist for a greeting.",
+      candidates,
+    ).map((candidate) => candidate.agent_id),
+    ["hello-world-agent", "marginalia", "spatial-atlas"],
+  );
+  assert.deepEqual(
+    promoteExplicitAgentMentions("Write a generic greeting.", candidates).map(
+      (candidate) => candidate.agent_id,
+    ),
+    candidates.map((candidate) => candidate.agent_id),
+  );
+  assert.deepEqual(
+    explicitAgentMentions(
+      "Ask the Hello World external A2A specialist for a greeting.",
+      candidates,
+    ).map((candidate) => candidate.agent_id),
+    ["hello-world-agent"],
+  );
+  assert.deepEqual(
+    explicitAgentMentions("Write a generic greeting.", candidates),
+    [],
+  );
+}
 
 // ─── buildRoutingQuery ────────────────────────────────────────────────────────
 // Includes description, success criteria, and up to 3 hints.

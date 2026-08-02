@@ -32,6 +32,7 @@ import type {
   ProbeResult,
 } from "../types";
 import { toPublicTier } from "./tiers";
+import { clampConfidence } from "../bid-calibration";
 
 // ─── A2A protocol types ───────────────────────────────────────────────────
 
@@ -250,6 +251,16 @@ function looksLikeDecline(text: string): boolean {
   ].some((phrase) => lower.includes(phrase));
 }
 
+function looksLikeEcho(text: string, sentText: string): boolean {
+  const normalizedText = text.replace(/\s+/g, " ").trim().toLowerCase();
+  const normalizedSent = sentText.replace(/\s+/g, " ").trim().toLowerCase();
+  if (!normalizedText || !normalizedSent) return false;
+  return (
+    normalizedText.includes("you said:") &&
+    normalizedText.includes(normalizedSent.slice(0, 100))
+  );
+}
+
 function taskSummary(prompt: string): string {
   return prompt
     .replace(/\s+/g, " ")
@@ -264,7 +275,7 @@ function budgetCeiling(prompt: string): number | undefined {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
-async function postJsonRpc(
+async function postJsonRpcOnce(
   endpoint: string,
   method: string,
   params: unknown,
@@ -301,6 +312,104 @@ async function postJsonRpc(
     throw new Error(`A2A response missing result`);
   }
   return json as JsonRpcOk;
+}
+
+function usesLegacyTextPartError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  if (!message.startsWith("A2A JSON-RPC error:")) return false;
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("parts") &&
+    lower.includes("type") &&
+    lower.includes("text")
+  );
+}
+
+function safeRetryIntent(params: unknown): boolean {
+  if (!isRecord(params) || !isRecord(params.metadata)) return false;
+  return (
+    params.metadata.intent === "probe" ||
+    params.metadata.intent === "cost_estimate"
+  );
+}
+
+function retryableTransportError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /(?:fetch failed|econnreset|socket|network|connection reset)/i.test(
+    message,
+  );
+}
+
+function safeRetryDelayMs(endpoint: string, attempt: number): number {
+  let hash = 0;
+  for (const char of endpoint) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  return 250 * attempt + (hash % 750);
+}
+
+function withLegacyTextParts(params: unknown): unknown {
+  if (!isRecord(params) || !isRecord(params.message)) return params;
+  const parts = params.message.parts;
+  if (!Array.isArray(parts)) return params;
+  return {
+    ...params,
+    message: {
+      ...params.message,
+      parts: parts.map((part) => {
+        if (!isRecord(part) || part.kind !== "text") return part;
+        const { kind: _kind, ...rest } = part;
+        return { ...rest, type: "text" };
+      }),
+    },
+  };
+}
+
+/**
+ * A2A v0.3 uses `kind: "text"` while older SDKs require `type: "text"`.
+ * Prefer the current dialect and retry only when the peer explicitly rejects
+ * that exact message-part shape, so task sends are never duplicated after an
+ * ambiguous transport failure.
+ */
+async function postJsonRpc(
+  endpoint: string,
+  method: string,
+  params: unknown,
+  timeoutMs: number,
+  extraHeaders: Record<string, string> = {},
+): Promise<JsonRpcOk> {
+  const sendWithDialectFallback = async (): Promise<JsonRpcOk> => {
+    try {
+      return await postJsonRpcOnce(
+        endpoint,
+        method,
+        params,
+        timeoutMs,
+        extraHeaders,
+      );
+    } catch (err) {
+      if (method !== "message/send" || !usesLegacyTextPartError(err)) throw err;
+      return await postJsonRpcOnce(
+        endpoint,
+        method,
+        withLegacyTextParts(params),
+        timeoutMs,
+        extraHeaders,
+      );
+    }
+  };
+  const attempts = safeRetryIntent(params) ? 3 : 1;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await sendWithDialectFallback();
+    } catch (err) {
+      lastError = err;
+      if (attempt === attempts || !retryableTransportError(err)) throw err;
+      await sleep(safeRetryDelayMs(endpoint, attempt));
+    }
+  }
+  throw lastError;
 }
 
 /** Poll `tasks/get` until terminal, returning the final A2ATask. */
@@ -481,7 +590,7 @@ export function makeA2aForwardingSpecialist(
       // plan. If the remote doesn't understand it or fails, we fall back to
       // cfg.cost_baseline (price) and a labeled Arbor-drafted plan (claim).
       const context = buildTaskContext(prompt, taskType);
-      const bidMessageText = `${context}\n\nThis is a bid request, not the task itself. Reply with a brief numbered plan (2-4 steps) describing exactly how you would complete this task. If you can, also set metadata.cost_estimate (number, USD) and metadata.estimated_seconds (integer) in your response.`;
+      const bidMessageText = `${context}\n\nThis is a bid request, not the task itself. Reply with a brief numbered plan (2-4 steps) describing exactly how you would complete this task. If you can, also set metadata.cost_estimate (number, USD), metadata.estimated_seconds (integer), and metadata.confidence (number 0-1: your honest probability that an impartial judge accepts your delivery — it is scored against the actual verdict, and a rejected delivery costs you reputation in proportion to the confidence you claimed) in your response.`;
       try {
         const rpc = await withTimeout(
           postJsonRpc(
@@ -524,7 +633,9 @@ export function makeA2aForwardingSpecialist(
           };
         }
         const hasRemotePlan =
-          remotePlan.length >= 40 && !remotePlan.startsWith("{");
+          remotePlan.length >= 40 &&
+          !remotePlan.startsWith("{") &&
+          !looksLikeEcho(remotePlan, bidMessageText);
         const drafted = hasRemotePlan
           ? null
           : await draftPlanFromCard(prompt, taskType);
@@ -536,6 +647,7 @@ export function makeA2aForwardingSpecialist(
           estimated_seconds: typeof meta.estimated_seconds === "number"
             ? (meta.estimated_seconds as number)
             : 30,
+          confidence: clampConfidence(meta.confidence),
           plan_source: hasRemotePlan ? "remote" : drafted!.source,
         };
         return bid;
@@ -927,20 +1039,6 @@ export function makeA2aForwardingSpecialist(
       // Step 3: Send a small probe ping
       const probeId = `probe-${Date.now()}`;
       const messageId = `msg-${Date.now()}`;
-      const body = JSON.stringify({
-        jsonrpc: "2.0",
-        id: probeId,
-        method: "message/send",
-        params: {
-          message: {
-            role: "user",
-            parts: [{ kind: "text", text: "probe" }],
-            messageId,
-          },
-          metadata: { intent: "probe" },
-        },
-      });
-
       try {
         const authResult = await getAuthForEndpoint(endpoint, config);
         const authHeaders: Record<string, string> =
@@ -951,34 +1049,24 @@ export function makeA2aForwardingSpecialist(
               : {};
 
         // 12s: probe runs concurrently with the bid leg, so a generous cap
-        // costs no wall-clock. LLM-backed agents (LangGraph currency sample)
-        // run their full graph even on a probe ping and routinely exceed 8s.
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 12_000);
-
-        let res: Response;
-        try {
-          res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "content-type": "application/json", ...authHeaders },
-            body,
-            signal: controller.signal,
-          });
-        } finally {
-          clearTimeout(timer);
-        }
-
-        if (!res.ok) {
-          const text = await res.text().catch(() => "(no body)");
-          return {
-            status: "fail",
-            duration_ms: Date.now() - t0,
-            error_message: `HTTP ${res.status}: ${text.slice(0, 200)}`,
-          };
-        }
-
-        const json = await res.json();
-        const response_excerpt = JSON.stringify(json).slice(0, 300);
+        // costs no wall-clock. Use the same validated, dialect-compatible RPC
+        // path as bid and execute so HTTP 200 JSON-RPC errors cannot pass.
+        const rpc = await postJsonRpc(
+          endpoint,
+          "message/send",
+          {
+            message: {
+              role: "user",
+              parts: [{ kind: "text", text: "probe" }],
+              messageId,
+              kind: "message",
+            },
+            metadata: { intent: "probe" },
+          },
+          12_000,
+          authHeaders,
+        );
+        const response_excerpt = JSON.stringify(rpc).slice(0, 300);
         return { status: "pass", duration_ms: Date.now() - t0, response_excerpt };
       } catch (err) {
         return {

@@ -1,0 +1,162 @@
+{
+ "version": 1,
+ "kind": "encoder_coldstart_logreg_platt",
+ "target": "P(bid probe passes) for an agent with NO probe/smoke history",
+ "encoder": {
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "params_millions": 22.7,
+  "layers": 6,
+  "hidden": 384,
+  "layer_used": 2,
+  "pooling": "mask-weighted mean",
+  "layer_selection": "Fisher separability J computed on TRAIN agents only",
+  "fisher_j_by_layer": {},
+  "cost_usd_per_call": 0.0,
+  "latency_ms_single": 66,
+  "latency_ms_per_text_batched": 0.8,
+  "why": "cheapest encoder that still exposes per-layer hidden states; weights already cached locally, no API, no GPU"
+ },
+ "pca_dims": 8,
+ "coef": [
+  -1.94499993,
+  -0.77095592,
+  -0.00440563,
+  -0.12182388,
+  -0.19097212,
+  -0.4502444,
+  -0.02103946,
+  0.14776525
+ ],
+ "intercept": -0.62579507,
+ "platt_a": 0.90271753,
+ "platt_b": -0.96617478,
+ "metrics": {
+  "temporal_auc": 0.8495,
+  "coldstart_family_holdout_auc": 0.939,
+  "coldstart_random_agent_holdout_auc": 0.945,
+  "measured_rate_head_auc": 0.959,
+  "encoder_plus_measured_rate_auc": 0.9458,
+  "verdict": "Encoder does NOT beat the measured-rate head when history exists (0.9458 < 0.9590). It is used ONLY for cold start, where the measured-rate head has no evidence and returns the corpus prior for every new agent.",
+  "test_rows": 21354,
+  "test_positives": 249
+ },
+ "fixtures": [
+  {
+   "agent_id": "mcp-auteng-mcp-markdown-publishi-b0ef411",
+   "vector": [
+    1.068927,
+    0.15614,
+    -0.139618,
+    0.478842,
+    0.865048,
+    0.999989,
+    -0.767806,
+    -0.015093
+   ],
+   "expected_logit": -3.48446985,
+   "expected_probability": 0.01611645
+  },
+  {
+   "agent_id": "mcp-jooq-188f74d",
+   "vector": [
+    1.062119,
+    0.277381,
+    0.08832,
+    0.296154,
+    -0.076086,
+    0.014184,
+    -1.473287,
+    0.900209
+   ],
+   "expected_logit": -2.7697719,
+   "expected_probability": 0.03028069
+  },
+  {
+   "agent_id": "mcp-agentorist-5879bd1",
+   "vector": [
+    1.036404,
+    -0.035441,
+    0.643114,
+    -0.691157,
+    -0.717364,
+    0.507553,
+    0.213145,
+    0.972984
+   ],
+   "expected_logit": -2.48514883,
+   "expected_probability": 0.03880746
+  },
+  {
+   "agent_id": "mcp-cms-medicare-data-147c937",
+   "vector": [
+    0.98062,
+    -0.170463,
+    -0.263557,
+    0.230256,
+    -1.273234,
+    -0.298474,
+    -0.784653,
+    -0.27298
+   ],
+   "expected_logit": -2.07486083,
+   "expected_probability": 0.0552429
+  },
+  {
+   "agent_id": "insforge-backend",
+   "vector": [
+    -1.218018,
+    2.293493,
+    1.098927,
+    0.316915,
+    -0.579421,
+    -0.697682,
+    0.544308,
+    -1.078442
+   ],
+   "expected_logit": 0.18559104,
+   "expected_probability": 0.31031683
+  },
+  {
+   "agent_id": "arbor-baseline",
+   "vector": [
+    -1.960261,
+    1.659425,
+    -1.448145,
+    -0.778175,
+    -2.157271,
+    0.574112,
+    -3.606501,
+    -2.959313
+   ],
+   "expected_logit": 1.80083231,
+   "expected_probability": 0.6591409
+  },
+  {
+   "agent_id": "arbor-worker-a2a",
+   "vector": [
+    -2.106316,
+    1.620201,
+    -0.088664,
+    -3.130056,
+    1.594226,
+    -3.40527,
+    -1.10835,
+    -0.087452
+   ],
+   "expected_logit": 3.84273979,
+   "expected_probability": 0.92433325
+  }
+ ],
+ "vector_source": {
+  "note": "Per-agent vectors are NOT bundled. They are computed at discovery time from the agent descriptor by the offline encoder job and stored per agent; a brand-new agent gets one on its first backfill pass. Bundling them would defeat the point, since cold start is exactly the case of an agent not yet in any bundle.",
+  "descriptor_fields": [
+   "agent_id (dashes->spaces)",
+   "capabilities",
+   "one_liner",
+   "rationale",
+   "task_class",
+   "transport"
+  ],
+  "pipeline": "MiniLM layer 2 mean-pooled -> PCA(8) -> standardize; PCA+scaler fit on training agents only"
+ }
+}

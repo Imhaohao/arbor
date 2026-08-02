@@ -161,6 +161,71 @@ export function readyNodes(
   return ready;
 }
 
+function fallbackTaskClass(
+  description: string,
+): PlannedNode["task_class"] {
+  const lower = description.toLowerCase();
+  if (/\b(classify|label|categorize|triage)\b/.test(lower)) {
+    return "classification";
+  }
+  if (/\b(extract|find|collect|retrieve|research)\b/.test(lower)) {
+    return "extraction";
+  }
+  if (/\b(write|draft|generate|combine|summarize|report|compose)\b/.test(lower)) {
+    return "generation";
+  }
+  return "reasoning";
+}
+
+/**
+ * Model-free resilience plan for explicitly numbered compound prompts. Steps
+ * with "after/finally/combine/both/all" depend on every prior step; the other
+ * numbered steps remain parallel entry nodes.
+ */
+export function deterministicFallbackPlan(prompt: string): PlannedNode[] {
+  const lines = prompt.split(/\r?\n/);
+  const steps: Array<{ description: string }> = [];
+  const sharedConstraints: string[] = [];
+  for (let index = 0; index < lines.length; index++) {
+    const trimmed = lines[index].trim();
+    const match = /^\d+[.)]\s+(.+)$/.exec(trimmed);
+    if (match) {
+      steps.push({ description: match[1].trim() });
+    } else if (
+      steps.length > 0 &&
+      trimmed &&
+      !/^complete this work\b/i.test(trimmed)
+    ) {
+      sharedConstraints.push(trimmed);
+    }
+  }
+
+  if (steps.length < 2 || steps.length > 8) {
+    return [{ id: "main", description: prompt, depends_on: [] }];
+  }
+
+  const ids = steps.map((_, index) => `step_${index + 1}`);
+  const constraints = sharedConstraints.length > 0
+    ? `\n\nShared constraints:\n${sharedConstraints.join("\n")}`
+    : "";
+  const planned = steps.map((step, index): PlannedNode => {
+    const lower = step.description.toLowerCase();
+    const dependsOnPrior =
+      index > 0 &&
+      /\b(after|finally|then|combine|both|all previous|once)\b/.test(lower);
+    return {
+      id: ids[index],
+      description: `${step.description}${constraints}`,
+      depends_on: dependsOnPrior ? ids.slice(0, index) : [],
+      success_criteria: `Complete numbered step ${index + 1} and satisfy its stated constraints.`,
+      task_class: fallbackTaskClass(step.description),
+    };
+  });
+  return validateDag(planned).ok
+    ? planned
+    : [{ id: "main", description: prompt, depends_on: [] }];
+}
+
 // ─── W8: single-vs-multi-agent pre-gate (MasRouter, arXiv:2502.11133) ────
 //
 // Before spending a model call on `hivePlanner.planDag`, decide with a cheap,

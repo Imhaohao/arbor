@@ -11,6 +11,7 @@ import type {
 } from "../types";
 import { buildTaskContext } from "../campaign-context";
 import { toPublicTier } from "./tiers";
+import { clampConfidence } from "../bid-calibration";
 
 type HiveTaskClass =
   | "reasoning"
@@ -23,6 +24,7 @@ interface BidResponse {
   reason?: string;
   capability_claim?: string;
   estimated_seconds?: number;
+  confidence?: number;
 }
 
 const TASK_CLASSES: HiveTaskClass[] = [
@@ -143,7 +145,8 @@ export function makeOpenRouterSpecialist(
         systemPrompt:
           `${config.system_prompt}\n\nYou are bidding in a Vickrey auction as a model-backed specialist with no tools. ` +
           `For this ${taskClass} task, return JSON only: ` +
-          '{"decline":false,"capability_claim":"a concrete 2-4 step plan grounded in the task subject","estimated_seconds":30}. ' +
+          '{"decline":false,"capability_claim":"a concrete 2-4 step plan grounded in the task subject","estimated_seconds":30,"confidence":0.6}. ' +
+          '"confidence" is your honest 0-1 probability that an impartial judge accepts your delivery; it is scored against the actual verdict and a rejected delivery costs reputation in proportion to the confidence claimed, so report truthfully or decline (declining costs nothing). ' +
           "Never claim browsing, repository access, APIs, or live tools.",
         userPrompt: buildTaskContext(prompt, taskType),
         maxTokens: 420,
@@ -171,6 +174,7 @@ export function makeOpenRouterSpecialist(
           Number.isFinite(parsed.estimated_seconds)
             ? Math.max(1, Math.floor(parsed.estimated_seconds))
             : 30,
+        confidence: clampConfidence(parsed.confidence),
         plan_source: "llm",
       };
       return bid;

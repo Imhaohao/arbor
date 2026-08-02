@@ -1,9 +1,10 @@
 import Stripe from "stripe";
+import { publicDemoMode } from "../public-demo";
 
 let stripe: Stripe | null = null;
 
 export function stripeCheckoutEnabled(): boolean {
-  return process.env.ARBOR_PAYMENTS_MODE === "stripe_checkout";
+  return !publicDemoMode() && process.env.ARBOR_PAYMENTS_MODE === "stripe_checkout";
 }
 
 export function requireStripeCheckoutEnabled() {

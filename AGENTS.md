@@ -2,28 +2,31 @@
 
 ## Model Routing (Delegation Rules)
 
-Cost ratio: **Opus ≈ 5× Sonnet ≈ 60× Haiku ≈ $0 local Ollama**.
-Default is to push work down the cost ladder. Opus keeps only what genuinely needs it.
+Default to the least expensive model tier that can complete the work reliably:
+local Ollama → Sonnet/Luna → Terra → Fable/Sol.
 
-### Opus — keep only:
+### Fable / Sol — frontier model
 - Multi-file refactors where a wrong call is hard to undo
 - Architecture decisions and ambiguous specs
 - Routing decisions (i.e. deciding which model to use)
 - Debugging that may span unfamiliar files
 - Auth, schema migrations, money/account flows
 
-### Sonnet — delegate when: `Agent(model: "sonnet", ...)`
+### Terra — strong model
+- Cross-file implementation with a clear design
+- Scoped debugging across unfamiliar modules
+- Integration tests and protocol adapters
+- Review of consequential but reversible changes
+
+### Sonnet / Luna — versatile model
 - Single-file or clearly scoped code changes
 - Writing or updating tests for a known module
 - Code review of a small diff
 - Mechanical refactors once the plan is decided
-
-### Haiku — delegate when: `Agent(model: "haiku", ...)`
 - File/symbol lookups ("where is X defined")
 - One-line edits, commit messages, PR descriptions
 - Summarization, classification, format conversions
 - Prose polish where the substance is already right
-- **Do not use for multi-step reasoning**
 
 ### Local Ollama — use when data is sensitive or offline:
 - `qwen2.5-coder:7b` — default local code worker (~4 s)
@@ -35,14 +38,14 @@ Default is to push work down the cost ladder. Opus keeps only what genuinely nee
 ### Decision order (run top to bottom, stop at first match):
 1. Data sensitive or offline? → local fast lane
 2. Bulk batch (100s of calls)? → local fast lane
-3. Haiku sufficient with a one-shot prompt? → Haiku subagent
-4. Clear spec and single file? → Sonnet subagent
+3. Clear, scoped, or routine work? → Sonnet/Luna
+4. Cross-file work with a settled design? → Terra
 5. Hard reasoning or multilingual? → local deliberate lane
-6. Otherwise → Opus inline
+6. Ambiguous, architecture-heavy, or correctness-critical? → Fable/Sol
 
 ### Mandatory rules:
-- Every multi-step plan **must** end with a delegation table mapping each task to a model. A plan that assigns every task to Opus is a bug — rewrite the plan before starting.
-- Parallelize independent lookups: launch multiple Haiku/Sonnet subagents in one message rather than running them sequentially on Opus.
+- Every multi-step plan **must** end with a delegation table mapping each task to a model tier. A plan that assigns every task to Fable/Sol is a bug — rewrite the plan before starting.
+- Parallelize independent lookups: launch multiple Sonnet/Luna or Terra subagents in one message rather than running them sequentially on Fable/Sol.
 - End-of-turn summaries must list each subagent used: **who** (model), **what** (one phrase), **cost** (est. tokens or wall-clock seconds for local).
 
 ## Build Plans for Large Tasks
@@ -73,3 +76,17 @@ Use ripgrep with -g for globs (not --include); prefer rg over find/grep. Clear s
 - Default to 1–2 sentence explanations. Only expand when complexity requires it.
 
 ## Imported Claude Cowork project instructions
+
+<!-- convex-ai-start -->
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`npx convex ai-files install`.
+
+<!-- convex-ai-end -->

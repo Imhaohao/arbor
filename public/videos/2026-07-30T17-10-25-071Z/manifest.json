@@ -1,0 +1,100 @@
+{
+  "prompt": "make me a video about a kid jumping in joy after getting into stanford",
+  "rendered_at": "2026-07-30T17-10-25-071Z",
+  "output": "/Users/yanzihao/Documents/miyohacks/public/videos/2026-07-30T17-10-25-071Z/video.mp4",
+  "duration_seconds": 11.17,
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "backend": "local",
+  "motion": "synthetic_ken_burns",
+  "stills": "composed_svg_motion_graphics",
+  "beat_count": 5,
+  "models": {
+    "brief": "ollama:qwen2.5:7b",
+    "stills": [
+      "stock:openverse",
+      "stock:openverse",
+      "stock:openverse",
+      "stock:openverse",
+      "stock:openverse"
+    ],
+    "tts": "macos:say"
+  },
+  "stock_assets": [
+    {
+      "provider": "openverse",
+      "url": "https://live.staticflickr.com/8307/7885942478_9e711bccea_b.jpg",
+      "source_page": "https://www.flickr.com/photos/26445715@N00/7885942478",
+      "title": "Locqueran - Kids leaping off the harbour wall",
+      "creator": "muffinn",
+      "license": "attribution_required",
+      "license_raw": "by"
+    },
+    {
+      "provider": "openverse",
+      "url": "https://live.staticflickr.com/3691/9722807599_25c0fea824_b.jpg",
+      "source_page": "https://www.flickr.com/photos/24029425@N06/9722807599",
+      "title": "Child hugging a lamb. [front]",
+      "creator": "Boston Public Library",
+      "license": "attribution_required",
+      "license_raw": "by"
+    },
+    {
+      "provider": "openverse",
+      "url": "https://live.staticflickr.com/8214/8270384941_f9e29e509d_b.jpg",
+      "source_page": "https://www.flickr.com/photos/31687107@N07/8270384941",
+      "title": "Winter Holiday Concert - Camp Humphreys, South Korea - 121213",
+      "creator": "USAG-Humphreys",
+      "license": "attribution_required",
+      "license_raw": "by"
+    },
+    {
+      "provider": "openverse",
+      "url": "https://live.staticflickr.com/3065/2548886547_b24e73d9a3_b.jpg",
+      "source_page": "https://www.flickr.com/photos/62528187@N00/2548886547",
+      "title": "Maze for kids",
+      "creator": "photofarmer",
+      "license": "attribution_required",
+      "license_raw": "by"
+    },
+    {
+      "provider": "openverse",
+      "url": "https://live.staticflickr.com/4034/4394895353_ac31a32829_b.jpg",
+      "source_page": "https://www.flickr.com/photos/8804814@N08/4394895353",
+      "title": "Does your kid wear Poko Pants?",
+      "creator": "Unlisted Sightings",
+      "license": "attribution_required",
+      "license_raw": "by"
+    }
+  ],
+  "license_policy": "CC0 / Pexels / Pixabay / CC BY (share-alike excluded)",
+  "narration": "Finally made it! Stanford accepted! Got the letter, feels amazing. Parents so happy for my success! Life is full of endless opportunities now. Time to chase dreams at Stanford!",
+  "beats": [
+    {
+      "shot": "Kid leaping high with arms spread wide, golden sunlight behind, joyful smile",
+      "headline": "Stanford Joy",
+      "narration": "Finally made it! Stanford accepted!"
+    },
+    {
+      "shot": "Child hugging a college acceptance letter, sitting on bed, looking excited",
+      "headline": "The Offer",
+      "narration": "Got the letter, feels amazing."
+    },
+    {
+      "shot": "Family celebrating, kid in middle with cake and balloons, smiling broadly",
+      "headline": "Family Pride",
+      "narration": "Parents so happy for my success!"
+    },
+    {
+      "shot": "Kid running through fields laughing, sunset behind, peaceful backdrop",
+      "headline": "Endless Possibilities",
+      "narration": "Life is full of endless opportunities now."
+    },
+    {
+      "shot": "Close-up of kid wearing Stanford t-shirt, fist pump, determined look",
+      "headline": "Future Awaits",
+      "narration": "Time to chase dreams at Stanford!"
+    }
+  ]
+}

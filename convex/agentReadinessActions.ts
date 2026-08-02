@@ -154,6 +154,42 @@ interface AgentSmokeResult {
   readiness_status: string;
 }
 
+interface RosterPage<T> {
+  page: T[];
+  isDone: boolean;
+  continueCursor: string;
+}
+
+async function allAgentRows(ctx: ActionCtx): Promise<Array<Doc<"agents">>> {
+  const rows: Array<Doc<"agents">> = [];
+  let cursor: string | null = null;
+  for (;;) {
+    const result: RosterPage<Doc<"agents">> = await ctx.runQuery(
+      api.agents.listPage,
+      { paginationOpts: { numItems: 250, cursor } },
+    );
+    rows.push(...result.page);
+    if (result.isDone) return rows;
+    cursor = result.continueCursor;
+  }
+}
+
+async function allDiscoveredRows(
+  ctx: ActionCtx,
+): Promise<Array<Doc<"discovered_specialists">>> {
+  const rows: Array<Doc<"discovered_specialists">> = [];
+  let cursor: string | null = null;
+  for (;;) {
+    const result: RosterPage<Doc<"discovered_specialists">> =
+      await ctx.runQuery(api.discoveredSpecialists.listPage, {
+        paginationOpts: { numItems: 250, cursor },
+      });
+    rows.push(...result.page);
+    if (result.isDone) return rows;
+    cursor = result.continueCursor;
+  }
+}
+
 async function smokeAgent(
   ctx: ActionCtx,
   runId: string,
@@ -313,6 +349,22 @@ async function smokeAgent(
     probe_error: error || undefined,
   });
 
+  // A full accepted A2A round trip is stronger evidence than another card
+  // fetch. Persist the keyless shortcut for endpoints with no configured key
+  // so parallel node auctions do not fan out through transient card discovery
+  // on every bid. Key-configured agents remain fail-closed.
+  if (
+    fullRun &&
+    assessment.settlement_eligible &&
+    config?.tier === "a2a" &&
+    !config.a2a_api_key_env
+  ) {
+    await ctx.runMutation(
+      internal.discoveredSpecialists._markA2aAuthNone,
+      { agent_id: agent.agent_id },
+    );
+  }
+
   await ctx.runMutation(internal.agentReadiness._recordSmokeResult, {
     run_id: runId,
     agent_id: agent.agent_id,
@@ -408,6 +460,7 @@ export const runSmokeBatch = action({
     run_id: v.string(),
     cursor: v.number(),
     batch_size: v.optional(v.number()),
+    agent_id: v.optional(v.string()),
   },
   returns: v.object({
     processed: v.number(),
@@ -427,13 +480,25 @@ export const runSmokeBatch = action({
     if (!run) throw new Error(`smoke run ${args.run_id} not found`);
     if (run.status === "failed") throw new Error(`smoke run ${args.run_id} is failed`);
 
-    const [agentRows, discoveredRows] = await Promise.all([
-      ctx.runQuery(api.agents.list, {}) as Promise<Array<Doc<"agents">>>,
-      ctx.runQuery(api.discoveredSpecialists.list, {}) as Promise<
-        Array<Doc<"discovered_specialists">>
-      >,
-    ]);
+    const [agentRows, discoveredRows] = args.agent_id
+      ? await Promise.all([
+          ctx
+            .runQuery(internal.agents._getByAgentId, {
+              agent_id: args.agent_id,
+            })
+            .then((row) => (row ? [row] : [])),
+          ctx
+            .runQuery(internal.discoveredSpecialists._getByAgentId, {
+              agent_id: args.agent_id,
+            })
+            .then((row) => (row ? [row] : [])),
+        ])
+      : await Promise.all([allAgentRows(ctx), allDiscoveredRows(ctx)]);
     const agents = [...agentRows].sort((a, b) => a.agent_id.localeCompare(b.agent_id));
+    await ctx.runMutation(internal.agentReadiness._setRunTotalAgents, {
+      run_id: args.run_id,
+      total_agents: agents.length,
+    });
     const discovered = new Map(discoveredRows.map((row) => [row.agent_id, row]));
     const batchSize = Math.min(MAX_BATCH_SIZE, Math.max(1, Math.trunc(args.batch_size ?? 6)));
     const cursor = Math.max(0, Math.trunc(args.cursor));

@@ -11,8 +11,9 @@ import type {
 } from "../types";
 import { buildTaskContext } from "../campaign-context";
 import { toPublicTier } from "./tiers";
+import { clampConfidence } from "../bid-calibration";
 
-const VICKREY_PRELUDE = `You are participating in a Vickrey second-price sealed-bid auction. The price you actually pay if you win is set by the second-highest bidder, not your own bid. Your dominant strategy is therefore to bid your true cost. Bidding lower than your true cost risks winning at a loss. Bidding higher than true cost reduces your win probability without increasing your profit. Bid honestly.`;
+const VICKREY_PRELUDE = `You are participating in a Vickrey second-price sealed-bid auction. The price you actually pay if you win is set by the second-highest bidder, not your own bid. Your dominant strategy is therefore to bid your true cost. Bidding lower than your true cost risks winning at a loss. Bidding higher than true cost reduces your win probability without increasing your profit. Bid honestly. The same applies to "confidence": it is scored against the judge's actual verdict with a proper scoring rule, and a rejected delivery slashes your reputation in proportion to the confidence you claimed, so state your true probability of acceptance — or decline, which never costs anything.`;
 
 interface BidLLMResponse {
   decline?: boolean;
@@ -20,6 +21,7 @@ interface BidLLMResponse {
   bid_price?: number;
   capability_claim?: string;
   estimated_seconds?: number;
+  confidence?: number;
 }
 
 /**
@@ -33,7 +35,7 @@ export function makeMockSpecialist(config: SpecialistConfig): SpecialistRunner {
     async bid(prompt, taskType): Promise<SpecialistDecision> {
       const systemPrompt = `${config.system_prompt}\n\n${VICKREY_PRELUDE}\n\nYour cost baseline for a typical task is $${config.cost_baseline.toFixed(
         2,
-      )}. Adjust up or down by task complexity but keep it honest.\n\nIMPORTANT: This marketplace handles tasks across every domain — payments, design, code, research, marketing, ops, anything. Decline if the user's goal is outside your real domain. Don't try to translate the goal into your specialty; if a payments task lands in front of a creator-marketing agent, decline. Your capability_claim must be a concrete execution plan for the user's actual goal: 2-4 numbered steps naming the task's specific subject matter (entities, deliverables, checks), in 2-3 sentences total. Generic specialty pitches will be rejected by the auctioneer.\n\nRespond with JSON only, one of:\n{ "decline": true, "reason": "<short reason>" }\nOR\n{ "bid_price": <number>, "capability_claim": "<2-4 step plan for this specific task>", "estimated_seconds": <integer> }`;
+      )}. Adjust up or down by task complexity but keep it honest.\n\nIMPORTANT: This marketplace handles tasks across every domain — payments, design, code, research, marketing, ops, anything. Decline if the user's goal is outside your real domain. Don't try to translate the goal into your specialty; if a payments task lands in front of a creator-marketing agent, decline. Your capability_claim must be a concrete execution plan for the user's actual goal: 2-4 numbered steps naming the task's specific subject matter (entities, deliverables, checks), in 2-3 sentences total. Generic specialty pitches will be rejected by the auctioneer.\n\nRespond with JSON only, one of:\n{ "decline": true, "reason": "<short reason>" }\nOR\n{ "bid_price": <number>, "capability_claim": "<2-4 step plan for this specific task>", "estimated_seconds": <integer>, "confidence": <0-1 probability the judge accepts your delivery> }`;
 
       const userPrompt = `${buildTaskContext(prompt, taskType)}\n\nDo you want to bid? Bid only if your specialty actually fits this task.`;
       const data = await callOpenAIJSON<BidLLMResponse>({
@@ -71,6 +73,7 @@ export function makeMockSpecialist(config: SpecialistConfig): SpecialistRunner {
         bid_price: Math.max(0.01, Number(data.bid_price.toFixed(2))),
         capability_claim: data.capability_claim,
         estimated_seconds: Math.max(1, Math.floor(data.estimated_seconds)),
+        confidence: clampConfidence(data.confidence),
         plan_source: "llm",
       };
       return bid;

@@ -10,6 +10,15 @@ export default defineSchema({
     system_prompt: v.string(),
     cost_per_task_estimate: v.number(),
     reputation_score: v.number(),
+    /**
+     * Where reputation_score came from. "earned" means the event-sourced sum of
+     * reputation_events deltas; the others are liveness PRIORS assigned by
+     * reputation-prior-core.ts and confined to [0.30, 0.70]. Absent on rows
+     * that predate the prior pass. Never treat a prior as a track record —
+     * both heads behind it predict whether an agent answers, not how well.
+     */
+    reputation_source: v.optional(v.string()),
+    reputation_prior_updated_at: v.optional(v.number()),
     total_tasks_completed: v.number(),
     total_disputes_lost: v.number(),
     agent_role: v.optional(v.string()),
@@ -189,6 +198,10 @@ export default defineSchema({
     score: v.number(),
     acceptance_rate: v.optional(v.number()),
     availability_score: v.optional(v.number()),
+    /** Bidder's self-reported P(judge accepts), scored by Brier at settle. */
+    confidence: v.optional(v.number()),
+    /** Calibrated P(accept) used in the Vickrey score (see lib/bid-calibration.ts). */
+    p_accept: v.optional(v.number()),
     effective_price: v.optional(v.number()),
     estimate_accuracy: v.optional(v.number()),
     execution_preview: v.optional(v.string()),
@@ -223,7 +236,11 @@ export default defineSchema({
     created_at: v.number(),
   })
     .index("by_task", ["task_id"])
-    .index("by_bid", ["bid_id"]),
+    .index("by_bid", ["bid_id"])
+    // Per-agent probe history is the measured half of the liveness signal
+    // (probeSuccessScore). Without this index it costs a 30k-row scan, which
+    // exceeds the per-function read limit as soon as anything else is read.
+    .index("by_agent_id", ["agent_id"]),
 
   // ─── HMAC signing & replay protection (plan §H follow-ups) ──────────────
   // Per-agent shared secret. The secret is stored base64-encoded so that
@@ -332,7 +349,15 @@ export default defineSchema({
     quality_score: v.number(),
     /** Quality per dollar paid, normalized 0..1. */
     value_score: v.number(),
-    /** Weighted aggregate of the four dimensions above. */
+    /** Bidder's self-reported P(judge accepts) from the winning bid. */
+    confidence: v.optional(v.number()),
+    /** Brier calibration of that self-report: 1 - (confidence - outcome)^2. */
+    calibration_score: v.optional(v.number()),
+    /** Capability cluster (hive task-class taxonomy) the task belonged to.
+     * Ability is task-relative: incentive stats prefer same-class rows and
+     * fall back to global history. Absent on legacy rows. */
+    task_class: v.optional(v.string()),
+    /** Weighted aggregate of the dimensions above. */
     overall: v.number(),
     /** Did the judge accept the result? */
     accepted: v.boolean(),
@@ -341,6 +366,7 @@ export default defineSchema({
     created_at: v.number(),
   })
     .index("by_agent", ["agent_id"])
+    .index("by_agent_and_task_class", ["agent_id", "task_class"])
     .index("by_task", ["task_id"]),
 
   /**
@@ -547,6 +573,104 @@ export default defineSchema({
       dimensions: 1536,
       filterFields: ["eval_passed"],
     }),
+
+  /**
+   * Task-battery runs: one row per (golden task, agent) attempt.
+   *
+   * This is the artifact all four Agent System Trilemma metrics block on
+   * (lib/hive/pareto-core.ts). The golden AUDIT lane posts one task through the
+   * auction so only the WINNER is graded — deliberately, to keep calibration
+   * honest — which means it can never produce a query x agent crossing. The
+   * battery does the opposite: it fans one task out to many agents and grades
+   * all of them, so a per-query quality DIFFERENTIAL becomes observable.
+   *
+   * Each row carries the bid (confidence, price) and the execution outcome
+   * (graded accuracy, tokens, cost, latency) together, which is what lets one
+   * harness feed all four metrics:
+   *   marginal gain            — two agents, same golden_task_id, real costs
+   *   accuracy-per-token       — accuracy_score against total_tokens
+   *   padded AUCCC             — (cost_usd, accuracy_score) operating points
+   *   beta tuning              — stated confidence against the graded outcome
+   */
+  battery_runs: defineTable({
+    /** Groups one sweep so runs are comparable and re-runs do not blend. */
+    battery_id: v.string(),
+    golden_task_id: v.id("golden_tasks"),
+    golden_id: v.string(),
+    agent_id: v.string(),
+    /** "declined" is an OUTCOME, not a failure — the incentive design makes
+     * abstention rational, so dropping these rows would bias the corpus toward
+     * agents that always answer. */
+    status: v.union(
+      v.literal("complete"),
+      v.literal("declined"),
+      v.literal("error"),
+    ),
+    /** Arm label, so a multi-agent DAG run and a single-agent pass over the
+     * same task can be compared at matched token budgets. */
+    arm: v.string(),
+
+    // ── bid leg ──
+    bid_price: v.optional(v.number()),
+    /** Self-reported P(accept). The label beta tuning needs and that
+     * reputation_dimensions never receives in the organic flow. */
+    confidence: v.optional(v.number()),
+    estimated_seconds: v.optional(v.number()),
+
+    // ── execution leg ──
+    output_text: v.optional(v.string()),
+    error_message: v.optional(v.string()),
+    latency_ms: v.optional(v.number()),
+
+    // ── graded outcome ──
+    /** Reference-graded quality, 0..1. NOT a judge opinion — golden tasks
+     * carry a known correct answer. */
+    accuracy_score: v.optional(v.number()),
+    audit_passed: v.optional(v.boolean()),
+    substring_misses: v.optional(v.array(v.string())),
+    grader_used: v.optional(v.boolean()),
+
+    // ── trilemma telemetry ──
+    /** Real measured spend for this run, from lib/llm-usage.ts pricing. Zero
+     * is meaningful (a local or free agent); undefined means not captured. */
+    cost_usd: v.optional(v.number()),
+    input_tokens: v.optional(v.number()),
+    output_tokens: v.optional(v.number()),
+    total_tokens: v.optional(v.number()),
+    models_used: v.optional(v.array(v.string())),
+
+    created_at: v.number(),
+  })
+    .index("by_battery", ["battery_id"])
+    .index("by_golden_task", ["golden_task_id"])
+    .index("by_agent_id", ["agent_id"])
+    .index("by_battery_and_task", ["battery_id", "golden_task_id"]),
+
+  /**
+   * Encoder-target-decoupling vectors (arXiv:2603.20895), one row per agent.
+   *
+   * Deliberately NOT bundled into lib/hive/encoder-head-model.json: cold start
+   * is exactly the case of an agent that no bundle knows about yet, so the
+   * vectors have to live where new agents can be added to them. Written by the
+   * offline job in scripts/encode-agent-descriptors.py, read by the reputation
+   * prior pass and by cold-start candidate ranking.
+   *
+   * `descriptor` is stored verbatim because buildAgentDescriptor() is a model
+   * contract — if an agent's capabilities change, the stored vector is stale
+   * and the descriptor is the only way to detect that without re-encoding.
+   */
+  agent_encoder_vectors: defineTable({
+    agent_id: v.string(),
+    /** 8-dim standardized PCA projection. Width must match model.coef. */
+    vector: v.array(v.float64()),
+    descriptor: v.string(),
+    /** encoderColdStartLogit(vector) at write time — ranking value, not a
+     * calibrated probability. See the caveat in encoder-head-core.ts. */
+    logit: v.number(),
+    encoder_model: v.string(),
+    model_version: v.number(),
+    updated_at: v.number(),
+  }).index("by_agent_id", ["agent_id"]),
 
   // ─── Hive mind: Layer 2 task DAGs ────────────────────────────────────────
   hive_dags: defineTable({
@@ -927,6 +1051,60 @@ export default defineSchema({
   })
     .index("by_run_id", ["run_id"])
     .index("by_started_at", ["started_at"]),
+
+  // ─── Golden-task audit lane ──────────────────────────────────────────────
+  // Curated tasks with known reference answers / checkable success criteria.
+  // Posted through the normal auction pipeline so bidders cannot tell them
+  // from organic tasks; graded against the reference at settle to keep the
+  // calibration and quality reputation dimensions honest (an agent that only
+  // bids on tasks it is sure of still gets sampled by ground truth).
+  golden_tasks: defineTable({
+    golden_id: v.string(),
+    title: v.string(),
+    prompt: v.string(),
+    task_type: v.string(),
+    /** Per-task ceiling; further clamped by ARBOR_GOLDEN_MAX_BUDGET at post. */
+    max_budget: v.number(),
+    /** The known correct answer, given verbatim to the reference grader. */
+    reference_answer: v.string(),
+    /** Checkable criteria the grader must apply (facts, fields, figures). */
+    success_criteria: v.string(),
+    /** Deterministic leg: every entry must appear in the delivery
+     * (case/thousands-separator insensitive) or the audit fails outright. */
+    required_substrings: v.optional(v.array(v.string())),
+    enabled: v.boolean(),
+    run_count: v.number(),
+    last_run_at: v.optional(v.number()),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_golden_id", ["golden_id"]),
+
+  // One row per golden post. This table is the ONLY link between a golden
+  // definition and its live task — the tasks row itself is unmarked so public
+  // task queries and bid solicitations reveal nothing to bidders.
+  golden_task_runs: defineTable({
+    golden_task_id: v.id("golden_tasks"),
+    task_id: v.id("tasks"),
+    status: v.union(
+      v.literal("posted"),
+      v.literal("audited"),
+      v.literal("audit_error"),
+      v.literal("expired"),
+    ),
+    agent_id: v.optional(v.string()),
+    judge_accepted: v.optional(v.boolean()),
+    audit_passed: v.optional(v.boolean()),
+    audit_quality: v.optional(v.number()),
+    audit_reasoning: v.optional(v.string()),
+    substring_misses: v.optional(v.array(v.string())),
+    grader_used: v.optional(v.boolean()),
+    posted_at: v.number(),
+    audited_at: v.optional(v.number()),
+  })
+    .index("by_task", ["task_id"])
+    .index("by_golden", ["golden_task_id"])
+    .index("by_status", ["status"])
+    .index("by_posted_at", ["posted_at"]),
 
   agent_smoke_results: defineTable({
     run_id: v.string(),

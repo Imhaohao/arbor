@@ -166,6 +166,7 @@ export const runForFailedNode = internalAction({
           accepted,
           bid_price: 0.4,
           price_paid: 0,
+          task_class: node.task_class,
         });
       }
 

@@ -603,3 +603,15 @@ export const nodeCountForDag = query({
     return nodes.length;
   },
 });
+
+// PUBLIC: inspect the bounded node set for live DAG verification and tooling.
+export const nodesForDag = query({
+  args: { dag_id: v.id("hive_dags") },
+  returns: v.array(nodeDocValidator),
+  handler: async (ctx, args): Promise<Array<Doc<"hive_nodes">>> => {
+    return await ctx.db
+      .query("hive_nodes")
+      .withIndex("by_dag", (q) => q.eq("dag_id", args.dag_id))
+      .take(100);
+  },
+});

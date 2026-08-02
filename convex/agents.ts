@@ -1,4 +1,5 @@
 import { internalMutation, internalQuery, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
 export const list = query({
@@ -6,6 +7,14 @@ export const list = query({
   handler: async (ctx) => {
     const agents = await ctx.db.query("agents").collect();
     return agents.sort((a, b) => b.reputation_score - a.reputation_score);
+  },
+});
+
+/** Paginated roster access for long-running maintenance actions. */
+export const listPage = query({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    return await ctx.db.query("agents").paginate(args.paginationOpts);
   },
 });
 

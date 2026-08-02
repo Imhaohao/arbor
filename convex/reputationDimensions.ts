@@ -1,11 +1,27 @@
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
+import {
+  calibrationScore,
+  clampConfidence,
+  normalizeTaskClass,
+} from "../lib/bid-calibration";
 
 const WEIGHT = {
   quality: 0.45,
   speed: 0.2,
   estimate: 0.15,
   value: 0.2,
+};
+
+/** Weights when the winning bid carried a self-reported confidence: the
+ * calibration dimension takes 0.12 and the rest shrink proportionally. */
+const WEIGHT_WITH_CALIBRATION = {
+  quality: 0.4,
+  speed: 0.18,
+  estimate: 0.12,
+  value: 0.18,
+  calibration: 0.12,
 };
 
 function clamp01(n: number): number {
@@ -48,6 +64,62 @@ function computeValueScore(quality: number, pricePaid: number): number {
   return clamp01(quality * efficiency);
 }
 
+interface DimensionInput {
+  actual_seconds: number;
+  estimated_seconds: number;
+  quality_score: number;
+  accepted: boolean;
+  bid_price: number;
+  price_paid: number;
+  confidence?: number;
+  task_class?: string;
+}
+
+function dimensionValues(args: DimensionInput) {
+  const speed = computeSpeedScore(args.actual_seconds, args.estimated_seconds);
+  const estimate = computeEstimateAccuracy(
+    args.actual_seconds,
+    args.estimated_seconds,
+  );
+  const quality = clamp01(args.quality_score);
+  const value = computeValueScore(quality, args.price_paid);
+  const confidence = clampConfidence(args.confidence);
+  const calibration =
+    confidence !== undefined
+      ? calibrationScore(confidence, args.accepted)
+      : undefined;
+  const overall =
+    calibration !== undefined
+      ? clamp01(
+          WEIGHT_WITH_CALIBRATION.quality * quality +
+            WEIGHT_WITH_CALIBRATION.speed * speed +
+            WEIGHT_WITH_CALIBRATION.estimate * estimate +
+            WEIGHT_WITH_CALIBRATION.value * value +
+            WEIGHT_WITH_CALIBRATION.calibration * calibration,
+        )
+      : clamp01(
+          WEIGHT.quality * quality +
+            WEIGHT.speed * speed +
+            WEIGHT.estimate * estimate +
+            WEIGHT.value * value,
+        );
+  return {
+    actual_seconds: args.actual_seconds,
+    estimated_seconds: args.estimated_seconds,
+    speed_score: speed,
+    estimate_accuracy: estimate,
+    quality_score: quality,
+    value_score: value,
+    confidence,
+    calibration_score: calibration,
+    task_class: normalizeTaskClass(args.task_class),
+    overall,
+    accepted: args.accepted,
+    bid_price: args.bid_price,
+    price_paid: args.price_paid,
+  };
+}
+
 export const _record = internalMutation({
   args: {
     agent_id: v.string(),
@@ -58,39 +130,166 @@ export const _record = internalMutation({
     accepted: v.boolean(),
     bid_price: v.number(),
     price_paid: v.number(),
+    /** Self-reported P(accept) from the winning bid; absent on legacy paths. */
+    confidence: v.optional(v.number()),
+    /** Capability cluster of the settled task (hive task-class taxonomy);
+     * absent on legacy paths — the row then only feeds global stats. */
+    task_class: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const speed = computeSpeedScore(args.actual_seconds, args.estimated_seconds);
-    const estimate = computeEstimateAccuracy(
-      args.actual_seconds,
-      args.estimated_seconds,
-    );
-    const quality = clamp01(args.quality_score);
-    const value = computeValueScore(quality, args.price_paid);
-    const overall = clamp01(
-      WEIGHT.quality * quality +
-        WEIGHT.speed * speed +
-        WEIGHT.estimate * estimate +
-        WEIGHT.value * value,
-    );
+    const values = dimensionValues(args);
 
     await ctx.db.insert("reputation_dimensions", {
       agent_id: args.agent_id,
       task_id: args.task_id,
-      actual_seconds: args.actual_seconds,
-      estimated_seconds: args.estimated_seconds,
-      speed_score: speed,
-      estimate_accuracy: estimate,
-      quality_score: quality,
-      value_score: value,
-      overall,
-      accepted: args.accepted,
-      bid_price: args.bid_price,
-      price_paid: args.price_paid,
+      ...values,
       created_at: Date.now(),
     });
 
-    return { speed, estimate, quality, value, overall };
+    return {
+      speed: values.speed_score,
+      estimate: values.estimate_accuracy,
+      quality: values.quality_score,
+      value: values.value_score,
+      calibration: values.calibration_score,
+      overall: values.overall,
+    };
+  },
+});
+
+/**
+ * Atomically replace the ordinary judge dimension row with a golden audit's
+ * ground-truth outcome and mark the audit run complete. One transaction
+ * avoids both double-counting the task and the claim-then-write crash window.
+ */
+export const _recordGoldenAudit = internalMutation({
+  args: {
+    run_id: v.id("golden_task_runs"),
+    agent_id: v.string(),
+    task_id: v.id("tasks"),
+    actual_seconds: v.number(),
+    estimated_seconds: v.number(),
+    quality_score: v.number(),
+    accepted: v.boolean(),
+    bid_price: v.number(),
+    price_paid: v.number(),
+    confidence: v.optional(v.number()),
+    task_class: v.optional(v.string()),
+    judge_accepted: v.boolean(),
+    audit_reasoning: v.string(),
+    substring_misses: v.array(v.string()),
+    grader_used: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const run = await ctx.db.get(args.run_id);
+    if (!run || run.status !== "posted") return { claimed: false };
+    if (run.task_id !== args.task_id) {
+      throw new Error("golden audit run does not belong to task");
+    }
+
+    const existing = await ctx.db
+      .query("reputation_dimensions")
+      .withIndex("by_task", (q) => q.eq("task_id", args.task_id))
+      .unique();
+    if (existing && existing.agent_id !== args.agent_id) {
+      throw new Error("golden audit winner does not match reputation row");
+    }
+
+    const values = dimensionValues(args);
+    const row = {
+      agent_id: args.agent_id,
+      task_id: args.task_id,
+      ...values,
+      created_at: Date.now(),
+    };
+    if (existing) {
+      await ctx.db.replace(existing._id, row);
+    } else {
+      await ctx.db.insert("reputation_dimensions", row);
+    }
+    await ctx.db.patch(run._id, {
+      status: "audited",
+      agent_id: args.agent_id,
+      judge_accepted: args.judge_accepted,
+      audit_passed: args.accepted,
+      audit_quality: values.quality_score,
+      audit_reasoning: args.audit_reasoning,
+      substring_misses: args.substring_misses,
+      grader_used: args.grader_used,
+      audited_at: Date.now(),
+    });
+    return { claimed: true, replaced: existing !== null };
+  },
+});
+
+function summarizeIncentiveRows(rows: Array<Doc<"reputation_dimensions">>): {
+  settled_tasks: number;
+  accept_rate: number;
+  mean_calibration: number;
+} {
+  if (rows.length === 0) {
+    return { settled_tasks: 0, accept_rate: 0.5, mean_calibration: 0.5 };
+  }
+  let accepted = 0;
+  let calibrationSum = 0;
+  for (const r of rows) {
+    accepted += r.accepted ? 1 : 0;
+    calibrationSum += r.calibration_score ?? 0.5;
+  }
+  return {
+    settled_tasks: rows.length,
+    accept_rate: clamp01(accepted / rows.length),
+    mean_calibration: clamp01(calibrationSum / rows.length),
+  };
+}
+
+/**
+ * Per-agent stats the auctioneer needs to price a bid's self-reported
+ * confidence: settled-task count, judge-accept rate, and mean Brier
+ * calibration over the most recent settled tasks. Legacy rows without a
+ * stored calibration count as a neutral 0.5 so they neither vouch for nor
+ * condemn the agent's self-assessment.
+ *
+ * Task-conditional: when a task_class is supplied, same-class rows are
+ * preferred (ability is task-relative — an OCR agent's accept rate must not
+ * vouch for its legal-drafting bids). Only when the cluster has zero history
+ * do the agent's global stats stand in, flagged scope: "global" so the
+ * solicitation prompt and any accept-rate floor can tell the difference.
+ */
+export const _incentiveStatsForAgent = internalQuery({
+  args: {
+    agent_id: v.string(),
+    task_class: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const taskClass = normalizeTaskClass(args.task_class);
+    if (taskClass !== undefined) {
+      const clusterRows = await ctx.db
+        .query("reputation_dimensions")
+        .withIndex("by_agent_and_task_class", (q) =>
+          q.eq("agent_id", args.agent_id).eq("task_class", taskClass),
+        )
+        .order("desc")
+        .take(50);
+      if (clusterRows.length > 0) {
+        return {
+          ...summarizeIncentiveRows(clusterRows),
+          task_class: taskClass,
+          scope: "cluster" as const,
+        };
+      }
+    }
+    const rows = await ctx.db
+      .query("reputation_dimensions")
+      .withIndex("by_agent", (q) => q.eq("agent_id", args.agent_id))
+      .order("desc")
+      .take(50);
+    return {
+      ...summarizeIncentiveRows(rows),
+      ...(taskClass !== undefined
+        ? { task_class: taskClass, scope: "global" as const }
+        : {}),
+    };
   },
 });
 
@@ -118,6 +317,7 @@ export const summaries = query({
         estimate: number;
         quality: number;
         value: number;
+        calibration: number;
         overall: number;
       }
     >();
@@ -129,6 +329,7 @@ export const summaries = query({
         estimate: 0,
         quality: 0,
         value: 0,
+        calibration: 0,
         overall: 0,
       };
       cur.tasks += 1;
@@ -136,6 +337,7 @@ export const summaries = query({
       cur.estimate += r.estimate_accuracy;
       cur.quality += r.quality_score;
       cur.value += r.value_score;
+      cur.calibration += r.calibration_score ?? 0.5;
       cur.overall += r.overall;
       byAgent.set(r.agent_id, cur);
     }
@@ -146,6 +348,7 @@ export const summaries = query({
       estimate: s.estimate / s.tasks,
       quality: s.quality / s.tasks,
       value: s.value / s.tasks,
+      calibration: s.calibration / s.tasks,
       overall: s.overall / s.tasks,
     }));
   },

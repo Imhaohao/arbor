@@ -59,6 +59,7 @@ export type ResolvedAuth =
 
 const CARD_TTL_MS = 10 * 60 * 1_000; // 10 minutes
 const CARD_FETCH_TIMEOUT_MS = 5_000;
+const CARD_FETCH_ATTEMPTS = 2;
 
 // ─── module-level caches ──────────────────────────────────────────────────
 
@@ -75,6 +76,24 @@ const inFlight = new Map<string, Promise<AgentCard>>();
  * v0.3.0 path on every bid.
  */
 const resolvedCardUrlByOrigin = new Map<string, string>();
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryDelayMs(cardUrl: string): number {
+  let hash = 0;
+  for (const char of cardUrl) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return 150 + (hash % 200);
+}
+
+function isRetryableCardError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  const status = /^HTTP (\d{3})\b/.exec(message)?.[1];
+  if (!status) return true;
+  const code = Number(status);
+  return code === 408 || code === 429 || code >= 500;
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────
 
@@ -163,21 +182,41 @@ async function fetchCardAtUrl(cardUrl: string): Promise<AgentCard> {
   // New fetch — register promise before awaiting so concurrent callers join it.
   const promise = (async (): Promise<AgentCard> => {
     try {
-      if (process.env.DEBUG_A2A_DISCOVERY === "1") {
-        console.info(`[a2a-agent-card] fetching card from ${cardUrl}`);
+      let lastError: unknown;
+      for (let attempt = 1; attempt <= CARD_FETCH_ATTEMPTS; attempt++) {
+        try {
+          if (process.env.DEBUG_A2A_DISCOVERY === "1") {
+            console.info(
+              `[a2a-agent-card] fetching card from ${cardUrl} attempt=${attempt}`,
+            );
+          }
+          const res = await withTimeout(
+            fetch(cardUrl, {
+              method: "GET",
+              headers: { accept: "application/json" },
+            }),
+            CARD_FETCH_TIMEOUT_MS,
+            `fetchAgentCard(${cardUrl})`,
+          );
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status} from ${cardUrl}`);
+          }
+          const card = (await res.json()) as AgentCard;
+          // Populate cache after successful parse.
+          cardCache.set(cardUrl, { card, fetchedAt: Date.now() });
+          return card;
+        } catch (err) {
+          lastError = err;
+          if (
+            attempt === CARD_FETCH_ATTEMPTS ||
+            !isRetryableCardError(err)
+          ) {
+            throw err;
+          }
+          await sleep(retryDelayMs(cardUrl));
+        }
       }
-      const res = await withTimeout(
-        fetch(cardUrl, { method: "GET", headers: { accept: "application/json" } }),
-        CARD_FETCH_TIMEOUT_MS,
-        `fetchAgentCard(${cardUrl})`,
-      );
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status} from ${cardUrl}`);
-      }
-      const card = (await res.json()) as AgentCard;
-      // Populate cache after successful parse.
-      cardCache.set(cardUrl, { card, fetchedAt: Date.now() });
-      return card;
+      throw lastError;
     } finally {
       inFlight.delete(cardUrl);
     }

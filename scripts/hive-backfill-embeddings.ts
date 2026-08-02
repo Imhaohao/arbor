@@ -177,6 +177,10 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  const targetAgentId = process.argv
+    .find((arg) => arg.startsWith("--agent-id="))
+    ?.slice("--agent-id=".length)
+    .trim();
   const convexUrl = resolveConvexUrl();
   const client = new ConvexHttpClient(convexUrl);
 
@@ -194,14 +198,22 @@ async function main(): Promise<void> {
   for (const reg of catalogRegs) byId.set(reg.agent_id, reg);
   for (const reg of staticRegs) byId.set(reg.agent_id, reg);
   for (const reg of discoveredRegs) byId.set(reg.agent_id, reg);
-  const worklist = Array.from(byId.values());
+  const fullWorklist = Array.from(byId.values());
+  const worklist = targetAgentId
+    ? fullWorklist.filter((registration) => registration.agent_id === targetAgentId)
+    : fullWorklist;
+  if (targetAgentId && worklist.length === 0) {
+    throw new Error(`agent ${targetAgentId} is not present in the backfill roster`);
+  }
 
   console.log("Hive registry backfill");
   console.log(`  Convex:     ${convexUrl}`);
   console.log(`  static:     ${staticRegs.length}`);
   console.log(`  catalog:    ${catalogRegs.length}`);
   console.log(`  discovered: ${discoveredRegs.length}`);
-  console.log(`  deduped:    ${worklist.length}`);
+  console.log(`  deduped:    ${fullWorklist.length}`);
+  if (targetAgentId) console.log(`  target:     ${targetAgentId}`);
+  console.log(`  selected:   ${worklist.length}`);
   console.log("");
 
   let succeeded = 0;

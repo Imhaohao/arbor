@@ -26,6 +26,22 @@ export const _getEmbeddingsByIds = internalQuery({
   },
 });
 
+export const _getEmbeddingsByAgentIds = internalQuery({
+  args: { agent_ids: v.array(v.string()) },
+  returns: v.array(v.any()),
+  handler: async (ctx, args) => {
+    const rows = [];
+    for (const agent_id of args.agent_ids) {
+      const row = await ctx.db
+        .query("hive_agent_embeddings")
+        .withIndex("by_agent_id", (q) => q.eq("agent_id", agent_id))
+        .first();
+      if (row) rows.push(row);
+    }
+    return rows;
+  },
+});
+
 export const _upsertEmbedding = internalMutation({
   args: {
     agent_id: v.string(),

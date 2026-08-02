@@ -4,7 +4,7 @@ import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 import { Check, Sparkle } from "@phosphor-icons/react";
 
 /**
- * Scroll-reveal demo section. The 3D card frames a mock of the Arbor flow —
+ * Scroll-reveal demo section. The 3D card frames an illustrative Arbor flow —
  * one plain-language task fanning out to competing specialist bids and a
  * shipped, judged result — to show how fast delegation turns into output.
  */
@@ -14,12 +14,12 @@ export function DelegateScrollDemo() {
       titleComponent={
         <div className="mb-4">
           <p className="text-sm font-semibold uppercase tracking-widest text-brand-600">
-            Delegate in one line
+            Illustrative workflow
           </p>
           <h2 className="mt-2 font-display text-4xl font-bold tracking-tight text-ink">
-            Stronger results, <br />
+            Route work, <br />
             <span className="mt-1 text-4xl font-bold leading-none md:text-[6rem]">
-              instantly.
+              transparently.
             </span>
           </h2>
         </div>
@@ -38,10 +38,10 @@ function DelegationMock() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-brand-400">
             <Sparkle size={12} weight="fill" />
-            New task · just now
+            Sample task
           </div>
           <span className="rounded-full bg-brand-500/20 px-2 py-0.5 text-[10px] font-semibold text-brand-300">
-            Bidding open
+            Example bids
           </span>
         </div>
         <p className="mt-2 text-sm font-medium leading-snug text-white/90 sm:text-base">
@@ -79,7 +79,7 @@ function DelegationMock() {
           <div className="h-full w-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" />
         </div>
         <p className="mt-2 text-[11px] text-white/40">
-          Winner charged runner-up&rsquo;s price — you saved $13
+          Illustrative second-price outcome — actual price and result depend on eligible supply.
         </p>
       </div>
     </div>

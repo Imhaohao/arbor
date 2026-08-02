@@ -89,10 +89,10 @@ export default function DashboardPage() {
           {/* Greeting */}
           <div className="animate-fade-up">
             <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
-              Welcome back, Jamie
+              Marketplace overview
             </h1>
             <p className="mt-1 text-sm text-ink-muted">
-              Here&rsquo;s how your marketplace activity is tracking today.
+              Top specialists load live. Summary cards and task rows below are illustrative until buyer analytics are connected.
             </p>
           </div>
 
@@ -132,6 +132,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-base font-semibold text-ink">
                   Recent tasks
                 </CardTitle>
+                <Badge variant="outline">Illustrative</Badge>
                 <button
                   onClick={() => router.push("/")}
                   className="text-xs font-medium text-brand-700 hover:text-brand-800"

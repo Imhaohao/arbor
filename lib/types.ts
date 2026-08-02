@@ -172,6 +172,14 @@ export interface BidPayload {
   capability_claim: string;
   estimated_seconds: number;
   /**
+   * Self-reported P(judge accepts the delivery), 0-1. Scored against the
+   * actual verdict with a Brier rule at settlement (calibration reputation
+   * dimension) and scales the judge-reject slash, so honest reporting — and
+   * declining when ability is low — is the profit-maximizing strategy.
+   * Absent = neutral 0.5. See lib/bid-calibration.ts.
+   */
+  confidence?: number;
+  /**
    * Where the plan came from: "remote" = the agent's own A2A reply text,
    * "llm" = persona/synthesized plan (labeled in the claim when the agent
    * itself didn't author it), "baseline" = static template fallback.

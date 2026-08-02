@@ -195,6 +195,58 @@ export function shouldFallbackOpen(
   return best < 0.15;
 }
 
+const GENERIC_AGENT_ID_TOKENS = new Set([
+  "agent",
+  "a2a",
+  "mcp",
+  "specialist",
+  "worker",
+]);
+
+/**
+ * An explicit agent name in the node brief is a routing constraint, not a
+ * weak semantic hint. Move mentioned candidates to the front while preserving
+ * the relative order within the mentioned and unmentioned groups.
+ */
+export function promoteExplicitAgentMentions<
+  C extends { agent_id: string; display_name?: string },
+>(query: string, candidates: C[]): C[] {
+  const mentioned = explicitAgentMentions(query, candidates);
+  const mentionedIds = new Set(
+    mentioned.map((candidate) => candidate.agent_id),
+  );
+  return [
+    ...mentioned,
+    ...candidates.filter(
+      (candidate) => !mentionedIds.has(candidate.agent_id),
+    ),
+  ];
+}
+
+export function explicitAgentMentions<
+  C extends { agent_id: string; display_name?: string },
+>(query: string, candidates: C[]): C[] {
+  const queryTokens = new Set(
+    query.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean),
+  );
+  const isMentioned = (candidate: C): boolean => {
+    const identityTokens = [
+      ...candidate.agent_id.toLowerCase().split(/[^a-z0-9]+/),
+      ...(candidate.display_name ?? "").toLowerCase().split(/[^a-z0-9]+/),
+    ].filter(
+      (token, index, values) =>
+        token &&
+        !GENERIC_AGENT_ID_TOKENS.has(token) &&
+        values.indexOf(token) === index,
+    );
+    return (
+      identityTokens.length > 0 &&
+      identityTokens.every((token) => queryTokens.has(token))
+    );
+  };
+  return candidates.filter(isMentioned);
+}
+
 // ─── Orchestrator-first direct assignment ────────────────────────────────────
 //
 // An auction earns its latency and token cost only when several genuinely

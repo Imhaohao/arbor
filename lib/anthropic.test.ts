@@ -7,6 +7,11 @@ import {
   describeClaudeRuntime,
 } from "./anthropic";
 import { parseJSONLoose } from "./openai";
+import {
+  collectUsage,
+  setUsageObserver,
+  type LlmCallRecord,
+} from "./llm-usage";
 
 const ORIGINAL_ENV = { ...process.env };
 const ORIGINAL_FETCH = globalThis.fetch;
@@ -365,6 +370,95 @@ async function main(): Promise<void> {
       "https://openrouter.ai/api/v1/chat/completions",
       "https://api.openai.com/v1/chat/completions",
     ]);
+  });
+
+  // Token accounting must be wired into the real client path, not just the pure
+  // parser. Every downstream cost figure depends on this capture actually firing.
+  await test("callClaude records measured token usage and cost", async () => {
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          content: [{ type: "text", text: "verified" }],
+          // Shape taken from the Anthropic prompt-caching docs.
+          usage: {
+            input_tokens: 50,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 100_000,
+            output_tokens: 503,
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+
+    const { result, records, totals } = await collectUsage(async () =>
+      callClaude({
+        model: "claude-opus-5",
+        systemPrompt: "s",
+        userPrompt: "u",
+        retries: 0,
+      }),
+    );
+
+    assert.equal(result, "verified");
+    assert.equal(records.length, 1, "exactly one call must be recorded");
+    const [record] = records;
+    assert.equal(record.provider, "anthropic");
+    assert.equal(record.model, "claude-opus-5");
+    assert.equal(record.usage.input_tokens, 50);
+    assert.equal(record.usage.output_tokens, 503);
+    assert.equal(record.usage.cache_read_tokens, 100_000);
+    assert.ok(
+      typeof record.duration_ms === "number" && record.duration_ms >= 0,
+      "duration must be measured",
+    );
+    // 50 input @ $5/Mtok + 100k cache reads @ 0.1x + 503 output @ $25/Mtok.
+    const expected =
+      (50 * 5 + 100_000 * 5 * 0.1 + 503 * 25) / 1_000_000;
+    assert.ok(
+      Math.abs((record.cost_usd ?? 0) - expected) < 1e-12,
+      `cost ${record.cost_usd} !== ${expected}`,
+    );
+    assert.equal(totals.calls, 1);
+    assert.equal(totals.unpriced_calls, 0, "a priced model must not count as unpriced");
+    assert.ok(totals.cost_usd > 0, "a real call must not be costed at $0");
+  });
+
+  // A response carrying usage but no usable text still cost money, so it must
+  // still be billed rather than vanishing when text extraction throws.
+  await test("callClaude records usage even when the response has no text", async () => {
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          content: [],
+          usage: { input_tokens: 10, output_tokens: 0 },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+
+    const records: LlmCallRecord[] = [];
+    setUsageObserver((r) => records.push(r));
+    try {
+      await assert.rejects(
+        () =>
+          callClaude({
+            model: "claude-opus-5",
+            systemPrompt: "s",
+            userPrompt: "u",
+            retries: 0,
+          }),
+        /no text content/,
+      );
+    } finally {
+      setUsageObserver(undefined);
+    }
+    assert.equal(
+      records.length,
+      1,
+      "a text-less but billed response must still be recorded",
+    );
+    assert.equal(records[0].usage.input_tokens, 10);
   });
 
   console.log("anthropic tests passed");

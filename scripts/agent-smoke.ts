@@ -42,6 +42,7 @@ async function main(): Promise<void> {
     ? Math.min(8, Math.max(1, Math.trunc(requestedBatch)))
     : 6;
   const run_id = runId();
+  const agentId = argValue("--agent-id");
   const client = new ConvexHttpClient(convexUrl());
   const started = await client.mutation(api.agentReadiness.startSmokeRun, {
     run_id,
@@ -49,7 +50,9 @@ async function main(): Promise<void> {
   });
   if (!json) {
     console.log(
-      `agent-smoke: run=${run_id} mode=${mode} total=${started.total_agents} batch=${batchSize}`,
+      `agent-smoke: run=${run_id} mode=${mode} total=${
+        started.total_agents > 0 ? started.total_agents : "discovering"
+      } batch=${batchSize}${agentId ? ` agent=${agentId}` : ""}`,
     );
   }
 
@@ -59,6 +62,7 @@ async function main(): Promise<void> {
       run_id,
       cursor,
       batch_size: batchSize,
+      agent_id: agentId,
     });
     cursor += batch.processed;
     if (!json) {

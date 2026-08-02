@@ -28,7 +28,15 @@ export const _insert = internalMutation({
     capability_claim: v.string(),
     estimated_seconds: v.number(),
     score: v.number(),
+    confidence: v.optional(v.number()),
+    p_accept: v.optional(v.number()),
     plan_source: v.optional(v.string()),
+    /** Capability cluster the auction resolved for this task; stamped onto
+     * the reputation_dimensions row at settle. */
+    task_class: v.optional(v.string()),
+    /** Cluster-scoped settled rows behind the bid's incentive stats (0 when
+     * the cluster had no history and global stats were used). */
+    task_class_history_count: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("bids", args);

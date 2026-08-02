@@ -17,11 +17,12 @@ import {
   validateDag,
   topologicalLevels,
   classifyTaskComplexity,
+  deterministicFallbackPlan,
   type PlannedNode,
 } from "../lib/hive/dag";
 import {
-  isShortFormVideoPipeline,
-  planShortFormVideoPipeline,
+  detectMediaFormat,
+  planMediaPipeline,
 } from "../lib/hive/media-pipeline";
 import {
   didForAgent,
@@ -71,13 +72,28 @@ export const planDag = internalAction({
     let gatedSingle = false;
     let plannerModel = CLAUDE_PLANNER_MODEL;
 
-    if (isShortFormVideoPipeline(task.prompt, task.task_type)) {
-      planned = planShortFormVideoPipeline(task.prompt);
-      plannerModel = "arbor:short-form-video-v1";
+    // Media production takes a hand-written DAG rather than the LLM planner: the
+    // node contracts (artifact persistence, vendor-neutral routing, honest
+    // handling of a missing soundtrack) are load-bearing and must not be
+    // paraphrased. `detectMediaFormat` returns "vertical" for TikTok/Reels/Shorts
+    // and "widescreen" for YouTube/long-form; short-form wins ties so a
+    // "YouTube Shorts" request is not planned 16:9.
+    const mediaFormat = detectMediaFormat(task.prompt, task.task_type);
+    if (mediaFormat !== undefined) {
+      planned = planMediaPipeline(task.prompt, mediaFormat);
+      plannerModel =
+        mediaFormat === "widescreen"
+          ? "arbor:long-form-video-v1"
+          : "arbor:short-form-video-v1";
       await ctx.runMutation(internal.lifecycle.log, {
         task_id: args.task_id,
         event_type: "hive_plan_media_pipeline",
-        payload: { profile: plannerModel, node_count: planned.length },
+        payload: {
+          profile: plannerModel,
+          media_format: mediaFormat,
+          node_count: planned.length,
+          node_ids: planned.map((node) => node.id),
+        },
       });
     } else if (gate !== null && gate.mode === "single") {
       gatedSingle = true;
@@ -108,11 +124,13 @@ export const planDag = internalAction({
           planned = candidate;
         } else {
           fallbackReason = validation.error;
-          planned = [{ id: "main", description: task.prompt, depends_on: [] }];
+          planned = deterministicFallbackPlan(task.prompt);
+          plannerModel = "arbor:deterministic-fallback-v1";
         }
       } catch (err) {
         fallbackReason = err instanceof Error ? err.message : String(err);
-        planned = [{ id: "main", description: task.prompt, depends_on: [] }];
+        planned = deterministicFallbackPlan(task.prompt);
+        plannerModel = "arbor:deterministic-fallback-v1";
       }
 
       if (fallbackReason !== null) {

@@ -1,13 +1,63 @@
-import { internalQuery, mutation, query } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
 const MIN_AGENT_ID = /^[a-z0-9][a-z0-9-]{2,40}$/;
+
+function sameAgentIdentity(
+  mirror: {
+    display_name: string;
+    sponsor: string;
+    capabilities: string[];
+  },
+  candidate: {
+    display_name: string;
+    sponsor: string;
+    capabilities: string[];
+  },
+): boolean {
+  if (
+    mirror.display_name.trim().toLowerCase() !==
+      candidate.display_name.trim().toLowerCase() ||
+    mirror.sponsor.trim().toLowerCase() !==
+      candidate.sponsor.trim().toLowerCase()
+  ) {
+    return false;
+  }
+  const existingCapabilities = [...mirror.capabilities]
+    .map((value) => value.trim().toLowerCase())
+    .sort();
+  const candidateCapabilities = [...candidate.capabilities]
+    .map((value) => value.trim().toLowerCase())
+    .sort();
+  return (
+    existingCapabilities.length === candidateCapabilities.length &&
+    existingCapabilities.every(
+      (value, index) => value === candidateCapabilities[index],
+    )
+  );
+}
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
     const rows = await ctx.db.query("discovered_specialists").collect();
     return rows.sort((a, b) => b.created_at - a.created_at);
+  },
+});
+
+/** Paginated discovered roster access for long-running maintenance actions. */
+export const listPage = query({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("discovered_specialists")
+      .paginate(args.paginationOpts);
   },
 });
 
@@ -18,6 +68,31 @@ export const _getByAgentId = internalQuery({
       .query("discovered_specialists")
       .withIndex("by_agent_id", (q) => q.eq("agent_id", args.agent_id))
       .first();
+  },
+});
+
+/**
+ * Persist a keyless A2A auth shortcut only after a full live smoke proves that
+ * the endpoint can execute without credentials. Key-configured specialists
+ * are never downgraded to keyless by this maintenance path.
+ */
+export const _markA2aAuthNone = internalMutation({
+  args: { agent_id: v.string() },
+  returns: v.object({ updated: v.boolean() }),
+  handler: async (ctx, args) => {
+    const specialist = await ctx.db
+      .query("discovered_specialists")
+      .withIndex("by_agent_id", (q) => q.eq("agent_id", args.agent_id))
+      .first();
+    if (
+      !specialist?.a2a_endpoint ||
+      specialist.a2a_api_key_env ||
+      specialist.a2a_auth_mode === "none"
+    ) {
+      return { updated: false };
+    }
+    await ctx.db.patch(specialist._id, { a2a_auth_mode: "none" });
+    return { updated: true };
   },
 });
 
@@ -128,10 +203,15 @@ export const upsert = mutation({
       .withIndex("by_agent_id", (q) => q.eq("agent_id", args.agent_id))
       .first();
 
-    // An agents row only counts as a sponsor collision if it did NOT originate
-    // from a discovered_specialists mirror. If we already have a discovered
-    // specialist for this agent_id, the matching agents row is its own mirror.
-    if (mirror && !existing) {
+    // Older catalog imports created the agents mirror before the
+    // discovered_specialists row. Adopt that orphan only when its stable
+    // identity matches exactly; a different sponsor/display/capability set is
+    // still a real collision and must never be overwritten.
+    if (
+      mirror &&
+      !existing &&
+      !sameAgentIdentity(mirror, args)
+    ) {
       throw new Error(`agent_id "${args.agent_id}" collides with a sponsor`);
     }
 
@@ -165,17 +245,27 @@ export const upsert = mutation({
       created_at,
     });
 
-    await ctx.db.insert("agents", {
-      agent_id: args.agent_id,
-      display_name: args.display_name,
-      sponsor: args.sponsor,
-      capabilities: args.capabilities,
-      system_prompt: args.system_prompt,
-      cost_per_task_estimate: args.cost_baseline,
-      reputation_score: args.starting_reputation,
-      total_tasks_completed: 0,
-      total_disputes_lost: 0,
-    });
+    if (mirror) {
+      await ctx.db.patch(mirror._id, {
+        display_name: args.display_name,
+        sponsor: args.sponsor,
+        capabilities: args.capabilities,
+        system_prompt: args.system_prompt,
+        cost_per_task_estimate: args.cost_baseline,
+      });
+    } else {
+      await ctx.db.insert("agents", {
+        agent_id: args.agent_id,
+        display_name: args.display_name,
+        sponsor: args.sponsor,
+        capabilities: args.capabilities,
+        system_prompt: args.system_prompt,
+        cost_per_task_estimate: args.cost_baseline,
+        reputation_score: args.starting_reputation,
+        total_tasks_completed: 0,
+        total_disputes_lost: 0,
+      });
+    }
 
     return { id, agent_id: args.agent_id, created_at, updated: false };
   },

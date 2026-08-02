@@ -41,6 +41,7 @@ import type {
   ArborWorkspaceToolName,
 } from "../types";
 import { toPublicTier } from "./tiers";
+import { clampConfidence } from "../bid-calibration";
 import { ARBOR_WORKSPACE_TOOLS } from "./arbor-workspace-tools";
 import {
   runToolHarness,
@@ -53,7 +54,7 @@ const MODEL = "gpt-5.5";
 const CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const MAX_EXECUTE_ROUNDS = 6;
 const VICKREY_PRELUDE =
-  "You are bidding in a Vickrey second-price sealed-bid auction. The price you actually pay if you win is set by the second-highest bid, so your dominant strategy is to bid your true cost. Bid honestly.";
+  "You are bidding in a Vickrey second-price sealed-bid auction. The price you actually pay if you win is set by the second-highest bid, so your dominant strategy is to bid your true cost. Bid honestly. The same applies to \"confidence\": it is scored against the judge's actual verdict with a proper scoring rule, and a rejected delivery slashes your reputation in proportion to the confidence you claimed, so state your true probability of acceptance — or decline, which never costs anything.";
 
 function apiKey(): string {
   const k = process.env.OPENAI_API_KEY;
@@ -144,6 +145,7 @@ interface BidLLMResponse {
   bid_price?: number;
   capability_claim?: string;
   estimated_seconds?: number;
+  confidence?: number;
 }
 
 export function makeMcpForwardingSpecialist(
@@ -259,7 +261,7 @@ export function makeMcpForwardingSpecialist(
         .map((t) => `- ${t.name}: ${t.description?.slice(0, 200) ?? ""}`)
         .join("\n");
 
-      const systemPrompt = `${config.system_prompt}\n\n${VICKREY_PRELUDE}\n\nYou are connected to a real MCP server at ${endpoint}. Available tools:\n${toolList || "(tool discovery unavailable — bid only if your description clearly fits)"}\n\nYour cost baseline for a typical task is $${config.cost_baseline.toFixed(2)}. Adjust by task complexity but stay honest.\n\nIMPORTANT: This marketplace handles tasks across every domain. Decline if the user's goal is outside what your remote tools can actually do — don't translate the goal into your specialty. Your capability_claim must be a concrete execution plan for the user's actual goal: 2-4 numbered steps naming which of your real tools you would call and on what, in 2-3 sentences total. Generic specialty pitches will be rejected by the auctioneer.\n\nReply with JSON only, one of:\n{ "decline": true, "reason": "<short reason>" }\nOR\n{ "bid_price": <number>, "capability_claim": "<2-4 step plan for this specific task>", "estimated_seconds": <integer> }`;
+      const systemPrompt = `${config.system_prompt}\n\n${VICKREY_PRELUDE}\n\nYou are connected to a real MCP server at ${endpoint}. Available tools:\n${toolList || "(tool discovery unavailable — bid only if your description clearly fits)"}\n\nYour cost baseline for a typical task is $${config.cost_baseline.toFixed(2)}. Adjust by task complexity but stay honest.\n\nIMPORTANT: This marketplace handles tasks across every domain. Decline if the user's goal is outside what your remote tools can actually do — don't translate the goal into your specialty. Your capability_claim must be a concrete execution plan for the user's actual goal: 2-4 numbered steps naming which of your real tools you would call and on what, in 2-3 sentences total. Generic specialty pitches will be rejected by the auctioneer.\n\nReply with JSON only, one of:\n{ "decline": true, "reason": "<short reason>" }\nOR\n{ "bid_price": <number>, "capability_claim": "<2-4 step plan for this specific task>", "estimated_seconds": <integer>, "confidence": <0-1 probability the judge accepts your delivery> }`;
 
       const userPrompt = `${buildTaskContext(prompt, taskType)}\n\nDo you bid? Bid only if your tools fit this task.`;
       const text = await callPlain(systemPrompt, userPrompt, 320, 10_000);
@@ -283,6 +285,7 @@ export function makeMcpForwardingSpecialist(
         bid_price: Math.max(0.01, Number(data.bid_price.toFixed(2))),
         capability_claim: data.capability_claim,
         estimated_seconds: Math.max(1, Math.floor(data.estimated_seconds)),
+        confidence: clampConfidence(data.confidence),
         plan_source: "llm",
       };
       return bid;

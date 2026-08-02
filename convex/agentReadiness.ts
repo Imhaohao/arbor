@@ -7,6 +7,8 @@ import {
 } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 
+const MAX_READINESS_ROWS = 5_000;
+
 const stageStatusValidator = v.union(
   v.literal("pass"),
   v.literal("fail"),
@@ -86,7 +88,6 @@ export const startSmokeRun = mutation({
     if (existing) {
       return { run_id: existing.run_id, total_agents: existing.total_agents };
     }
-    const agents = await ctx.db.query("agents").take(1000);
     const now = Date.now();
     const scratchpad_task_id = await ctx.db.insert("tasks", {
       posted_by: `readiness-smoke:${args.run_id}`,
@@ -112,7 +113,10 @@ export const startSmokeRun = mutation({
       run_id: args.run_id,
       mode: args.mode,
       status: "running",
-      total_agents: agents.length,
+      // The action reconciles the exact paginated roster size before writing
+      // its first result. Avoid a hard cap here: Arbor already exceeds 1,000
+      // registered agents.
+      total_agents: 0,
       processed_agents: 0,
       ready_agents: 0,
       scratchpad_task_id,
@@ -120,7 +124,7 @@ export const startSmokeRun = mutation({
       started_at: now,
       updated_at: now,
     });
-    return { run_id: args.run_id, total_agents: agents.length };
+    return { run_id: args.run_id, total_agents: 0 };
   },
 });
 
@@ -132,6 +136,52 @@ export const _getRun = internalQuery({
       .query("agent_smoke_runs")
       .withIndex("by_run_id", (q) => q.eq("run_id", args.run_id))
       .unique();
+  },
+});
+
+/** Reconcile a smoke run with the exact paginated roster size before a batch
+ * writes results. Also repairs older runs created with the former 1,000-row
+ * cap. */
+export const _setRunTotalAgents = internalMutation({
+  args: {
+    run_id: v.string(),
+    total_agents: v.number(),
+  },
+  returns: v.object({
+    total_agents: v.number(),
+    processed_agents: v.number(),
+    status: v.union(
+      v.literal("running"),
+      v.literal("complete"),
+      v.literal("failed"),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const run = await ctx.db
+      .query("agent_smoke_runs")
+      .withIndex("by_run_id", (q) => q.eq("run_id", args.run_id))
+      .unique();
+    if (!run) throw new Error(`smoke run ${args.run_id} not found`);
+    const totalAgents = Math.max(0, Math.trunc(args.total_agents));
+    const complete =
+      totalAgents === 0 || run.processed_agents >= totalAgents;
+    const status = run.status === "failed"
+      ? "failed" as const
+      : complete
+        ? "complete" as const
+        : "running" as const;
+    const now = Date.now();
+    await ctx.db.patch(run._id, {
+      total_agents: totalAgents,
+      status,
+      completed_at: status === "complete" ? now : undefined,
+      updated_at: now,
+    });
+    return {
+      total_agents: totalAgents,
+      processed_agents: run.processed_agents,
+      status,
+    };
   },
 });
 
@@ -217,12 +267,14 @@ export const _recordSmokeResult = internalMutation({
 
     if (run) {
       const processed = run.processed_agents + 1;
+      const complete =
+        run.total_agents > 0 && processed >= run.total_agents;
       await ctx.db.patch(run._id, {
         processed_agents: processed,
         ready_agents:
           run.ready_agents + (args.readiness_status === "ready" ? 1 : 0),
-        status: processed >= run.total_agents ? "complete" : "running",
-        completed_at: processed >= run.total_agents ? now : undefined,
+        status: complete ? "complete" : "running",
+        completed_at: complete ? now : undefined,
         updated_at: now,
       });
     }
@@ -234,7 +286,9 @@ export const list = query({
   args: {},
   returns: v.array(v.any()),
   handler: async (ctx): Promise<Array<Doc<"agent_readiness">>> => {
-    const rows = await ctx.db.query("agent_readiness").take(1000);
+    const rows = await ctx.db
+      .query("agent_readiness")
+      .take(MAX_READINESS_ROWS);
     return rows.sort((a, b) => b.updated_at - a.updated_at);
   },
 });
@@ -290,7 +344,7 @@ export const runSummary = query({
     const results = await ctx.db
       .query("agent_smoke_results")
       .withIndex("by_run_id", (q) => q.eq("run_id", args.run_id))
-      .take(1000);
+      .take(MAX_READINESS_ROWS);
     const by_readiness: Record<string, number> = {};
     const by_failure: Record<string, number> = {};
     for (const result of results) {
@@ -310,6 +364,6 @@ export const resultsForRun = query({
     return await ctx.db
       .query("agent_smoke_results")
       .withIndex("by_run_id", (q) => q.eq("run_id", args.run_id))
-      .take(1000);
+      .take(MAX_READINESS_ROWS);
   },
 });

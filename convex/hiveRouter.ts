@@ -23,10 +23,16 @@ import {
   expertDelegationEnabled,
   expertDelegationShadowEnabled,
   expertMinTasks,
+  explicitAgentMentions,
   FULL_SHORTLIST_INVITES,
   orchestratorFirstEnabled,
+  promoteExplicitAgentMentions,
   shouldFallbackOpen,
 } from "../lib/hive/router-core";
+import {
+  assessCapability,
+  routingIntegrityEnabled,
+} from "../lib/hive/routing-integrity-core";
 import {
   bestOfNEnabled,
   fanoutDeadlineSeconds,
@@ -402,6 +408,12 @@ export const routeNode = internalAction({
       { description: node.description, success_criteria: node.success_criteria },
       hints,
     );
+    const explicitRosterMatches = args.force_open
+      ? []
+      : explicitAgentMentions(
+          query,
+          await ctx.runQuery(api.discoveredSpecialists.list, {}),
+        );
     // On a force_open retry, skip the semantic shortlist entirely and run an
     // open auction (invited = undefined). Otherwise shortlist, falling back to
     // open when the candidate set is too thin (shouldFallbackOpen).
@@ -413,6 +425,9 @@ export const routeNode = internalAction({
           min_reputation: 0.3,
           max_cost: budget,
           model_gateway: rootTask.model_gateway,
+          pinned_agent_ids: explicitRosterMatches.map(
+            (candidate) => candidate.agent_id,
+          ),
           // W4: base shortlist order is now the 4D blend (capability x
           // reputation x price x availability) instead of raw similarity.
           // The profile-weighted re-rank below still applies on top of it.
@@ -494,6 +509,7 @@ export const routeNode = internalAction({
       learnedRanked.map((candidate) => [candidate.agent_id, candidate]),
     );
     if (expertEnabled) ranked = learnedRanked;
+    ranked = promoteExplicitAgentMentions(query, ranked);
 
     // Orchestrator-first gate (ARBOR_ORCHESTRATOR_FIRST_ENABLED, default off):
     // on a thin market, skip the bid round and directly assign the top
@@ -533,8 +549,25 @@ export const routeNode = internalAction({
     const isDirect =
       routeMode.mode === "direct" && Boolean(routeMode.direct_agent_id);
 
+    // Routing integrity: a sorted shortlist is not the same as a CAPABLE
+    // shortlist. Measured on the live pool, "make me a video about a kid jumping
+    // in joy after getting into stanford" put a human-state agent, a Korean news
+    // agent and a rental search at the top with a best similarity of 0.2332 —
+    // pure noise, because no video-capable agent was reachable. Assess the
+    // semantic floor and treat "nothing here can do this" as another reason to
+    // open the auction rather than trusting an irrelevant shortlist.
+    //
+    // Always computed so the assessment lands in the routing event even when the
+    // flag is off (shadow observability); only gates behaviour when enabled.
+    const capabilityIntegrity = assessCapability(
+      candidates.map((candidate) => candidate.similarity),
+    );
+    const integrityGated =
+      routingIntegrityEnabled() &&
+      capabilityIntegrity.verdict === "no_capable_candidate";
+
     const openFallback =
-      Boolean(args.force_open) || shouldFallbackOpen(ranked);
+      Boolean(args.force_open) || shouldFallbackOpen(ranked) || integrityGated;
     const uniqueRanked = Array.from(
       new Map(ranked.map((candidate) => [candidate.agent_id, candidate])).values(),
     );
@@ -544,9 +577,13 @@ export const routeNode = internalAction({
       profiles: exactProfiles,
       minTasks: minExpertTasks,
     });
-    const auctionCandidates = expertEnabled
-      ? uniqueRanked.slice(0, auctionCandidateLimit)
-      : ranked;
+    const explicitlyNamedCandidates = explicitAgentMentions(query, ranked);
+    const auctionCandidates =
+      explicitlyNamedCandidates.length > 0
+        ? explicitlyNamedCandidates
+        : expertEnabled
+          ? uniqueRanked.slice(0, auctionCandidateLimit)
+          : ranked;
     const shadowCandidateLimit = expertShadowEnabled
       ? adaptiveInviteCount({
           enabled: true,
@@ -694,6 +731,16 @@ export const routeNode = internalAction({
         dag_budget: dag.max_budget,
         dag_spent: spent,
         allocator: "seqroute-heuristic-v1",
+        // Semantic-grounding audit for this shortlist. `gated` records whether it
+        // actually changed routing; when false this row is shadow evidence only.
+        capability_integrity: {
+          verdict: capabilityIntegrity.verdict,
+          best: capabilityIntegrity.best,
+          floor: capabilityIntegrity.floor_used,
+          runner_up_gap: capabilityIntegrity.runner_up_gap,
+          top_order_arbitrary: capabilityIntegrity.top_order_arbitrary,
+          gated: integrityGated,
+        },
         force_open: Boolean(args.force_open),
         candidate_index: isFanout ? candidateIndex : undefined,
         route_mode: routeMode.mode,

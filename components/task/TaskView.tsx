@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Card } from "@/components/ui/Card";
+import { DagProgressPanel } from "./DagProgressPanel";
 import { TaskHeader } from "./TaskHeader";
 import { ContextEnrichmentPanel } from "./ContextEnrichmentPanel";
 import { BidWindow } from "./BidWindow";
@@ -114,6 +115,7 @@ function RegularTaskView({
     <div className="space-y-4">
       <TaskHeader task={task} />
       <ContextEnrichmentPanel events={lifecycle} taskId={taskId} />
+      <DagProgressPanel taskId={taskId} />
       {isMultiStepParent ? (
         <>
           <PlanPanel task={task} />

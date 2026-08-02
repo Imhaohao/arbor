@@ -1,0 +1,110 @@
+{
+ "version": 2,
+ "kind": "probe_success_measured_rate_platt",
+ "target": "P(bid probe passes | agent solicited)",
+ "signal": {
+  "name": "mean_of_two_measured_pass_rates",
+  "definition": "mean( smoothed agent_smoke_results pass rate , smoothed bid_probes pass rate ), each counted strictly from rows older than the probe being scored",
+  "prior": 0.062585,
+  "smoothing_strength": 5,
+  "rationale": "Two independent measurements of the same latent quantity (will this agent answer a solicitation). Averaging reduces variance without fitting any coefficient, so it cannot go stale when the population shifts."
+ },
+ "platt_a": 1.68400982,
+ "platt_b": -1.40226012,
+ "calibration": {
+  "method": "rolling_platt",
+  "window": 3000,
+  "refit_every": 250,
+  "note": "platt_a/b are a COLD-START BOOTSTRAP, not the evaluated calibrator. Production MUST refit on the last `window` observed outcomes: the observed pass rate shifted 0.55 -> 0.012 when the 1000-agent discovery fan-out landed, and a stale calibrator is badly overconfident."
+ },
+ "why_not_a_fitted_model": "A 38-feature logistic regression (0.8978) and a 6-feature forward-selected model (0.8817) both scored WORSE on the honest temporal holdout than this unfitted signal (0.9590). GroupKFold inside the training period reported 0.988, overstating held-out performance by ~9 points, because coefficients fitted on the June regime (55% pass rate) do not transfer to the current one (1.2%).",
+ "excluded_as_leakage": [
+  "bid_probes.duration_ms",
+  "bid_probes.error_message",
+  "agent_readiness.latest_probe_status",
+  "agent_readiness.last_bid_status",
+  "agent_readiness.failure_bucket",
+  "agent_readiness.readiness_status"
+ ],
+ "metrics": {
+  "protocol": "temporal day-boundary holdout; prequential rolling calibration (no lookahead)",
+  "training_rows": 5138,
+  "test_rows": 21354,
+  "test_positives": 249,
+  "base_rate": 0.0117,
+  "ranking_auc": 0.959,
+  "prequential_auc": 0.9126,
+  "pr_auc": 0.5291,
+  "brier": 0.00795,
+  "brier_base_rate_predictor": 0.01152,
+  "baseline_incumbent_3bucket_availability_auc": 0.8205,
+  "baseline_smoke_rate_only_auc": 0.9344,
+  "baseline_agent_rate_only_auc": 0.9026,
+  "rejected_full_38_feature_logreg_auc": 0.8978,
+  "rejected_forward_selected_6_feature_auc": 0.8817,
+  "top3_live_recall": 0.416,
+  "top3_random_recall": 0.0086,
+  "top6_live_recall": 0.6289,
+  "top6_random_recall": 0.0172,
+  "top10_live_recall": 0.7117,
+  "top10_random_recall": 0.0287
+ },
+ "fixtures": [
+  {
+   "smoke_passes": 0,
+   "smoke_runs": 0,
+   "agent_passes": 0,
+   "agent_attempts": 0,
+   "expected_probability": 0.00257275
+  },
+  {
+   "smoke_passes": 0,
+   "smoke_runs": 3,
+   "agent_passes": 0,
+   "agent_attempts": 5,
+   "expected_probability": 0.00093166
+  },
+  {
+   "smoke_passes": 1,
+   "smoke_runs": 4,
+   "agent_passes": 2,
+   "agent_attempts": 8,
+   "expected_probability": 0.01520135
+  },
+  {
+   "smoke_passes": 3,
+   "smoke_runs": 3,
+   "agent_passes": 4,
+   "agent_attempts": 6,
+   "expected_probability": 0.11271092
+  },
+  {
+   "smoke_passes": 5,
+   "smoke_runs": 5,
+   "agent_passes": 8,
+   "agent_attempts": 10,
+   "expected_probability": 0.24719435
+  },
+  {
+   "smoke_passes": 3,
+   "smoke_runs": 3,
+   "agent_passes": 0,
+   "agent_attempts": 4,
+   "expected_probability": 0.0295875
+  },
+  {
+   "smoke_passes": 0,
+   "smoke_runs": 4,
+   "agent_passes": 8,
+   "agent_attempts": 10,
+   "expected_probability": 0.05347403
+  },
+  {
+   "smoke_passes": 40,
+   "smoke_runs": 50,
+   "agent_passes": 40,
+   "agent_attempts": 50,
+   "expected_probability": 0.57397596
+  }
+ ]
+}

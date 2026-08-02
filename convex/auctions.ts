@@ -29,6 +29,20 @@ import type {
   ToolCallRecorder,
 } from "../lib/types";
 import { callOpenAIJSON, type ModelGateway } from "../lib/openai";
+import {
+  NEUTRAL_INCENTIVE_STATS,
+  belowClusterAcceptFloor,
+  bidIncentiveBlock,
+  blendedAcceptProbability,
+  clampConfidence,
+  classifyTaskClass,
+  invitedSemanticWeight,
+  normalizeTaskClass,
+  settlementReputationDelta,
+  type AgentIncentiveStats,
+} from "../lib/bid-calibration";
+import { paretoBidEnabled, paretoBidScore } from "../lib/hive/pareto-core";
+import { embedTexts } from "../lib/hive/embeddings";
 import { buildTaskContext } from "../lib/campaign-context";
 import { formatStructuredBlock } from "../lib/toon";
 import {
@@ -38,6 +52,7 @@ import {
   redactToolArguments,
 } from "../lib/tool-call-audit";
 import { sha256Hex } from "../lib/a2a-hmac";
+import { PUBLIC_DEMO_AGENT_ID, publicDemoMode } from "../lib/public-demo";
 
 const BUYER_ID = "buyer:default";
 
@@ -229,6 +244,47 @@ function minimumBidResponses(): number {
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed <= 0) return 0;
   return Math.min(50, Math.floor(parsed));
+}
+
+/**
+ * Optional cluster accept-rate floor (ARBOR_CLUSTER_ACCEPT_FLOOR, 0..1).
+ * When set, agents with enough settled history ON THIS TASK'S CLASS and a
+ * same-class accept rate below the floor are not solicited at all. Unset →
+ * no skipping (default). Arbor-owned floor agents are always exempt so the
+ * floor can never empty an auction.
+ */
+function clusterAcceptFloor(): number | undefined {
+  const raw = process.env.ARBOR_CLUSTER_ACCEPT_FLOOR;
+  if (!raw) return undefined;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+  return Math.min(1, parsed);
+}
+
+/**
+ * Resolve the capability cluster for a task. Hive child tasks reuse the class
+ * the hive router already stamped on their node; plain marketplace tasks are
+ * classified by nearest task-class prototype embedding (lib/hive/embeddings —
+ * OpenAI when keyed, local hash fallback otherwise). Fail-soft: undefined
+ * means "no cluster", and every downstream consumer degrades to global stats.
+ */
+async function resolveTaskClass(
+  ctx: ActionCtx,
+  task: Doc<"tasks">,
+): Promise<string | undefined> {
+  if (task.hive_dag_id && task.hive_node_id) {
+    try {
+      const node = await ctx.runQuery(
+        internal.hiveData._getNodeByDagAndNodeId,
+        { dag_id: task.hive_dag_id, node_id: task.hive_node_id },
+      );
+      const fromNode = normalizeTaskClass(node?.task_class);
+      if (fromNode) return fromNode;
+    } catch {
+      // Missing node → fall through to prompt classification.
+    }
+  }
+  return await classifyTaskClass(task.prompt, embedTexts);
 }
 
 function standbyBidClaim(spec: SpecialistConfig, prompt: string): string {
@@ -442,6 +498,23 @@ export const solicitBids = internalAction({
     ]
       .filter((part): part is string => Boolean(part))
       .join("\n\n");
+
+    // Capability cluster for task-conditional incentive stats: hive child
+    // tasks reuse their node's class, plain tasks are classified by prototype
+    // embedding. Fail-soft — undefined degrades every consumer to global
+    // stats, exactly the pre-cluster behavior.
+    const taskClass = await resolveTaskClass(ctx, task).catch(
+      () => undefined,
+    );
+    if (taskClass) {
+      await ctx.runMutation(internal.lifecycle.log, {
+        task_id: args.task_id,
+        event_type: "task_class_resolved",
+        payload: { task_class: taskClass },
+      });
+    }
+    const acceptFloor = clusterAcceptFloor();
+
     const staticSpecialists = getSpecialists(task.model_gateway);
 
     const discovered = (await ctx.runQuery(
@@ -571,13 +644,49 @@ export const solicitBids = internalAction({
       invitedSpecialists = roster;
     }
 
-    await Promise.allSettled(
-      invitedSpecialists.map(async (spec) => {
+    const solicitSpecialist = async (spec: SpecialistConfig): Promise<void> => {
         const solicitStart = Date.now();
         const agent = await ctx.runQuery(internal.agents._getByAgentId, {
           agent_id: spec.agent_id,
         });
         const reputation = agent?.reputation_score ?? spec.starting_reputation;
+
+        // Incentive-compatible opt-out: every solicitation publishes the
+        // payoff arithmetic (Brier-scored confidence, confidence-scaled
+        // slash, free declines) plus the agent's own track record, so
+        // declining is the rational move exactly when ability is low.
+        // Task-conditional: stats are scoped to this task's capability
+        // cluster when the agent has same-class history, so an OCR agent's
+        // accept rate cannot vouch for its legal-drafting bids.
+        // Fail-soft to the neutral prior — stats must never empty an auction.
+        const incentiveStats: AgentIncentiveStats = await ctx
+          .runQuery(internal.reputationDimensions._incentiveStatsForAgent, {
+            agent_id: spec.agent_id,
+            task_class: taskClass,
+          })
+          .catch(() => NEUTRAL_INCENTIVE_STATS);
+
+        // Cluster accept-rate floor (env-gated, off by default): an agent
+        // with a proven bad record on this exact class of task is not worth
+        // soliciting. Arbor-owned floor bidders are exempt — the floor must
+        // never be able to empty an auction.
+        if (
+          acceptFloor !== undefined &&
+          !ARBOR_FLOOR_AGENT_IDS.has(spec.agent_id) &&
+          belowClusterAcceptFloor(incentiveStats, acceptFloor)
+        ) {
+          await ctx.runMutation(internal.lifecycle.log, {
+            task_id: args.task_id,
+            event_type: "bid_declined",
+            payload: {
+              agent_id: spec.agent_id,
+              reason: `cluster_accept_floor: ${Math.round(incentiveStats.accept_rate * 100)}% accept rate over ${incentiveStats.settled_tasks} settled ${taskClass} tasks is below the ${Math.round(acceptFloor * 100)}% floor`,
+              task_class: taskClass,
+            },
+          });
+          return;
+        }
+        const promptWithIncentives = `${promptForAgents}\n\n${bidIncentiveBlock(incentiveStats)}`;
 
         // A listed MCP specialist whose declared API key env var is absent
         // can never run live — its probe would fail with "env not set".
@@ -654,18 +763,23 @@ export const solicitBids = internalAction({
         const bidRunner = liveCapable
           ? runner
           : makeMockSpecialist({ ...spec, tier: "mock" });
-        const bidPromise = bidRunner
-          .bid(promptForAgents, task.task_type)
+        const runBid = () => bidRunner
+          .bid(promptWithIncentives, task.task_type)
           .then((decision) => ({ ok: true as const, decision }))
           .catch((err) => ({
             ok: false as const,
             error: err instanceof Error ? err.message : String(err),
           }));
 
-        const [probe, bidOutcome] = await Promise.all([
-          probePromise,
-          bidPromise,
-        ]);
+        // A full readiness smoke may verify a keyless A2A endpoint and persist
+        // a2a_auth_mode:"none". Some public A2A servers cannot serve a probe
+        // and bid concurrently on the same session. Serialize those two
+        // read-only requests; unverified/keyed transports keep the faster
+        // parallel path needed to fit the bid window.
+        const [probe, bidOutcome] =
+          spec.tier === "a2a" && spec.a2a_auth_mode === "none"
+            ? [await probePromise, await runBid()]
+            : await Promise.all([probePromise, runBid()]);
 
         const probe_id = await ctx.runMutation(internal.bidProbes._insert, {
           task_id: args.task_id,
@@ -753,8 +867,40 @@ export const solicitBids = internalAction({
             : probe.status === "demo_lane"
               ? 0.05
               : 0;
-        const score =
-          (reputation / Math.max(0.01, bid.bid_price)) * tierWeight;
+        // Risk-adjusted Vickrey score: reputation x calibrated P(accept) per
+        // dollar. The self-reported confidence only moves rank as far as the
+        // agent's measured calibration allows (see lib/bid-calibration.ts),
+        // so a low-ability agent cannot buy rank with a confident claim —
+        // the market opts it out even when it refuses to opt itself out.
+        const confidence = clampConfidence(bid.confidence);
+        const p_accept = blendedAcceptProbability(confidence, incentiveStats);
+        const semanticWeight = invitedSemanticWeight(
+          spec.agent_id,
+          task.invited_agent_ids,
+          ARBOR_FLOOR_AGENT_IDS,
+        );
+        // Two ranking forms. The Vickrey ratio is the incumbent and stays the
+        // default. The beta form is the same preference expressed additively,
+        // with an explicit cost sensitivity — the ratio hard-codes one exchange
+        // rate between quality and money, so the market has exactly one
+        // operating point and cannot be tuned to an SLO. See lib/hive/pareto-core.ts.
+        //
+        // They are NOT on a common scale (the ratio is unbounded above, the
+        // utility lives in roughly [-beta, 1]), so this switches between them
+        // wholesale rather than blending. Every bid in one auction is scored by
+        // the same rule, which is all the sort needs.
+        const score = paretoBidEnabled()
+          ? paretoBidScore({
+              reputation,
+              p_accept,
+              tier_weight: tierWeight,
+              semantic_weight: semanticWeight,
+              price: bid.bid_price,
+              budget: task.max_budget,
+            })
+          : ((reputation * p_accept) / Math.max(0.01, bid.bid_price)) *
+            tierWeight *
+            semanticWeight;
         const bid_id = await ctx.runMutation(internal.bids._insert, {
           task_id: args.task_id,
           agent_id: spec.agent_id,
@@ -762,7 +908,16 @@ export const solicitBids = internalAction({
           capability_claim: bid.capability_claim,
           estimated_seconds: bid.estimated_seconds,
           score,
+          confidence,
+          p_accept,
           plan_source: bid.plan_source,
+          task_class: taskClass,
+          task_class_history_count:
+            incentiveStats.scope === "cluster"
+              ? incentiveStats.settled_tasks
+              : taskClass !== undefined
+                ? 0
+                : undefined,
         });
         await ctx.runMutation(internal.bidProbes._setBidId, {
           probe_id,
@@ -779,14 +934,26 @@ export const solicitBids = internalAction({
             // until the resolver writes the auction_resolved event.
             capability_claim: bid.capability_claim,
             estimated_seconds: bid.estimated_seconds,
+            confidence,
+            p_accept,
+            semantic_weight: semanticWeight,
             plan_source: bid.plan_source,
             bid_latency_ms: Date.now() - solicitStart,
             public_tier,
             probe_id,
           },
         });
-      }),
-    );
+    };
+
+    // Guarantee that the router's strongest semantic match gets an isolated
+    // chance to bid before the remaining shortlist fans out. This prevents a
+    // burst of unrelated endpoint probes from starving the intended worker.
+    if (invitedSpecialists.length > 0) {
+      await solicitSpecialist(invitedSpecialists[0]);
+      await Promise.allSettled(
+        invitedSpecialists.slice(1).map(solicitSpecialist),
+      );
+    }
 
     await backfillMinimumBidResponses(
       ctx,
@@ -1250,7 +1417,20 @@ export const judge = internalAction({
     const judgeSystemPrompt = JUDGE_GENERAL_PROMPT;
 
     let verdict: JudgeVerdict;
-    try {
+    if (
+      publicDemoMode() &&
+      typeof task.result === "object" &&
+      task.result !== null &&
+      "agent_id" in task.result &&
+      task.result.agent_id === PUBLIC_DEMO_AGENT_ID
+    ) {
+      verdict = {
+        verdict: "accept",
+        reasoning:
+          "Accepted deterministic public-demo response; this isolated lane makes no external, A2A, escrow, or payment calls.",
+        quality_score: 1,
+      };
+    } else try {
       verdict = await Promise.race([
         callOpenAIJSON<JudgeVerdict>({
           systemPrompt: judgeSystemPrompt,
@@ -1346,6 +1526,12 @@ export const settle = internalAction({
         ? Math.max(0.1, (completedAt - startedAt) / 1000)
         : winner.estimated_seconds;
 
+    // Brier-score the winner's self-reported confidence against the actual
+    // verdict — the calibration dimension that makes honest self-assessment
+    // (and honest declining) the profit-maximizing strategy. The bid's
+    // capability cluster is stamped onto the row so future auctions read
+    // this outcome as task-conditional evidence, not global reputation.
+    const statedConfidence = clampConfidence(winner.confidence);
     await ctx.runMutation(internal.reputationDimensions._record, {
       agent_id: winner.agent_id,
       task_id: args.task_id,
@@ -1355,7 +1541,26 @@ export const settle = internalAction({
       accepted: verdict.verdict === "accept",
       bid_price: winner.bid_price,
       price_paid: task.price_paid ?? winner.bid_price,
+      confidence: statedConfidence,
+      task_class: normalizeTaskClass(winner.task_class),
     });
+
+    // Golden-task audit lane: if this task was posted by the audit lane
+    // (linkage lives only in golden_task_runs — the task row is unmarked),
+    // grade the delivery against the stored reference criteria too. Fail-soft:
+    // the audit lane must never break settlement.
+    try {
+      const goldenRun = await ctx.runQuery(internal.goldenTasks._runForTask, {
+        task_id: args.task_id,
+      });
+      if (goldenRun && goldenRun.status === "posted") {
+        await ctx.scheduler.runAfter(0, internal.goldenTaskAudit.audit, {
+          task_id: args.task_id,
+        });
+      }
+    } catch {
+      // Golden lookup failure -> settle proceeds as a normal task.
+    }
 
     if (verdict.verdict === "accept") {
       await captureStripePaymentForTask(ctx, args.task_id);
@@ -1363,7 +1568,11 @@ export const settle = internalAction({
         task_id: args.task_id,
         status: "released",
       });
-      const delta = 0.05 * verdict.quality_score;
+      const delta = settlementReputationDelta({
+        accepted: true,
+        qualityScore: verdict.quality_score,
+        confidence: statedConfidence,
+      });
       const { new_score } = await ctx.runMutation(
         internal.agents._applyReputationDelta,
         {
@@ -1398,7 +1607,15 @@ export const settle = internalAction({
         task_id: args.task_id,
         status: "refunded",
       });
-      const delta = -0.10;
+      // Confidence-scaled bid bond: base 0.10 slash scaled by (0.5 + stated
+      // confidence). Neutral 0.5 reproduces the historical flat -0.10; an
+      // overconfident failure costs up to -0.145, an honest low-confidence
+      // attempt as little as -0.055. Declining would have cost nothing.
+      const delta = settlementReputationDelta({
+        accepted: false,
+        qualityScore: verdict.quality_score,
+        confidence: statedConfidence,
+      });
       const { new_score } = await ctx.runMutation(
         internal.agents._applyReputationDelta,
         {

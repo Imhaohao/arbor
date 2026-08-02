@@ -20,9 +20,11 @@ import type * as agentKeysAdmin from "../agentKeysAdmin.js";
 import type * as agentProfiles from "../agentProfiles.js";
 import type * as agentReadiness from "../agentReadiness.js";
 import type * as agentReadinessActions from "../agentReadinessActions.js";
+import type * as agentSmokeStats from "../agentSmokeStats.js";
 import type * as agentToolCalls from "../agentToolCalls.js";
 import type * as agents from "../agents.js";
 import type * as auctions from "../auctions.js";
+import type * as battery from "../battery.js";
 import type * as bidProbes from "../bidProbes.js";
 import type * as bids from "../bids.js";
 import type * as contextEnrichment from "../contextEnrichment.js";
@@ -33,6 +35,8 @@ import type * as disputes from "../disputes.js";
 import type * as escalations from "../escalations.js";
 import type * as escrow from "../escrow.js";
 import type * as evolutionArchive from "../evolutionArchive.js";
+import type * as goldenTaskAudit from "../goldenTaskAudit.js";
+import type * as goldenTasks from "../goldenTasks.js";
 import type * as hiveBaselineBackstop from "../hiveBaselineBackstop.js";
 import type * as hiveCandidates from "../hiveCandidates.js";
 import type * as hiveData from "../hiveData.js";
@@ -54,6 +58,7 @@ import type * as productContextActions from "../productContextActions.js";
 import type * as providerJobs from "../providerJobs.js";
 import type * as reputation from "../reputation.js";
 import type * as reputationDimensions from "../reputationDimensions.js";
+import type * as reputationPrior from "../reputationPrior.js";
 import type * as scratchpad from "../scratchpad.js";
 import type * as scratchpadActions from "../scratchpadActions.js";
 import type * as seed from "../seed.js";
@@ -64,6 +69,7 @@ import type * as taskAgentDiscovery from "../taskAgentDiscovery.js";
 import type * as taskContexts from "../taskContexts.js";
 import type * as tasks from "../tasks.js";
 import type * as tiktokUploadActions from "../tiktokUploadActions.js";
+import type * as trilemma from "../trilemma.js";
 import type * as userContext from "../userContext.js";
 
 import type {
@@ -85,9 +91,11 @@ declare const fullApi: ApiFromModules<{
   agentProfiles: typeof agentProfiles;
   agentReadiness: typeof agentReadiness;
   agentReadinessActions: typeof agentReadinessActions;
+  agentSmokeStats: typeof agentSmokeStats;
   agentToolCalls: typeof agentToolCalls;
   agents: typeof agents;
   auctions: typeof auctions;
+  battery: typeof battery;
   bidProbes: typeof bidProbes;
   bids: typeof bids;
   contextEnrichment: typeof contextEnrichment;
@@ -98,6 +106,8 @@ declare const fullApi: ApiFromModules<{
   escalations: typeof escalations;
   escrow: typeof escrow;
   evolutionArchive: typeof evolutionArchive;
+  goldenTaskAudit: typeof goldenTaskAudit;
+  goldenTasks: typeof goldenTasks;
   hiveBaselineBackstop: typeof hiveBaselineBackstop;
   hiveCandidates: typeof hiveCandidates;
   hiveData: typeof hiveData;
@@ -119,6 +129,7 @@ declare const fullApi: ApiFromModules<{
   providerJobs: typeof providerJobs;
   reputation: typeof reputation;
   reputationDimensions: typeof reputationDimensions;
+  reputationPrior: typeof reputationPrior;
   scratchpad: typeof scratchpad;
   scratchpadActions: typeof scratchpadActions;
   seed: typeof seed;
@@ -129,6 +140,7 @@ declare const fullApi: ApiFromModules<{
   taskContexts: typeof taskContexts;
   tasks: typeof tasks;
   tiktokUploadActions: typeof tiktokUploadActions;
+  trilemma: typeof trilemma;
   userContext: typeof userContext;
 }>;
 

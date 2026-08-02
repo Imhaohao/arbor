@@ -45,7 +45,7 @@ export function HeroQuickPost() {
           type="submit"
           className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-sm transition-all duration-200 hover:scale-[1.02] hover:bg-white/95 hover:shadow-md hover:shadow-white/25 active:scale-100"
         >
-          Post task
+          Continue
           <ArrowRight size={15} weight="bold" />
         </button>
       </form>

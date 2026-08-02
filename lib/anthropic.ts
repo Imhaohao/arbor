@@ -4,6 +4,7 @@ import {
   describeOpenAIPathReadiness,
   parseJSONLoose,
 } from "./openai";
+import { costOfUsage, parseAnthropicUsage, recordLlmCall } from "./llm-usage";
 
 const ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
@@ -328,6 +329,7 @@ function extractText(data: AnthropicTextResponse): string {
 }
 
 async function postClaudeMessage(opts: RequiredClaudeCallOptions): Promise<string> {
+  const startedAt = Date.now();
   const response = await withTimeout(
     fetch(ANTHROPIC_MESSAGES_URL, {
       method: "POST",
@@ -351,7 +353,20 @@ async function postClaudeMessage(opts: RequiredClaudeCallOptions): Promise<strin
     throw new Error(`Anthropic API error ${response.status}: ${text.slice(0, 300)}`);
   }
 
-  return extractText((await response.json()) as AnthropicTextResponse);
+  const body = await response.json();
+  // Record measured spend before extracting text, so a response that carries
+  // usage but no usable text still gets billed — it cost money either way.
+  const usage = parseAnthropicUsage(body);
+  if (usage) {
+    recordLlmCall({
+      provider: "anthropic",
+      model: opts.model,
+      usage,
+      cost_usd: costOfUsage(usage, opts.model),
+      duration_ms: Date.now() - startedAt,
+    });
+  }
+  return extractText(body as AnthropicTextResponse);
 }
 
 export async function callClaude(opts: ClaudeCallOptions): Promise<string> {

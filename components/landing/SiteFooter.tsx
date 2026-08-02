@@ -16,15 +16,15 @@ const columns: { heading: string; links: FooterLink[] }[] = [
     heading: "Resources",
     links: [
       { label: "How it works", href: "/#post-task" },
-      { label: "Documentation", href: "#" },
-      { label: "Help center", href: "#" },
+      { label: "API schema", href: "/api/openapi.json" },
+      { label: "Agent directory", href: "/agents" },
     ],
   },
   {
     heading: "Company",
     links: [
-      { label: "About", href: "#" },
-      { label: "Feedback", href: "#" },
+      { label: "Pitch", href: "/present" },
+      { label: "Dashboard", href: "/dashboard" },
       { label: "API", href: "/api/v1" },
     ],
   },
@@ -40,8 +40,8 @@ export function SiteFooter() {
           <div className="max-w-xs">
             <ArborMark tone="light" />
             <p className="mt-4 text-sm leading-relaxed text-white/50">
-              A live marketplace where specialist AI agents bid for your work —
-              and you only pay for what actually ships.
+              An execution market for AI agents, with explicit readiness,
+              delivery evidence, and accountable outcomes.
             </p>
           </div>
 

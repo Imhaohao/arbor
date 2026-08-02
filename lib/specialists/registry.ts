@@ -1,9 +1,23 @@
 import { NIA_CONTEXT_CONFIG } from "./nia-context";
 import { HYPERSPELL_BRAIN_CONFIG } from "./hyperspell-brain";
+import { tensorlakeExec, TENSORLAKE_EXEC_CONFIG } from "./tensorlake-exec";
 import {
-  tensorlakeExec,
-  TENSORLAKE_EXEC_CONFIG,
-} from "./tensorlake-exec";
+  higgsfieldVideo,
+  HIGGSFIELD_VIDEO_CONFIG,
+} from "./higgsfield-video";
+import {
+  elevenlabsMusic,
+  ELEVENLABS_MUSIC_CONFIG,
+} from "./elevenlabs-music";
+import {
+  fishAudioVoice,
+  FISH_AUDIO_VOICE_CONFIG,
+} from "./fish-audio-voice";
+import { reapEditor, REAP_EDITOR_CONFIG } from "./reap-editor";
+import { descriptEditor, DESCRIPT_EDITOR_CONFIG } from "./descript-editor";
+import { opusclipEditor, OPUSCLIP_EDITOR_CONFIG } from "./opusclip-editor";
+import { submagicEditor, SUBMAGIC_EDITOR_CONFIG } from "./submagic-editor";
+import { cluesoEditor, CLUESO_EDITOR_CONFIG } from "./clueso-editor";
 import { CODEX_WRITER_CONFIG } from "./codex-writer";
 import { DEVIN_ENGINEER_CONFIG } from "./devin-engineer";
 import { reacherSocial, REACHER_SOCIAL_CONFIG } from "./reacher-social";
@@ -27,11 +41,16 @@ import {
   ARBOR_HIVE_BACKSTOP_CONFIG,
 } from "./arbor-hive-backstop";
 import {
+  arborPublicDemo,
+  ARBOR_PUBLIC_DEMO_CONFIG,
+} from "./arbor-public-demo";
+import {
   codebaseExplainer,
   CODEBASE_EXPLAINER_CONFIG,
 } from "./codebase-explainer";
 import { githubPrReview, GITHUB_PR_REVIEW_CONFIG } from "./github-pr-review";
 import { openrouterEnabled, type ModelGateway } from "../openai";
+import { publicDemoMode } from "../public-demo";
 import type {
   SpecialistConfig,
   SpecialistRunner,
@@ -89,6 +108,14 @@ const BASE_SPECIALISTS: SpecialistConfig[] = [
   NIA_CONTEXT_CONFIG,
   HYPERSPELL_BRAIN_CONFIG,
   TENSORLAKE_EXEC_CONFIG,
+  HIGGSFIELD_VIDEO_CONFIG,
+  ELEVENLABS_MUSIC_CONFIG,
+  FISH_AUDIO_VOICE_CONFIG,
+  REAP_EDITOR_CONFIG,
+  DESCRIPT_EDITOR_CONFIG,
+  OPUSCLIP_EDITOR_CONFIG,
+  SUBMAGIC_EDITOR_CONFIG,
+  CLUESO_EDITOR_CONFIG,
   DEVIN_ENGINEER_CONFIG,
   VERCEL_V0_CONFIG,
   INSFORGE_BACKEND_CONFIG,
@@ -127,6 +154,7 @@ const ALL_STATIC_SPECIALISTS = [
 export function getSpecialists(
   gateway?: ModelGateway | string,
 ): SpecialistConfig[] {
+  if (publicDemoMode()) return [ARBOR_PUBLIC_DEMO_CONFIG];
   return openrouterEnabled(gateway)
     ? [...BASE_SPECIALISTS, ...OPENROUTER_SPECIALISTS]
     : [...BASE_SPECIALISTS];
@@ -210,6 +238,7 @@ export function specialistConfigFromPersisted(
 export const ARBOR_FLOOR_AGENT_IDS: ReadonlySet<AgentId> = new Set<AgentId>([
   ARBOR_BASELINE_CONFIG.agent_id,
   ARBOR_HIVE_BACKSTOP_CONFIG.agent_id,
+  ARBOR_PUBLIC_DEMO_CONFIG.agent_id,
 ]);
 
 // Hand-written runners exist ONLY for tier:"real" specialists — every other
@@ -223,7 +252,16 @@ const SPECIALIST_RUNNERS: Partial<Record<AgentId, SpecialistRunner>> = {
   "github-pr-review": githubPrReview,
   "arbor-baseline": arborBaseline,
   "arbor-hive-backstop": arborHiveBackstop,
+  "arbor-public-demo": arborPublicDemo,
   "codebase-explainer": codebaseExplainer,
+  "higgsfield-video": higgsfieldVideo,
+  "elevenlabs-music": elevenlabsMusic,
+  "fish-audio-voice": fishAudioVoice,
+  "reap-editor": reapEditor,
+  "descript-editor": descriptEditor,
+  "opusclip-editor": opusclipEditor,
+  "submagic-editor": submagicEditor,
+  "clueso-editor": cluesoEditor,
 };
 
 // Warn once at module load for every specialist that is explicitly mocked.

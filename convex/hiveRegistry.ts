@@ -3,12 +3,22 @@
 import { v } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
-import { embedText, embeddingBackend } from "../lib/hive/embeddings";
+import type { Doc } from "./_generated/dataModel";
+import {
+  cosineSimilarity,
+  embedText,
+  embeddingBackend,
+} from "../lib/hive/embeddings";
 import {
   buildCapabilityText,
   hiveAgentTransport,
   type HiveAgentCandidate,
 } from "../lib/hive/registry-core";
+import {
+  availabilityWithFreshness,
+  routingIntegrityEnabled,
+} from "../lib/hive/routing-integrity-core";
+import { smoothedRate } from "../lib/hive/probe-success-core";
 import { discoverTools } from "../lib/mcp-outbound";
 import { openrouterEnabled } from "../lib/openai";
 import { isCuratedOpenRouterSpecialist } from "../lib/specialists/openrouter-roster";
@@ -72,6 +82,55 @@ function validateAgentId(agent_id: string): void {
   }
 }
 
+function sameStrings(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false;
+  const normalizedLeft = [...left].map((value) => value.trim()).sort();
+  const normalizedRight = [...right].map((value) => value.trim()).sort();
+  return normalizedLeft.every(
+    (value, index) => value === normalizedRight[index],
+  );
+}
+
+function sameRegistration(
+  existing: {
+    display_name: string;
+    sponsor: string;
+    capabilities: string[];
+    one_liner: string;
+    system_prompt: string;
+    cost_baseline: number;
+    tier?: string;
+    mcp_endpoint?: string;
+    a2a_endpoint?: string;
+    openrouter_model_id?: string;
+  },
+  incoming: {
+    display_name: string;
+    sponsor: string;
+    capabilities: string[];
+    one_liner: string;
+    system_prompt: string;
+    cost_baseline: number;
+    tier?: string;
+    mcp_endpoint?: string;
+    a2a_endpoint?: string;
+    openrouter_model_id?: string;
+  },
+): boolean {
+  return (
+    existing.display_name === incoming.display_name &&
+    existing.sponsor === incoming.sponsor &&
+    sameStrings(existing.capabilities, incoming.capabilities) &&
+    existing.one_liner === incoming.one_liner &&
+    existing.system_prompt === incoming.system_prompt &&
+    existing.cost_baseline === incoming.cost_baseline &&
+    existing.tier === incoming.tier &&
+    existing.mcp_endpoint === incoming.mcp_endpoint &&
+    existing.a2a_endpoint === incoming.a2a_endpoint &&
+    existing.openrouter_model_id === incoming.openrouter_model_id
+  );
+}
+
 function clampTopK(value: number | undefined): number {
   if (!Number.isFinite(value ?? 8)) return 8;
   return Math.min(32, Math.max(1, Math.trunc(value ?? 8)));
@@ -127,7 +186,15 @@ const registerArgs = {
 
 export const registerAgent = action({
   args: registerArgs,
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    agent_id: string;
+    registered: true;
+    eval_status: "pending" | "passed" | "failed";
+    embedding_model: string;
+  }> => {
     validateAgentId(args.agent_id);
     if (args.capabilities.length === 0) {
       throw new Error("capabilities must include at least one entry");
@@ -140,6 +207,17 @@ export const registerAgent = action({
       args.starting_reputation ?? DEFAULT_REPUTATION;
     const trustedCuratedOpenRouter =
       args.tier === "openrouter" && isCuratedOpenRouterSpecialist(args);
+    const existing: Doc<"discovered_specialists"> | null = await ctx.runQuery(
+      internal.discoveredSpecialists._getByAgentId,
+      { agent_id: args.agent_id },
+    );
+    const preserveEval =
+      existing !== null && sameRegistration(existing, args);
+    const evalStatus = trustedCuratedOpenRouter
+      ? "passed" as const
+      : preserveEval && existing.eval_status
+        ? existing.eval_status
+        : "pending" as const;
     const upsertArgs = {
       agent_id: args.agent_id,
       display_name: args.display_name,
@@ -190,7 +268,7 @@ export const registerAgent = action({
     await ctx.runMutation(internal.hiveRegistryData._patchRegistrationMetadata, {
       agent_id: args.agent_id,
       owner_id: args.owner_id ?? args.sponsor,
-      eval_status: trustedCuratedOpenRouter ? "passed" : "pending",
+      eval_status: evalStatus,
     });
 
     let mcpToolSchemas: Array<{ name?: string; description?: string }> | undefined;
@@ -232,13 +310,13 @@ export const registerAgent = action({
       capability_text,
       embedding,
       embedding_model,
-      eval_passed: trustedCuratedOpenRouter,
+      eval_passed: evalStatus === "passed",
       cost_baseline: args.cost_baseline,
       reputation_score: starting_reputation,
       updated_at: Date.now(),
     });
 
-    if (!trustedCuratedOpenRouter) {
+    if (evalStatus === "pending") {
       await ctx.scheduler.runAfter(0, internal.hiveEvalGate.runEvalGate, {
         agent_id: args.agent_id,
       });
@@ -247,7 +325,7 @@ export const registerAgent = action({
     return {
       agent_id: args.agent_id,
       registered: true,
-      eval_status: trustedCuratedOpenRouter ? "passed" : "pending",
+      eval_status: evalStatus,
       embedding_model,
     };
   },
@@ -261,6 +339,7 @@ export const searchAgents = action({
     max_cost: v.optional(v.number()),
     include_unevaluated: v.optional(v.boolean()),
     model_gateway: v.optional(v.string()),
+    pinned_agent_ids: v.optional(v.array(v.string())),
     // W4: when "4d", re-rank the shortlist by capability x reputation x
     // price x availability instead of raw similarity order. Default
     // (omitted) behavior is byte-for-byte unchanged.
@@ -284,20 +363,38 @@ export const searchAgents = action({
           filter: (q) => q.eq("eval_passed", true),
         });
 
-    const embeddingRows = await ctx.runQuery(
-      internal.hiveRegistryData._getEmbeddingsByIds,
-      { ids: hits.map((hit) => hit._id) },
+    const pinnedAgentIds = Array.from(
+      new Set((args.pinned_agent_ids ?? []).slice(0, 8)),
     );
+    const [embeddingRows, pinnedRows] = await Promise.all([
+      ctx.runQuery(internal.hiveRegistryData._getEmbeddingsByIds, {
+        ids: hits.map((hit) => hit._id),
+      }),
+      ctx.runQuery(internal.hiveRegistryData._getEmbeddingsByAgentIds, {
+        agent_ids: pinnedAgentIds,
+      }),
+    ]);
     const rowsById = new Map(
-      embeddingRows.map((row) => [String(row._id), row]),
+      [...embeddingRows, ...pinnedRows].map((row) => [String(row._id), row]),
     );
     const minReputation = args.min_reputation ?? 0.3;
     const maxCost = args.max_cost ?? Number.POSITIVE_INFINITY;
-    const filtered = hits
+    const scoredRows = hits
       .map((hit) => ({
         row: rowsById.get(String(hit._id)),
         similarity: hit._score,
-      }))
+      }));
+    const hitAgentIds = new Set(
+      scoredRows.flatMap((hit) => hit.row ? [hit.row.agent_id] : []),
+    );
+    for (const row of pinnedRows) {
+      if (hitAgentIds.has(row.agent_id)) continue;
+      scoredRows.push({
+        row,
+        similarity: cosineSimilarity(vector, row.embedding),
+      });
+    }
+    const filtered = scoredRows
       .filter(
         (hit): hit is {
           row: NonNullable<typeof hit.row>;
@@ -306,6 +403,7 @@ export const searchAgents = action({
           const row = hit.row;
           return (
             row !== undefined &&
+            (args.include_unevaluated || row.eval_passed === true) &&
             row.reputation_score >= minReputation &&
             row.cost_baseline <= maxCost
           );
@@ -367,12 +465,54 @@ export const searchAgents = action({
     // by the 4D blend. Best-effort — a lookup hiccup here must not break
     // discovery, so fall back to the similarity-ordered candidates.
     try {
-      const [dims, readinessRows] = await Promise.all([
+      const useMeasuredAvailability = routingIntegrityEnabled();
+      const [dims, readinessRows, smokeCounts] = await Promise.all([
         ctx.runQuery(internal.reputationDimensions._dimensionsForAgents, {
           agent_ids: candidates.map((c) => c.agent_id),
         }),
         ctx.runQuery(api.agentReadiness.list, {}),
+        useMeasuredAvailability
+          ? ctx.runQuery(internal.agentSmokeStats._smokeCountsForAgents, {
+              agent_ids: candidates.map((c) => c.agent_id),
+            })
+          : Promise.resolve([]),
       ]);
+      interface SmokeCount {
+        agent_id: string;
+        runs: number;
+        passes: number;
+        latest_at: number;
+      }
+      const smokeByAgent = new Map<string, SmokeCount>(
+        (smokeCounts as SmokeCount[]).map((s) => [s.agent_id, s]),
+      );
+      const nowMs = Date.now();
+
+      /**
+       * Availability for one candidate.
+       *
+       * Default path (flag off): the 3-bucket readiness enum, byte-for-byte as
+       * before.
+       *
+       * Measured path (ARBOR_ROUTING_INTEGRITY_ENABLED): the smoothed smoke pass
+       * RATE, decayed toward "unknown" by the age of the observation. The enum
+       * scored 0.8205 ranking AUC against real probe outcomes; this rate scored
+       * 0.9344 on the same temporal holdout. Decay matters because the enum was
+       * wrong for 60% of the A2A agents it called `ready` about 12h after the
+       * smoke run. Agents with no smoke history fall back to the enum rather than
+       * being penalised for lacking evidence.
+       */
+      const availabilityFor = (
+        agent_id: string,
+        readiness_status: string | undefined,
+      ): number => {
+        const enumScore = availabilityForReadiness(readiness_status);
+        if (!useMeasuredAvailability) return enumScore;
+        const smoke = smokeByAgent.get(agent_id);
+        if (!smoke || smoke.runs === 0) return enumScore;
+        const rate = smoothedRate(smoke.passes, smoke.runs);
+        return availabilityWithFreshness(rate, smoke.latest_at, nowMs).score;
+      };
       const dimsByAgent = new Map(dims.map((d) => [d.agent_id, d]));
       const readinessByAgent = new Map(
         (readinessRows as Array<{ agent_id: string; readiness_status?: string }>).map(
@@ -403,7 +543,7 @@ export const searchAgents = action({
           similarity: c.similarity,
           reputation,
           price: c.cost_baseline,
-          availability: availabilityForReadiness(readiness_status),
+          availability: availabilityFor(c.agent_id, readiness_status),
           base: c,
           readiness_status,
         };
@@ -468,7 +608,8 @@ export const refreshEmbedding = internalAction({
       capability_text,
       embedding,
       embedding_model,
-      eval_passed: existing?.eval_passed ?? false,
+      eval_passed:
+        existing?.eval_passed ?? specialist.eval_status === "passed",
       cost_baseline: specialist.cost_baseline,
       reputation_score:
         agent?.reputation_score ?? specialist.starting_reputation,

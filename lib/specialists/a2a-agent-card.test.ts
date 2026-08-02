@@ -100,6 +100,40 @@ process.exitCode = 1; // set to 0 after all cases pass
     console.log("ok — Case 3: explicitUrl override");
   }
 
+  // ── Case 5: transient transport failure retry ────────────────────────────────
+  {
+    let attempts = 0;
+    const server = http.createServer((req, res) => {
+      if (req.url !== "/card.json") {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      attempts += 1;
+      if (attempts === 1) {
+        req.socket.destroy();
+        return;
+      }
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ name: "retry-agent" }));
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    servers.push(server);
+    const address = server.address();
+    assert.ok(address && typeof address === "object");
+    const base = `http://127.0.0.1:${address.port}`;
+
+    const result = await fetchAgentCard(
+      `${base}/rpc`,
+      `${base}/card.json`,
+    );
+    assert.equal(result.name, "retry-agent");
+    assert.equal(attempts, 2);
+    console.log("ok — Case 5: transient card fetch retried once");
+  }
+
   process.exitCode = 0;
 })()
   .catch((err) => {

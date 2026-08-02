@@ -1,5 +1,134 @@
 # Arbor Hive Mind — Build Progress
 
+## Encoder-driven reputation + Pareto trilemma layer (2026-07-30)
+
+Goal: (a) adjust every agent's reputation from the arbitrator's encoder-target
+decoupling head, (b) put Arbor on the Agent System Trilemma (performance / cost /
+latency) under a Pareto-efficiency framework.
+
+### Part A — reputation priors (SHIPPED, applied to dev deployment)
+
+Reputation was inert: 1,105 of 1,233 agents sat at exactly 0.5, so the
+0.30-weighted reputation dimension of `rankAgents4D` had a standard deviation of
+zero and could not reorder any candidate.
+
+1. Recovered the encoder pipeline's missing half. `encoder-head-model.json`
+   shipped coef/intercept/platt but no PCA basis and no scaler, so its vectors
+   could not be regenerated. Replayed the training pipeline and froze the result
+   as `lib/hive/encoder-projection.json`, verified against the 7 bundled
+   fixtures (worst component error 4.7e-5).
+2. `lib/hive/reputation-prior-core.ts` — ranks the unsettled pool
+   lexicographically on (measured pass rate, encoder logit). The encoder acts
+   ONLY inside measured ties, because the model card shows encoder+measured
+   (0.9458 AUC) is worse than measured alone (0.9590). Midrank percentiles map
+   to a [0.30, 0.70] band so a prediction cannot impersonate a track record.
+3. `agent_encoder_vectors` table + `convex/reputationPrior.ts` +
+   `npm run reputation:prior`. Settled agents are untouched: `reputation_events`
+   is the authority there.
+4. `scripts/encode-agent-descriptors.py` regenerates vectors from Convex using
+   the frozen projection; `buildAgentDescriptor` stays the single TS contract.
+
+Result on the live dev deployment: 1,225 distinct reputations across 1,233
+agents (was 12 values), sd 0 -> 0.1184. The encoder broke the tie for 1,144 of
+1,206 priors (94.9%).
+
+### Part B — Pareto trilemma (machinery SHIPPED, training BLOCKED on data)
+
+`lib/hive/pareto-core.ts` + `npm run trilemma:report`: bid utility
+`quality^gamma - beta x normalized_cost` with the three beta tiers, marginal
+gain + escalation rule, accuracy-per-thinking-token with a matched-budget guard,
+padded AUCCC, oracle distance, and the 3-axis Pareto frontier. Wired into
+`convex/auctions.ts` behind `ARBOR_PARETO_BID_ENABLED` (default off).
+
+Measured readiness on the live corpus — 3 of 4 metrics cannot be trained:
+
+| Metric | Have | Need | Status |
+|---|---|---|---|
+| marginal gain | 20 comparable pairs | 500 | underpowered |
+| accuracy-per-thinking-token | 0 | 100 | no data — there is no `llm_usage` table at all |
+| padded AUCCC | 3 distinct curve steps | 50 | underpowered |
+| beta tuning | 0 labelled bids | 200 | no data — `reputation_dimensions.confidence` is never written |
+
+All four block on ONE artifact: a shared task battery run across many agents
+with graded outcomes and recorded tokens/cost/latency. `golden_tasks` has the
+schema and 4 rows; `golden_task_runs` has 0.
+
+Two traps the report now refuses to print as results: a P-AUCCC of 0.977 with
+oracle distance 0 (the curve saturates at its first step, so the oracle is
+matched by construction) and a "20/20 non-dominated" frontier (only 2 distinct
+operating points — degeneracy, not efficiency).
+
+### Part C — task battery (BUILT and validated; BLOCKED on provider credit)
+
+The artifact all four metrics need. The golden AUDIT lane structurally cannot
+supply it: it posts one task through the auction and grades only the winner, so
+it never crosses agents on a query. The battery fans one task out to many agents
+and grades all of them.
+
+- `battery_runs` table: one row per (golden task, agent) carrying the bid
+  (price, confidence), the reference-graded accuracy, and real token / cost /
+  latency telemetry — so one harness feeds all four metrics.
+- `convex/battery.ts` + `scripts/run-task-battery.ts` (`npm run battery`).
+  `--dry-run` plans without spending, `--max-spend` is a hard abort checked
+  after every run, and results checkpoint per task so an interrupted sweep keeps
+  what it paid for. Declines are recorded as an outcome, not dropped — dropping
+  them would bias the corpus toward agents that answer everything.
+- Golden set expanded 4 -> 20 tasks (arithmetic, extraction under negation,
+  conditional probability, weighted averages, dependency ordering, regex,
+  SQL, off-by-one). All carry `required_substrings` so grading survives a
+  reference-grader outage.
+- Token/cost capture uses `collectUsage` around each execution — the telemetry
+  that has no persistence path anywhere else in Arbor.
+
+**Pilot run (battery-e733b936): 15/15 errored — both provider accounts have zero
+credit.** OpenRouter returns HTTP 402 "Insufficient credits. This account never
+purchased credits"; OpenAI returns HTTP 429 "You have no credits remaining".
+The harness recorded all 15 as errors and reported 0 comparable pairs rather
+than fabricating grades, which is the correct behaviour.
+
+Sizing for a full sweep once credit exists (pairs = tasks x C(agents, 2)):
+
+| Roster | Runs | Pairs | Clears the 500 floor |
+|---|---|---|---|
+| 20 tasks x 5 agents | 100 | 200 | no |
+| 20 tasks x 8 agents | 160 | 560 | yes |
+
+    npm run battery -- --agents 8 --max-spend 8.00
+
+
+## Investor package + first-demo readiness (2026-07-29)
+
+Goal: produce a submission-ready a16z Speedrun application and six-slide pitch,
+then establish whether the current dirty worktree can deliver one credible first
+demo without masking live-runtime failures.
+
+1. Audit the repository, test surface, live dependencies, and demo paths.
+2. Run the health check, code generation, typecheck, full tests, build, and only
+   safe live smoke checks; diagnose and repair code-level blockers in scope.
+3. Define one repeatable demo path with explicit environment prerequisites and
+   a fallback that remains honest about provenance.
+4. Draft the application and investor deck from verified product evidence only.
+
+| Task | Model tier / executor |
+|---|---|
+| Test, eval, and demo-script audit | Sonnet/Luna-tier explorer |
+| Hive, Convex, routing, and protocol audit | Sonnet/Luna-tier explorer |
+| Product-surface and demo-flow audit | Sonnet/Luna-tier explorer |
+| Integration, repairs, and investor narrative | Fable/Sol main agent |
+| Health checks, build, typecheck, and tests | Deterministic local tooling |
+
+Checkpoint: completed. `npm test`, `npm run typecheck`, `npx convex dev --once`,
+and `npm run build` pass; the standard test chain now includes the previously
+omitted judge and post-task-discovery tests. A live `npm run hive:e2e` task
+reached `complete` with a non-empty result and full DAG/evaluation trail, using
+the explicitly labeled Arbor-owned fallback for both nodes. The first demo is
+therefore viable as a resilient execution-and-verification demo, not yet proof
+that third-party specialists win live market work. Investor deck rebuilt at
+`/present`; landing/dashboard labels now distinguish illustrative data from
+live data. Do not expose the current deployment publicly with real A2A keys or
+payments enabled: the audit found unauthenticated A2A-key and escrow-override
+surfaces that need an authentication design before production launch.
+
 ## External-tool agentic harness + Sakana/Fugu integration (2026-07-15)
 
 Goal: give Arbor a first-class external-tool execution harness modeled on major coding agents and Sakana's population/evaluator loops, while reusing the existing Hive router, candidate archive, receipts, and rollout gates.
@@ -276,3 +405,58 @@ Env: `ARBOR_A2A_NEGOTIATION_ENABLED=false` disables the conversational path (doc
 | Protocol research fan-out (partial — rate-limited) | deep-research workflow subagents |
 | Cross-file design + implementation | Fable inline |
 | Build, codegen, tests, live smoke | deterministic local tooling |
+
+---
+
+## Encoder-target decoupling addon + routing reality audit (2026-07-29)
+
+Goal: give the arbitrator a real, validated P(success) signal instead of defaults, and verify that the numbers driving routing are measured rather than assumed.
+
+### Prediction heads (both validated, both above the 80% bar)
+
+| Head | Protocol | AUC | Notes |
+|---|---|---|---|
+| Measured-rate (`lib/hive/probe-success-core.ts`) | temporal day-boundary holdout, 21,354 rows / 249 positives | **0.9590** | unfitted mean of two smoothed measured pass rates; Brier 0.00795 vs 0.01152 base-rate |
+| Encoder cold-start (`lib/hive/encoder-head-core.ts`) | hold out whole capability-template families | **0.9390** | strict test: 40 agents share byte-identical capability text |
+| Encoder cold-start | hold out random agents | 0.9450 | |
+| Encoder only | temporal June→July | 0.8495 | most conservative; ranking-only (Brier does NOT beat base rate) |
+
+Rejected, with numbers, so this is not re-litigated: 38-feature logistic regression **0.8978**, 6-feature forward-selected **0.8817**, encoder+measured-rate combined **0.9458** — all worse than the unfitted 0.9590. In-period GroupKFold reported 0.988, overstating held-out performance by ~9 points, because the probe pass rate shifted 0.55 (June) → 0.012 (July) when the 1,000-agent discovery fan-out landed.
+
+**Architecture: the two heads are complementary, not competing.** Measured rates win wherever history exists. The encoder exists only for cold start, where both rates collapse to the corpus prior and every brand-new agent receives an identical score. `selectCandidateScore` / `rankWithHeads` enforce that the two scales are never compared directly.
+
+### Encoder choice
+
+`sentence-transformers/all-MiniLM-L6-v2` — 22.7M params, 6 layers, 384-dim, **$0/call**, 66ms single / 0.8ms per text batched, weights already cached locally. Chosen because it is the cheapest thing that still exposes per-layer hidden states, which the paper's Fisher layer selection requires. Ollama cannot serve embeddings without `--embeddings` and only ever exposes final-layer pooled vectors, never L/2..L. Fisher J selected **layer 2** (J=0.4341); layer 6 was worst (0.1270). Cost comparison for a 1-query/1000-agent pass: MiniLM $0.000000 vs `openai:text-embedding-3-small` $0.000801.
+
+### Routing reality audit
+
+| Dimension | Weight | Reality |
+|---|---|---|
+| capability | 0.40 | real embeddings, but **sd 0.0488 → weighted sd 0.0195** |
+| reputation | 0.30 | **constant 0.600 — sd exactly 0.0000, 1 distinct value.** Only 9/1233 agents have settled history; `safety` is hardcoded 1.0 for all |
+| price | 0.15 | 3 distinct values in the live pool, weighted sd 0.0090 |
+| availability | 0.15 | **weighted sd 0.0367 — the largest discriminator, out-ranking capability 1.9x despite 0.40 vs 0.15 weight** |
+
+Discovery reach: `ctx.vectorSearch("hive_agent_embeddings")` gates candidates, and that table holds **119 rows for a 1,233-agent corpus (9.7%)**. **174 of 219 `readiness=ready` agents are invisible to routing.** Of the 119 reachable, 73 were dead at audit time.
+
+Availability is real in provenance but stale in fact: of 45 A2A agents marked `readiness=ready`, only **18 (40%) answered a live probe**; 27 are stale.
+
+### A2A liveness (live read-only probe of all 120 endpoints)
+
+**45/120 alive (37.5%).** Failures: 56 HTTP 404, 6 unreachable, 3× 503, 3× 401, 3× **402 Payment Required**, 2× 410 Gone, 1× 530, 1 malformed JSON. 4 of the 45 live cards declare zero skills. Slowest live: `trustauditor` 6.3s, `trust-auditor` 4.2s. The 6 unreachable include 4 of Arbor's own stale cloudflared tunnels.
+
+### Remaining work
+
+1. **Offline encoder job** — compute the 8-dim descriptor vector at agent-discovery time and store it per agent (mirrors `hive:backfill`). Until this runs, cold-start agents have no vector and fall back to `head: "prior"`. Vectors are deliberately NOT bundled: cold start is precisely the case of an agent absent from any bundle.
+2. **Backfill `hive_agent_embeddings`** to the full corpus — the single highest-leverage routing fix, since 90% of agents currently cannot be discovered at all.
+3. **Rolling recalibration** for both heads on the last N observed outcomes (window 3000, refit every 250). Shipped Platt pairs are cold-start bootstraps, not the evaluated calibrators.
+4. **Populate reputation or drop its weight** — 0.30 of the blend currently cannot reorder anything.
+5. **Measured control arm** (`golden_task_runs` is still 0 rows) before any user-facing savings claim; `ValueImpactPanel` still reports budget headroom as "you saved" against a hardcoded 30-minute baseline.
+6. **Quality head** remains untrainable: 231 judge-graded smoke rows are 73 agents × 73 prompts, exactly 1:1, so an encoder could only memorise agent identity. Needs a shared task battery.
+
+| Work | Model |
+|---|---|
+| Data extraction, feature engineering, model selection, ablations | Fable inline |
+| Encoder implementation + per-layer Fisher analysis | local MiniLM-L6 (free) |
+| A2A liveness probe, routing trace | deterministic local tooling |

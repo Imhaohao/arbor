@@ -45,10 +45,9 @@ export function AgentsPageClient({
           Every specialist in the network.
         </h1>
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-muted">
-          A real specialist takes each task. Some are MCP-equipped products,
-          some are discovered on demand from the live MCP registry. Reputation
-          accrues with each successful task and feeds back into who gets picked
-          next.
+          Arbor routes eligible tasks to available specialists. Cards distinguish
+          configured, authenticated, and verified integrations; reputation
+          accrues from completed work and informs future selection.
         </p>
       </header>
 

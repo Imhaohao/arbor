@@ -1,3 +1,5 @@
+import { costOfUsage, parseOpenAIUsage, recordLlmCall } from "./llm-usage";
+
 const DEFAULT_OPENAI_MODEL = "gpt-5.5";
 const OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions";
 const OPENROUTER_CHAT_COMPLETIONS_URL =
@@ -335,6 +337,7 @@ async function postJSON(
   body: Record<string, unknown>,
   timeoutMs: number,
 ): Promise<unknown> {
+  const startedAt = Date.now();
   const response = await withTimeout(
     fetch(url, {
       method: "POST",
@@ -352,7 +355,33 @@ async function postJSON(
     throw new Error(`Model API error ${response.status}: ${text.slice(0, 300)}`);
   }
 
-  return await response.json();
+  const json = await response.json();
+  // Single choke point for every OpenAI-family path (native chat, OpenRouter,
+  // Azure, Foundry), so token accounting cannot be bypassed by adding a caller.
+  const usage = parseOpenAIUsage(json);
+  if (usage) {
+    const model =
+      typeof body.model === "string" && body.model ? body.model : "unknown";
+    recordLlmCall({
+      provider: providerFromUrl(url),
+      model,
+      usage,
+      cost_usd: costOfUsage(usage, model),
+      duration_ms: Date.now() - startedAt,
+    });
+  }
+  return json;
+}
+
+/** Provider label from the request URL, for cost attribution. */
+function providerFromUrl(url: string): string {
+  const host = url.includes("://")
+    ? url.split("://", 2)[1].split("/", 1)[0].toLowerCase()
+    : url.toLowerCase();
+  if (host.includes("openrouter")) return "openrouter";
+  if (host.includes("azure")) return "azure";
+  if (host.includes("openai.com")) return "openai";
+  return host || "unknown";
 }
 
 async function callOpenAIChat(

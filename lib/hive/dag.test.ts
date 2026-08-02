@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  deterministicFallbackPlan,
   validateDag,
   topologicalLevels,
   readyNodes,
@@ -53,6 +54,28 @@ const diamond: PlannedNode[] = [
   node("d", ["b", "c"]),
 ];
 assert.deepEqual(validateDag(diamond), { ok: true }, "diamond DAG must validate");
+
+// Model-free fallback preserves parallel numbered work and dependency gates.
+{
+  const fallback = deterministicFallbackPlan(
+    [
+      "Complete this work as a dependency-aware project:",
+      "1. Ask Alpha for a read-only acknowledgement.",
+      "2. Independently ask Beta for a read-only acknowledgement.",
+      "3. After both worksteps finish, combine their outputs into a report.",
+      "Do not mutate external state.",
+    ].join("\n"),
+  );
+  assert.equal(fallback.length, 3);
+  assert.deepEqual(fallback[0].depends_on, []);
+  assert.deepEqual(fallback[1].depends_on, []);
+  assert.deepEqual(fallback[2].depends_on, ["step_1", "step_2"]);
+  assert.match(fallback[0].description, /Do not mutate external state/);
+  assert.deepEqual(validateDag(fallback), { ok: true });
+  assert.deepEqual(deterministicFallbackPlan("Do one thing."), [
+    { id: "main", description: "Do one thing.", depends_on: [] },
+  ]);
+}
 
 // diamond DAG topological levels: [["a"],["b","c"],["d"]]
 assert.deepEqual(
