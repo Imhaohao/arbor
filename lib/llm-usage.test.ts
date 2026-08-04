@@ -27,6 +27,14 @@ assert.equal(priceForModel("gpt-5.2")?.output_per_mtok, 10);
 // Unknown models must be undefined, never a $0 default.
 assert.equal(priceForModel("llama-3-70b"), undefined, "unknown -> undefined");
 assert.equal(priceForModel(""), undefined, "empty -> undefined");
+// Azure lane models must resolve to their OWN entries, not fall through to the
+// "gpt-5" prefix — the fall-through mispriced 5.4-mini 3.3x high and terra 2x low.
+assert.equal(priceForModel("gpt-5.4-mini")?.input_per_mtok, 0.375);
+assert.equal(priceForModel("gpt-5.4-mini")?.output_per_mtok, 2.25);
+assert.equal(priceForModel("gpt-5.6-terra")?.input_per_mtok, 2.5);
+assert.equal(priceForModel("gpt-5.6-terra")?.cache_read_multiplier, 0.1, "terra caches Anthropic-style");
+// A dated Azure deployment snapshot still resolves to the family entry.
+assert.equal(priceForModel("gpt-5.4-mini-2026-03-17")?.input_per_mtok, 0.375);
 
 // ─── costOfUsage ─────────────────────────────────────────────────────────────
 // 1M input + 1M output on Opus 5 = $5 + $25.

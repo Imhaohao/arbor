@@ -82,6 +82,21 @@ export const MODEL_PRICES: Record<string, ModelPrice> = {
   "claude-haiku-4-5": anthropicPrice(1, 5),
   "gpt-5.2": openAIPrice(1.25, 10),
   "gpt-5": openAIPrice(1.25, 10),
+  // Azure backbone lane (os-setup-resource). Without these explicit keys the
+  // longest-prefix match falls through to "gpt-5" and silently misprices both:
+  // 5.4-mini 3.3-4.4x too HIGH, 5.6-terra 2x too LOW. List prices sourced
+  // 2026-08-04 (see autoresearch/experiments/e1-cost-capture/results.md);
+  // 5.4-mini cache-read multiplier is the OpenAI default — family-specific
+  // cache billing was not published at sourcing time.
+  "gpt-5.4-mini": openAIPrice(0.375, 2.25),
+  // gpt-5.6 family bills caching Anthropic-style: writes 1.25x ($3.125),
+  // reads 0.1x ($0.25) — not the older no-premium/0.25x OpenAI scheme.
+  "gpt-5.6-terra": {
+    input_per_mtok: 2.5,
+    output_per_mtok: 15,
+    cache_write_multiplier: 1.25,
+    cache_read_multiplier: 0.1,
+  },
   "gpt-4o": openAIPrice(2.5, 10),
   "gpt-4o-mini": openAIPrice(0.15, 0.6),
   "o4-mini": openAIPrice(1.1, 4.4),
