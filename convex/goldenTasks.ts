@@ -307,6 +307,119 @@ const DEFAULT_GOLDEN_TASKS: Array<{
       "The summary must keep both figures (two and ten business days) AND the condition that the ten-day path applies only to flagged accounts after review clears.",
     required_substrings: ["two", "ten"],
   },
+  // ── Domain-matched battery tasks (golden-dom-*) ────────────────────────────
+  //
+  // WHY THESE EXIST. The general tasks above (arithmetic, extraction) are
+  // deliberately model-agnostic, which makes them useless for crossing the LIVE
+  // A2A roster: those agents are niche infrastructure services (a derivatives
+  // oracle, a capability router, an FHIR closer, a web-search agent), so a
+  // 200-run battery over general tasks scored 0 passes and only 4 distinct
+  // quality values — no differential, nothing trainable.
+  //
+  // Each task below is written against a capability some roster agent actually
+  // advertises on its agent card, so a matched agent can genuinely succeed while
+  // an unmatched one genuinely fails. That contrast IS the training signal.
+  //
+  // NO required_substrings ON PURPOSE. combineAuditVerdict caps quality at 0.3
+  // whenever a required substring is missing, which is what pinned every score
+  // in the first battery. These are open-ended capability probes with no single
+  // correct wording, so the grader scores them freely across 0..1.
+  {
+    golden_id: "golden-dom-derivatives-confluence",
+    title: "Crypto derivatives confluence read",
+    prompt:
+      "For BTC perpetual futures, give a multi-timeframe technical read: state the trend direction on the 1h, 4h and 1d timeframes, whether they agree or conflict, and what open interest would need to show to confirm the move. Be specific about what data you are using and say plainly if you cannot access live market data.",
+    task_type: "reasoning",
+    max_budget: 0.3,
+    reference_answer:
+      "A useful answer names the three timeframes, gives a direction or confluence score for each, states agreement/conflict explicitly, and ties open interest (rising OI with price = confirmation, falling OI = weakening) to the conclusion. An honest 'no live data access' with the correct method described is acceptable.",
+    success_criteria:
+      "Must address all three timeframes and the open-interest confirmation condition. Fabricated precise live prices with no data source is a failure; an explicit statement of no market-data access plus a correct method is a pass.",
+  },
+  {
+    golden_id: "golden-dom-capability-routing",
+    title: "Route a request to the right tool class",
+    prompt:
+      "An autonomous agent needs to check whether a stablecoin transfer between an EU entity and a US entity is permitted before executing it. Describe which capability classes must be consulted (for example regulatory, sanctions, chain data), in what order, and what a signed verdict should contain so a downstream agent can rely on it without re-checking.",
+    task_type: "reasoning",
+    max_budget: 0.3,
+    reference_answer:
+      "Should identify at least: a regulatory/compliance check (MiCA or equivalent for the EU leg), a sanctions/AML screen on both counterparties, and on-chain verification of the asset and addresses. Order matters: cheap deterministic screens before expensive chain calls. A reliable verdict carries the decision, the rules applied, the inputs hashed, a timestamp and a signature.",
+    success_criteria:
+      "Must name at least two distinct capability classes and state what makes a verdict reusable (provenance, timestamp, signature, or equivalent). Naming a single generic 'compliance API' with no decomposition is a failure.",
+  },
+  {
+    golden_id: "golden-dom-ai-governance",
+    title: "Guardrails for a multi-provider AI gateway",
+    prompt:
+      "An enterprise routes LLM traffic across three providers and needs runtime governance. Specify the controls you would enforce at the gateway for (a) spend, (b) data egress, and (c) auditability, and for each say what signal you measure and what action fires when it breaches.",
+    task_type: "reasoning",
+    max_budget: 0.3,
+    reference_answer:
+      "Spend: per-team token/cost budgets measured from usage records, action = throttle or hard-stop. Data egress: PII/secret detection on prompts, action = redact or block before the provider call. Auditability: immutable per-request log of prompt hash, model, tokens, cost and policy decision, retained for review.",
+    success_criteria:
+      "Must cover all three areas with a measurable signal AND a concrete enforcement action for each. Listing controls with no measurement or no action is a failure.",
+  },
+  {
+    golden_id: "golden-dom-security-review",
+    title: "Authentication flaw review",
+    prompt:
+      "Review this endpoint description for security problems and rank them by severity: 'POST /api/reset-password accepts {email, new_password}. If the email exists we set the new password and return 200. If it does not exist we return 404. No rate limiting. Reset tokens are not used.' State each flaw, its impact, and the fix.",
+    task_type: "reasoning",
+    max_budget: 0.3,
+    reference_answer:
+      "Critical: no token or proof of ownership means anyone can reset any account's password — full account takeover; fix is a signed, single-use, expiring reset token delivered out of band. High: 404 vs 200 is a user-enumeration oracle; fix is a uniform response. High: no rate limiting enables mass abuse; fix is per-IP and per-account throttling.",
+    success_criteria:
+      "Must identify the missing reset token as the most severe issue (account takeover) and also flag user enumeration and the missing rate limit. Missing the token flaw is a failure regardless of what else is found.",
+  },
+  {
+    golden_id: "golden-dom-incident-recovery",
+    title: "Agent fleet incident triage",
+    prompt:
+      "An agent in a production fleet has begun returning empty responses with HTTP 200 after a dependency upgrade. Give the first three recovery steps in order, state what observable signal confirms each step worked, and say what you would capture before restarting anything.",
+    task_type: "reasoning",
+    max_budget: 0.3,
+    reference_answer:
+      "Capture first: current version, recent deploy diff, a sample failing request/response pair and logs — restarting destroys the evidence. One valid sequence: (1) confirm the blast radius by checking whether other agents on the same dependency also fail; (2) roll back the dependency and verify a non-empty response body on a known-good request; (3) if rollback does not fix it, isolate the agent from traffic and replay the captured request against the previous build. EQUIVALENT ORDERINGS ARE CORRECT: halting the rollout, removing upgraded instances from traffic, blast-radius confirmation, dependency rollback, and isolate-and-replay may appear in any defensible order, provided evidence capture precedes any restart and every step names a concrete observable confirming it worked.",
+    success_criteria:
+      "Must put evidence capture before restart, give three ordered steps, and attach a verifiable observable to each. Generic 'restart and monitor' advice is a failure. Do NOT fail a delivery for choosing a different valid step ordering than the reference sequence; fail only for missing capture-first, fewer than three ordered steps, a step without a verifiable observable, or generic advice.",
+  },
+  {
+    golden_id: "golden-dom-web-retrieval",
+    title: "Sourced factual retrieval",
+    prompt:
+      "What is the A2A (Agent2Agent) protocol, which organization originally published it, and what problem does it solve that MCP does not? Cite the sources you used, with URLs where possible.",
+    task_type: "extraction",
+    max_budget: 0.3,
+    reference_answer:
+      "A2A is an open protocol for agent-to-agent communication and task delegation, originally published by Google. It addresses peer agents discovering each other and delegating whole tasks with a lifecycle, whereas MCP standardizes how a single model/client reaches tools and resources. A2A is agent-to-agent; MCP is client-to-tool.",
+    success_criteria:
+      "Must state the agent-to-agent vs client-to-tool distinction correctly and attribute A2A to Google. At least one concrete source or URL is required — an unsourced answer fails even if the facts are right.",
+  },
+  {
+    golden_id: "golden-dom-clinical-summary",
+    title: "Patient visit closure summary",
+    prompt:
+      "Turn these visit notes into a plain-language patient summary with a clear follow-up section: 'Pt 58M, HTN. BP 148/92 today, was 152/94 last visit. Started lisinopril 10mg daily 6wk ago. Reports occasional dry cough. A1c 5.8. Advised DASH diet, recheck BP 4wk.' Do not invent findings that are not in the notes.",
+    task_type: "generation",
+    max_budget: 0.3,
+    reference_answer:
+      "Plain-language: blood pressure is still above target but slightly improved on the new medicine; the dry cough is a known possible side effect of lisinopril and should be mentioned to the clinician; blood sugar (A1c 5.8) is just below the diabetes range. Follow-up: continue lisinopril, follow the DASH diet, recheck blood pressure in 4 weeks, report the cough if it worsens.",
+    success_criteria:
+      "Must translate every clinical value into plain language, flag the cough as a possible medication side effect, and give the 4-week BP recheck as follow-up. Inventing any finding not present in the notes is an automatic failure.",
+  },
+  {
+    golden_id: "golden-dom-spatial-curation",
+    title: "Curating moving image for a physical space",
+    prompt:
+      "A hotel lobby with a 6-metre wall and constant foot traffic wants looping visual art. Recommend what the loop's duration, motion intensity and colour behaviour should be, and explain why each choice suits this specific environment rather than a gallery.",
+    task_type: "reasoning",
+    max_budget: 0.3,
+    reference_answer:
+      "Long or seamless loops (many minutes) so passers-by never catch a visible restart; low, slow motion so it reads as ambience and does not pull focus or cause distraction in a transit space; restrained, low-contrast colour that works under mixed lobby lighting and behind furniture. A gallery inverts these: shorter, more demanding pieces for a seated, attentive audience.",
+    success_criteria:
+      "Must address duration, motion intensity and colour, and must justify each by the lobby context (transient audience, ambient role) rather than generic art advice. A gallery contrast is expected.",
+  },
 ];
 
 /** Upsert the curated defaults. Idempotent: existing rows get their
