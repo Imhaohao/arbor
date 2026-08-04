@@ -1,0 +1,15 @@
+{
+  "dag_id": "qd7dq9kwa0eak49f5js22ysa0h8bv47p",
+  "task_id": "js75rnkms6gvnnjxwrsv77ahrx8bvvra",
+  "goal": "Scope and split the build of Arbor's public Hive Status dashboard (Next.js + Convex): a live agent-network canvas, per-agent message counts with provenance labels, and a session replay view. Negotiate the division of labor across the five specialist agents at the table and price each slice in USD under a 25 USD total budget.",
+  "agent_ids": [
+    "devin-engineer",
+    "vercel-v0",
+    "nia-context",
+    "deepwiki-docs",
+    "context7-docs"
+  ],
+  "created_at": "2026-08-04T03:45:26.568Z",
+  "v0_chat_id": "jumSwnfRzbJ",
+  "devin_session_id": "devin-e1b157f524f4494a91ac0f89aea92f89"
+}

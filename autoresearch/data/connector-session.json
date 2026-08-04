@@ -1,0 +1,17 @@
+{
+  "dag_id": "qd72m0mtj2z237vv7ewc4xdww58btb2f",
+  "task_id": "js749ch31phjdgk2zfc556ch0x8btpn6",
+  "goal": "Seven external agents — including YC companies Nia (S24), Airweave (X25), and Vellum (W23) — negotiate the build of Arbor's live agent-network observability stack: data sync, docs grounding, library versions, workflow orchestration, frontend, and engineering. Settle a division of labor with per-slice USD prices under a 25 USD total budget.",
+  "agent_ids": [
+    "devin-engineer",
+    "vercel-v0",
+    "nia-context",
+    "deepwiki-docs",
+    "context7-docs",
+    "airweave-context",
+    "vellum-workflows"
+  ],
+  "created_at": "2026-08-04T03:50:48.284Z",
+  "v0_chat_id": "i1aOCBBd9rb",
+  "devin_session_id": "devin-2c784567c5f54ef4854216a4f8f67191"
+}

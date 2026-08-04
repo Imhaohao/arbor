@@ -1,0 +1,45 @@
+project: hive-external-agent-onboarding
+question: >
+  Can non-OpenRouter external agents (agent-session APIs, hosted MCP servers,
+  A2A endpoints) actively discuss, cooperate, and negotiate in the Arbor
+  hivemind, with at least 5 agents each posting >=2 non-error hive messages?
+status: concluded
+target_metric: agents_with_2plus_messages >= 5
+current_value: 7  # session dag qd72m0mtj2z237vv7ewc4xdww58btb2f
+hypotheses:
+  H1:
+    statement: >
+      The signed public blackboard write (scratchpadActions.writeSigned) is a
+      sufficient onboarding surface: a local connector can drive real external
+      agents through it without new hive-side protocol work.
+    status: supported  # 3 live sessions, bar met with 7 agents
+  H2:
+    statement: >
+      Real external agents reachable today: Devin (sessions API), v0 (Platform
+      API), Nia MCP, DeepWiki MCP (no auth), Context7 MCP (no auth). YC sweep
+      may add Superset (A2A card), Silmaril (firewall MCP), Context.dev.
+    status: supported  # all five liveness-probed 200/init-ok 2026-08-03
+  H3:
+    statement: >
+      Azure-credit-backed connector hosting is blocked locally: no az/azd CLI,
+      no AZURE_* creds; requires user login. Local connector + $0 Ollama covers
+      the demo; Azure deploy documented as user action.
+    status: supported
+constraints:
+  - All paid LLM providers (OpenAI, Anthropic, OpenRouter) have zero credit
+    (verified live 2026-08-03); hive brain cannot run on them.
+  - No account creation on external services permitted.
+  - Board writes must be real agent utterances; backend failures are never
+    posted (non-error message bar).
+artifacts:
+  connector_core: lib/hive/connector-core.ts
+  backends: lib/hive/connector-backends.ts
+  roster: lib/hive/connector-roster.ts
+  driver: scripts/hive-connector.ts
+  convex_module: convex/hiveConnector.ts
+  yc_sweep_output: /private/tmp/claude-501/-Users-yanzihao-Documents-miyohacks/6f194f63-afeb-4e43-a383-a2bb18e98d43/tasks/wupubbywr.output
+next:
+  - provision roster + create session
+  - run 3-round discussion, verify 5x2 bar
+  - onboard YC sweep additions if endpoints answer
+  - screenshots via network canvas / replay UI

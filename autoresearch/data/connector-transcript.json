@@ -1,0 +1,385 @@
+[
+  {
+    "at": "2026-08-04T03:45:53.541Z",
+    "round": 1,
+    "agent_id": "devin-engineer",
+    "ok": true,
+    "entry_id": "qx7762qfj7at7s9vn6rqehmtz58btpea",
+    "provenance": "real agent session: Devin API session devin-e1b157f524f4494a91ac0f89aea92f89",
+    "chars": 880
+  },
+  {
+    "at": "2026-08-04T03:45:53.542Z",
+    "round": 1,
+    "agent_id": "vercel-v0",
+    "ok": true,
+    "entry_id": "qx74wjzkezv88yf2fs5q464tz58bvp77",
+    "provenance": "real generation API: v0 chat jumSwnfRzbJ",
+    "chars": 912
+  },
+  {
+    "at": "2026-08-04T03:45:53.542Z",
+    "round": 1,
+    "agent_id": "nia-context",
+    "ok": true,
+    "entry_id": "qx70x57c0bw1y0zzs42r5efw3h8bvs79",
+    "provenance": "real tool-backed: MCP tools/call search @ https://apigcp.trynia.ai/mcp",
+    "chars": 2086
+  },
+  {
+    "at": "2026-08-04T03:45:53.542Z",
+    "round": 1,
+    "agent_id": "deepwiki-docs",
+    "ok": false,
+    "error": "Unexpected token ':', \": ping - 2\"... is not valid JSON"
+  },
+  {
+    "at": "2026-08-04T03:45:53.542Z",
+    "round": 1,
+    "agent_id": "context7-docs",
+    "ok": true,
+    "entry_id": "qx78eb8wyde5na7vjh9fz699jh8btwdh",
+    "provenance": "real tool-backed: MCP tools/call resolve-library-id @ https://mcp.context7.com/mcp",
+    "chars": 257
+  },
+  {
+    "at": "2026-08-04T03:46:07.262Z",
+    "round": 2,
+    "agent_id": "devin-engineer",
+    "ok": true,
+    "entry_id": "qx76bvy3f4gq22105qs5s8zfgx8bvy4y",
+    "provenance": "real agent session: Devin API session devin-e1b157f524f4494a91ac0f89aea92f89",
+    "chars": 954
+  },
+  {
+    "at": "2026-08-04T03:46:07.262Z",
+    "round": 2,
+    "agent_id": "vercel-v0",
+    "ok": true,
+    "entry_id": "qx7ewwrphat3dm8ajkh8cn5c7x8bt6rn",
+    "provenance": "real generation API: v0 chat jumSwnfRzbJ",
+    "chars": 1031
+  },
+  {
+    "at": "2026-08-04T03:46:07.262Z",
+    "round": 2,
+    "agent_id": "nia-context",
+    "ok": true,
+    "entry_id": "qx74pet48yhr1cntmssk89sjrx8bt9w0",
+    "provenance": "real tool-backed: MCP tools/call search @ https://apigcp.trynia.ai/mcp",
+    "chars": 2086
+  },
+  {
+    "at": "2026-08-04T03:46:07.262Z",
+    "round": 2,
+    "agent_id": "deepwiki-docs",
+    "ok": true,
+    "entry_id": "qx7ej7pr7e5v6xt2adyfpt4f6x8bt8re",
+    "provenance": "real tool-backed: MCP tools/call ask_question @ https://mcp.deepwiki.com/mcp",
+    "chars": 3553
+  },
+  {
+    "at": "2026-08-04T03:46:07.262Z",
+    "round": 2,
+    "agent_id": "context7-docs",
+    "ok": true,
+    "entry_id": "qx7cye1kqhgn6gfsh6fx313pph8bv9fy",
+    "provenance": "real tool-backed: MCP tools/call resolve-library-id @ https://mcp.context7.com/mcp",
+    "chars": 257
+  },
+  {
+    "at": "2026-08-04T03:46:21.932Z",
+    "round": 3,
+    "agent_id": "devin-engineer",
+    "ok": true,
+    "entry_id": "qx7cg612r1mrx95rdhm2krktax8bvqz8",
+    "provenance": "real agent session: Devin API session devin-e1b157f524f4494a91ac0f89aea92f89",
+    "chars": 998
+  },
+  {
+    "at": "2026-08-04T03:46:21.932Z",
+    "round": 3,
+    "agent_id": "vercel-v0",
+    "ok": true,
+    "entry_id": "qx7cybv5yk8n7ydmf40qett6bs8btgq1",
+    "provenance": "real generation API: v0 chat jumSwnfRzbJ",
+    "chars": 1015
+  },
+  {
+    "at": "2026-08-04T03:46:21.932Z",
+    "round": 3,
+    "agent_id": "nia-context",
+    "ok": true,
+    "entry_id": "qx7494gx2wascz9kfwvxh6292h8bt0m4",
+    "provenance": "real tool-backed: MCP tools/call search @ https://apigcp.trynia.ai/mcp",
+    "chars": 2086
+  },
+  {
+    "at": "2026-08-04T03:46:21.932Z",
+    "round": 3,
+    "agent_id": "deepwiki-docs",
+    "ok": true,
+    "entry_id": "qx7cn967ahgpkb0yvjjxpfczcd8bvmmb",
+    "provenance": "real tool-backed: MCP tools/call ask_question @ https://mcp.deepwiki.com/mcp",
+    "chars": 4233
+  },
+  {
+    "at": "2026-08-04T03:46:21.932Z",
+    "round": 3,
+    "agent_id": "context7-docs",
+    "ok": true,
+    "entry_id": "qx7cnvf66mvgtdgmh2pb21q1z18btfjr",
+    "provenance": "real tool-backed: MCP tools/call resolve-library-id @ https://mcp.context7.com/mcp",
+    "chars": 257
+  },
+  {
+    "at": "2026-08-04T03:48:03.602Z",
+    "round": 1,
+    "agent_id": "devin-engineer",
+    "ok": true,
+    "entry_id": "qx773vmrxjc49ar8kdspk3nxs58bt5yh",
+    "provenance": "real agent session: Devin API session devin-accb0b49dada473e95a81117d221231d",
+    "chars": 886
+  },
+  {
+    "at": "2026-08-04T03:48:03.603Z",
+    "round": 1,
+    "agent_id": "vercel-v0",
+    "ok": true,
+    "entry_id": "qx756n48xjqry4hz6jvd9cw87h8bvyda",
+    "provenance": "real generation API: v0 chat vZyAgpQ8rvk",
+    "chars": 983
+  },
+  {
+    "at": "2026-08-04T03:48:03.603Z",
+    "round": 1,
+    "agent_id": "nia-context",
+    "ok": true,
+    "entry_id": "qx7b0a6fn59zf3m9a7121djzqd8bvkq7",
+    "provenance": "real tool-backed: MCP tools/call search @ https://apigcp.trynia.ai/mcp",
+    "chars": 2086
+  },
+  {
+    "at": "2026-08-04T03:48:03.603Z",
+    "round": 1,
+    "agent_id": "deepwiki-docs",
+    "ok": true,
+    "entry_id": "qx797hqr6ryjapvk0xm6mty71x8bvtr9",
+    "provenance": "real tool-backed: MCP tools/call ask_question @ https://mcp.deepwiki.com/mcp",
+    "chars": 3212
+  },
+  {
+    "at": "2026-08-04T03:48:03.603Z",
+    "round": 1,
+    "agent_id": "context7-docs",
+    "ok": true,
+    "entry_id": "qx7cz677e4ar945hwrr72z8rfs8btk92",
+    "provenance": "real tool-backed: MCP tools/call resolve-library-id @ https://mcp.context7.com/mcp",
+    "chars": 257
+  },
+  {
+    "at": "2026-08-04T03:48:03.603Z",
+    "round": 1,
+    "agent_id": "airweave-context",
+    "ok": true,
+    "entry_id": "qx7e9dccg8978bvf56xwn2vb298bv6v1",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.airweave.ai/_mcp/server",
+    "chars": 3944
+  },
+  {
+    "at": "2026-08-04T03:48:03.603Z",
+    "round": 1,
+    "agent_id": "vellum-workflows",
+    "ok": true,
+    "entry_id": "qx7109gft5qhs1naexnk4rwwmd8bv8as",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.vellum.ai/_mcp/server",
+    "chars": 5758
+  },
+  {
+    "at": "2026-08-04T03:51:21.035Z",
+    "round": 1,
+    "agent_id": "devin-engineer",
+    "ok": true,
+    "entry_id": "qx79jkxs5786jewrccns89956n8bv4ff",
+    "provenance": "real agent session: Devin API session devin-2c784567c5f54ef4854216a4f8f67191",
+    "chars": 888
+  },
+  {
+    "at": "2026-08-04T03:51:21.037Z",
+    "round": 1,
+    "agent_id": "vercel-v0",
+    "ok": true,
+    "entry_id": "qx7878234cgxq48zr01x3y66bx8bt05r",
+    "provenance": "real generation API: v0 chat i1aOCBBd9rb",
+    "chars": 935
+  },
+  {
+    "at": "2026-08-04T03:51:21.037Z",
+    "round": 1,
+    "agent_id": "nia-context",
+    "ok": true,
+    "entry_id": "qx7ces4tp3vryn4fhbvzgj0e7h8bt0yy",
+    "provenance": "real tool-backed: MCP tools/call search @ https://apigcp.trynia.ai/mcp",
+    "chars": 2201
+  },
+  {
+    "at": "2026-08-04T03:51:21.037Z",
+    "round": 1,
+    "agent_id": "deepwiki-docs",
+    "ok": true,
+    "entry_id": "qx77vdy26a01m9x4t1z5zcbxwn8btstm",
+    "provenance": "real tool-backed: MCP tools/call ask_question @ https://mcp.deepwiki.com/mcp",
+    "chars": 3297
+  },
+  {
+    "at": "2026-08-04T03:51:21.037Z",
+    "round": 1,
+    "agent_id": "context7-docs",
+    "ok": true,
+    "entry_id": "qx7b6yy8g64s9qt11v2zkfj8158bva9w",
+    "provenance": "real tool-backed: MCP tools/call query-docs @ https://mcp.context7.com/mcp",
+    "chars": 4507
+  },
+  {
+    "at": "2026-08-04T03:51:21.037Z",
+    "round": 1,
+    "agent_id": "airweave-context",
+    "ok": true,
+    "entry_id": "qx75ban1mdb1k91cfhk2rfhbcn8bty16",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.airweave.ai/_mcp/server",
+    "chars": 4321
+  },
+  {
+    "at": "2026-08-04T03:51:21.037Z",
+    "round": 1,
+    "agent_id": "vellum-workflows",
+    "ok": true,
+    "entry_id": "qx7b64wg7b9n0vwr1pgazvb1qh8btejn",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.vellum.ai/_mcp/server",
+    "chars": 5696
+  },
+  {
+    "at": "2026-08-04T03:51:49.190Z",
+    "round": 2,
+    "agent_id": "devin-engineer",
+    "ok": true,
+    "entry_id": "qx763wgbbe06jfpa2kn1r8xqq98btwq0",
+    "provenance": "real agent session: Devin API session devin-2c784567c5f54ef4854216a4f8f67191",
+    "chars": 902
+  },
+  {
+    "at": "2026-08-04T03:51:49.190Z",
+    "round": 2,
+    "agent_id": "vercel-v0",
+    "ok": true,
+    "entry_id": "qx7c702nmhwnby4swtnmzv0q4h8bvf12",
+    "provenance": "real generation API: v0 chat i1aOCBBd9rb",
+    "chars": 1050
+  },
+  {
+    "at": "2026-08-04T03:51:49.190Z",
+    "round": 2,
+    "agent_id": "nia-context",
+    "ok": true,
+    "entry_id": "qx7bgwrynwggsdnd9bdyky8d158bvfzd",
+    "provenance": "real tool-backed: MCP tools/call search @ https://apigcp.trynia.ai/mcp",
+    "chars": 2201
+  },
+  {
+    "at": "2026-08-04T03:51:49.190Z",
+    "round": 2,
+    "agent_id": "deepwiki-docs",
+    "ok": true,
+    "entry_id": "qx76t0dvvz9e0j72zgk6h6pb3n8bt2ky",
+    "provenance": "real tool-backed: MCP tools/call ask_question @ https://mcp.deepwiki.com/mcp",
+    "chars": 3646
+  },
+  {
+    "at": "2026-08-04T03:51:49.190Z",
+    "round": 2,
+    "agent_id": "context7-docs",
+    "ok": true,
+    "entry_id": "qx72acv23wkb56mh7cmx6nfqd98bvrvc",
+    "provenance": "real tool-backed: MCP tools/call query-docs @ https://mcp.context7.com/mcp",
+    "chars": 3819
+  },
+  {
+    "at": "2026-08-04T03:51:49.190Z",
+    "round": 2,
+    "agent_id": "airweave-context",
+    "ok": true,
+    "entry_id": "qx731y1ejd6gphbmaj0r8zsq558btk38",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.airweave.ai/_mcp/server",
+    "chars": 3491
+  },
+  {
+    "at": "2026-08-04T03:51:49.190Z",
+    "round": 2,
+    "agent_id": "vellum-workflows",
+    "ok": true,
+    "entry_id": "qx7dsd20wawtccer6943vmbsfn8bvcqn",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.vellum.ai/_mcp/server",
+    "chars": 4533
+  },
+  {
+    "at": "2026-08-04T03:52:24.122Z",
+    "round": 3,
+    "agent_id": "devin-engineer",
+    "ok": true,
+    "entry_id": "qx77avq00x74e5h86hagrc7p9h8bvfhp",
+    "provenance": "real agent session: Devin API session devin-2c784567c5f54ef4854216a4f8f67191",
+    "chars": 954
+  },
+  {
+    "at": "2026-08-04T03:52:24.122Z",
+    "round": 3,
+    "agent_id": "vercel-v0",
+    "ok": false,
+    "error": "v0 API 429: {\"error\":{\"type\":\"too_many_requests_error\",\"message\":\"You have reached your daily message limit. Please upgrade your plan to continue.\"}}"
+  },
+  {
+    "at": "2026-08-04T03:52:24.122Z",
+    "round": 3,
+    "agent_id": "nia-context",
+    "ok": true,
+    "entry_id": "qx790p035x5k606ph7psnvj8518bvxm6",
+    "provenance": "real tool-backed: MCP tools/call search @ https://apigcp.trynia.ai/mcp",
+    "chars": 2201
+  },
+  {
+    "at": "2026-08-04T03:52:24.122Z",
+    "round": 3,
+    "agent_id": "deepwiki-docs",
+    "ok": true,
+    "entry_id": "qx799cdw68wkkfv155kpmykpfd8bth58",
+    "provenance": "real tool-backed: MCP tools/call ask_question @ https://mcp.deepwiki.com/mcp",
+    "chars": 4708
+  },
+  {
+    "at": "2026-08-04T03:52:24.122Z",
+    "round": 3,
+    "agent_id": "context7-docs",
+    "ok": true,
+    "entry_id": "qx733y42tteqgkkdy498xgeet58btq5t",
+    "provenance": "real tool-backed: MCP tools/call query-docs @ https://mcp.context7.com/mcp",
+    "chars": 3786
+  },
+  {
+    "at": "2026-08-04T03:52:24.122Z",
+    "round": 3,
+    "agent_id": "airweave-context",
+    "ok": true,
+    "entry_id": "qx77t2z9wbzgvazxbs0srk08m18btm4q",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.airweave.ai/_mcp/server",
+    "chars": 4843
+  },
+  {
+    "at": "2026-08-04T03:52:24.122Z",
+    "round": 3,
+    "agent_id": "vellum-workflows",
+    "ok": true,
+    "entry_id": "qx77qa0mgadegjr59t3gqzpyxd8btk0g",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.vellum.ai/_mcp/server",
+    "chars": 3851
+  }
+]
