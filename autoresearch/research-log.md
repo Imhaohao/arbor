@@ -78,3 +78,9 @@
   battery passes audits on a funded lane (E2).
 - Gap found during E0: MODEL_PRICES lacks gpt-5.4-mini / gpt-5.6-terra (the
   live Azure lane), so even wired capture would report cost-unknown. E1 scope.
+- E1 DONE (protocol 6766901, results 8a98d89): H1 supported, 100% of battery
+  rows priced. Found+fixed prefix-match mispricing (5.4-mini 3.3-4.4x high,
+  terra 2x low, silent). First real datapoint: $0.000776/settled at smoke
+  scale. Roster gap found: specialist runners bypass Azure lane (nia-context
+  429 on direct OpenAI) — E2 constraint. Task-class spread hint: same model
+  0.98 escrow vs 0.08 unit-conversion.

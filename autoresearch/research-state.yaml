@@ -8,7 +8,7 @@ question: >
   and what is the honest per-run saving shown to users?
 status: inner_loop
 target_metric: usd_per_settled_task  # real measured cost / settled+passed runs
-current_value: UNMEASURABLE  # see E0 — numerator never captured, denominator 0
+current_value: 0.000776  # E1 smoke scale n=1 settled; real baseline lands at E2
 guardrail_metric: judge_accept_rate >= baseline (baseline TBD at E2)
 
 experiment_0_baseline:  # measured 2026-08-04, dev deployment valuable-axolotl-318
@@ -32,7 +32,7 @@ hypotheses:
       Wiring lib/llm-usage.ts capture into the execution+judge path (and adding
       Azure model prices gpt-5.4-mini / gpt-5.6-terra to MODEL_PRICES) makes
       usd_per_settled_task measurable on live runs within one battery sweep.
-    status: untested
+    status: supported  # E1: 100% of rows priced; battery-d1275b6f
     prediction: ">= 95% of new battery rows carry cost_usd > 0 and models_used"
   H2:
     statement: >
@@ -55,8 +55,6 @@ hypotheses:
     status: untested
 
 queue:
-  - E1 (H1): instrument cost capture end-to-end; add Azure prices; verify on
-    one manual battery task. BLOCKS EVERYTHING.
   - E2 (H2): battery sweep on Azure backbone, n>=100 runs across golden tasks;
     record real $/settled baseline + accept-rate baseline.
   - E3 (H3): A/B probe-gated vs open solicitation inside one battery.
@@ -66,8 +64,12 @@ queue:
 constraints:
   - OpenAI/Anthropic/OpenRouter direct accounts had zero credit 2026-08-03;
     Azure backbone (os-setup-resource) is the funded lane as of 2026-08-04.
-  - MODEL_PRICES lacks gpt-5.4-mini and gpt-5.6-terra: priceForModel returns
-    undefined -> cost unknown, so E1 must add them or capture stays broken.
+  - CORRECTED at E1: Azure models were not "cost unknown" — prefix matching
+    silently mispriced them against the "gpt-5" entry (5.4-mini 3.3-4.4x high,
+    terra 2x low). Fixed with explicit entries; regression-tested.
+  - E2 roster must use azure-lane runners (arbor-baseline lineage): specialist
+    runners like nia-context call direct OpenAI (429, zero credit) and bypass
+    the funded lane.
   - No account creation on external services. Golden linkage stays internal.
 
 loop: cron 49ef6bf7, 20m, session-only (expires 7d)
