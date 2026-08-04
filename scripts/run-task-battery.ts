@@ -23,6 +23,7 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFileSync as readEnvFile } from "node:fs";
 import { resolve } from "node:path";
+import { callLocalJSON, localLlmAvailable, localLlmEnabled } from "../lib/local-llm";
 import {
   GOLDEN_AUDIT_SYSTEM_PROMPT,
   checkRequiredSubstrings,
@@ -127,6 +128,10 @@ function option(name: string, fallback?: string): string | undefined {
 
 /** Truncate stored deliveries — the metrics need the grade, not the prose, and
  * full outputs would bloat every row for no analytic gain. */
+/** Which grader produced the most recent label. Recorded per run so a weak
+ * local grader is never silently mixed with frontier labels. */
+let GRADER_MODEL = "none";
+
 const MAX_OUTPUT_CHARS = 4000;
 
 function deliveryText(result: unknown): string {
@@ -150,22 +155,44 @@ async function gradeDelivery(
 } | null> {
   const misses = checkRequiredSubstrings(delivery, task.required_substrings);
   let grader: GoldenGraderVerdict | null = null;
+  const userPrompt = goldenAuditUserPrompt({
+    taskPrompt: task.prompt,
+    referenceAnswer: task.reference_answer,
+    successCriteria: task.success_criteria,
+    deliveryText: delivery,
+  });
   try {
     grader = await callOpenAIJSON<GoldenGraderVerdict>({
       systemPrompt: GOLDEN_AUDIT_SYSTEM_PROMPT,
-      userPrompt: goldenAuditUserPrompt({
-        taskPrompt: task.prompt,
-        referenceAnswer: task.reference_answer,
-        successCriteria: task.success_criteria,
-        deliveryText: delivery,
-      }),
+      userPrompt,
     });
-  } catch {
-    // Grader outage is not the agent's fault: combineAuditVerdict falls back to
-    // the deterministic substring checks, or returns null so the run is stored
-    // as an error rather than being scored on a guess.
-    grader = null;
+    GRADER_MODEL = "openai";
+  } catch (paidError) {
+    // Every paid provider was out of credit on 2026-07-30, which would collapse
+    // grading to substring checks and produce no quality differential at all.
+    // A local model still yields a graded label — but a WEAKER one, so the
+    // grader identity is recorded rather than silently mixed in.
+    if (localLlmEnabled() && (await localLlmAvailable())) {
+      try {
+        const local = await callLocalJSON<GoldenGraderVerdict>({
+          systemPrompt: GOLDEN_AUDIT_SYSTEM_PROMPT,
+          userPrompt,
+        });
+        grader = local.value;
+        GRADER_MODEL = `ollama:${local.model}`;
+      } catch {
+        grader = null;
+        GRADER_MODEL = "none";
+      }
+    } else {
+      void paidError;
+      grader = null;
+      GRADER_MODEL = "none";
+    }
   }
+  // When both graders are unavailable, `grader` stays null and
+  // combineAuditVerdict falls back to the deterministic substring checks, or
+  // returns null so the run is stored as an error rather than scored on a guess.
   const outcome = combineAuditVerdict({
     substring_misses: misses,
     had_required_substrings: task.required_substrings.length > 0,
@@ -327,14 +354,65 @@ async function main(): Promise<void> {
     );
     process.exit(1);
   }
-  const selectedTasks = taskLimit > 0 ? tasks.slice(0, taskLimit) : tasks;
+  // --golden-ids g1,g2 restricts the sweep to named tasks (exact golden_id
+  // match, "golden-" prefix optional); unknown ids fail loudly rather than
+  // silently shrinking the sweep. Composes with --tasks (filter, then slice).
+  const goldenIdsRaw = option("golden-ids") as string | undefined;
+  let pool = tasks;
+  if (goldenIdsRaw) {
+    const wanted = goldenIdsRaw.split(",").map((s) => {
+      const id = s.trim();
+      return id.startsWith("golden-") ? id : `golden-${id}`;
+    });
+    const known = new Set(tasks.map((t) => t.golden_id));
+    const missing = wanted.filter((w) => !known.has(w));
+    if (missing.length > 0) {
+      console.error(`--golden-ids not found: ${missing.join(", ")}`);
+      process.exit(1);
+    }
+    pool = tasks.filter((t) => wanted.includes(t.golden_id));
+  }
+  const selectedTasks = taskLimit > 0 ? pool.slice(0, taskLimit) : pool;
 
   // Roster: explicit list, or the agents that can actually execute locally.
   // A battery run only means something if the agent really answers, so this
   // deliberately uses the static roster rather than the 1,100 discovered
   // specialists, most of which need keys or are endpoint-down.
   const explicit = option("agent-ids");
-  const { getSpecialists } = await import("../lib/specialists/registry");
+  const {
+    getSpecialists,
+    registerDiscoveredSpecialist,
+    specialistConfigFromPersisted,
+  } = await import("../lib/specialists/registry");
+
+  // Hydrate the discovered-specialist cache. `getRunner` resolves unknown ids
+  // from this per-process Map, which is empty in a standalone script — without
+  // this every external A2A agent fails with "No specialist runner registered".
+  // These agents matter because they execute on THEIR infrastructure, so they
+  // are the only roster that can produce graded runs while every paid LLM
+  // provider is out of credit.
+  let hydrated = 0;
+  try {
+    const rows = runConvex("discoveredSpecialists:list", {}) as unknown[];
+    for (const row of rows ?? []) {
+      try {
+        const cfg = specialistConfigFromPersisted(
+          row as Parameters<typeof specialistConfigFromPersisted>[0],
+        );
+        registerDiscoveredSpecialist({ ...cfg, discovered: true });
+        hydrated += 1;
+      } catch {
+        // A malformed row must not abort the whole battery.
+      }
+    }
+  } catch (error) {
+    console.warn(
+      `[battery] could not hydrate discovered specialists: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+  if (hydrated > 0) console.log(`hydrated ${hydrated} discovered specialists`);
   const roster = explicit
     ? explicit.split(",").map((s) => s.trim()).filter(Boolean)
     : getSpecialists()
