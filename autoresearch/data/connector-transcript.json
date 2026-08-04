@@ -381,5 +381,236 @@
     "entry_id": "qx77qa0mgadegjr59t3gqzpyxd8btk0g",
     "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.vellum.ai/_mcp/server",
     "chars": 3851
+  },
+  {
+    "at": "2026-08-04T08:37:19.492Z",
+    "round": 1,
+    "agent_id": "devin-engineer",
+    "ok": true,
+    "entry_id": "qx773wxnb2t0hvyhgp38wd8cf58btpq5",
+    "provenance": "real agent session: Devin API session devin-8553532ee4f8471eb3e2cf1ce802e451",
+    "chars": 911
+  },
+  {
+    "at": "2026-08-04T08:37:19.493Z",
+    "round": 1,
+    "agent_id": "vercel-v0",
+    "ok": false,
+    "error": "v0 API 429: {\"error\":{\"type\":\"too_many_requests_error\",\"message\":\"You have reached your daily message limit. Please upgrade your plan to continue.\"}}"
+  },
+  {
+    "at": "2026-08-04T08:37:19.494Z",
+    "round": 1,
+    "agent_id": "nia-context",
+    "ok": true,
+    "entry_id": "qx74tcxj2nkbrzzagmwc4cd9bh8bv8c8",
+    "provenance": "real tool-backed: MCP tools/call search @ https://apigcp.trynia.ai/mcp",
+    "chars": 2201
+  },
+  {
+    "at": "2026-08-04T08:37:19.494Z",
+    "round": 1,
+    "agent_id": "deepwiki-docs",
+    "ok": true,
+    "entry_id": "qx7b1bdkt1d5pcpmzdq4vk9afh8bvqp4",
+    "provenance": "real tool-backed: MCP tools/call ask_question @ https://mcp.deepwiki.com/mcp",
+    "chars": 3865
+  },
+  {
+    "at": "2026-08-04T08:37:19.494Z",
+    "round": 1,
+    "agent_id": "context7-docs",
+    "ok": true,
+    "entry_id": "qx73ec0dcbw1j2pxrksrm9178x8bvezb",
+    "provenance": "real tool-backed: MCP tools/call query-docs @ https://mcp.context7.com/mcp",
+    "chars": 5205
+  },
+  {
+    "at": "2026-08-04T08:37:19.494Z",
+    "round": 1,
+    "agent_id": "airweave-context",
+    "ok": false,
+    "error": "This operation was aborted"
+  },
+  {
+    "at": "2026-08-04T08:37:19.494Z",
+    "round": 1,
+    "agent_id": "vellum-workflows",
+    "ok": false,
+    "error": "This operation was aborted"
+  },
+  {
+    "at": "2026-08-04T08:37:19.494Z",
+    "round": 1,
+    "agent_id": "hyperspell-memory",
+    "ok": true,
+    "entry_id": "qx74pphsdyte6kbss59fwf9krs8bt4zd",
+    "provenance": "real memory API: Hyperspell add+query (collection arbor-hive-roundtable)",
+    "chars": 260
+  },
+  {
+    "at": "2026-08-04T08:37:19.494Z",
+    "round": 1,
+    "agent_id": "litellm-gateway",
+    "ok": true,
+    "entry_id": "qx763bxmgsa3z8wrte20r7xsrn8btcmn",
+    "provenance": "gateway-backed persona: arbor-azure via OpenAI-compatible proxy at http://127.0.0.1:4400/v1",
+    "chars": 730
+  },
+  {
+    "at": "2026-08-04T08:37:49.344Z",
+    "round": 2,
+    "agent_id": "devin-engineer",
+    "ok": true,
+    "entry_id": "qx7e8bkdexb6t87rygx93jyfrs8bt2nw",
+    "provenance": "real agent session: Devin API session devin-8553532ee4f8471eb3e2cf1ce802e451",
+    "chars": 952
+  },
+  {
+    "at": "2026-08-04T08:37:49.344Z",
+    "round": 2,
+    "agent_id": "vercel-v0",
+    "ok": false,
+    "error": "v0 API 429: {\"error\":{\"type\":\"too_many_requests_error\",\"message\":\"You have reached your daily message limit. Please upgrade your plan to continue.\"}}"
+  },
+  {
+    "at": "2026-08-04T08:37:49.344Z",
+    "round": 2,
+    "agent_id": "nia-context",
+    "ok": true,
+    "entry_id": "qx75dxkb4br1qe743fztbedae58btb9v",
+    "provenance": "real tool-backed: MCP tools/call search @ https://apigcp.trynia.ai/mcp",
+    "chars": 2201
+  },
+  {
+    "at": "2026-08-04T08:37:49.344Z",
+    "round": 2,
+    "agent_id": "deepwiki-docs",
+    "ok": false,
+    "error": "Unexpected token ':', \": ping - 2\"... is not valid JSON"
+  },
+  {
+    "at": "2026-08-04T08:37:49.344Z",
+    "round": 2,
+    "agent_id": "context7-docs",
+    "ok": true,
+    "entry_id": "qx75f00br6sy0x1bt1wkp3rra98bvv1h",
+    "provenance": "real tool-backed: MCP tools/call query-docs @ https://mcp.context7.com/mcp",
+    "chars": 3783
+  },
+  {
+    "at": "2026-08-04T08:37:49.344Z",
+    "round": 2,
+    "agent_id": "airweave-context",
+    "ok": true,
+    "entry_id": "qx72svtzdvnj2q0dbpfren1tgs8bt3m7",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.airweave.ai/_mcp/server",
+    "chars": 3880
+  },
+  {
+    "at": "2026-08-04T08:37:49.344Z",
+    "round": 2,
+    "agent_id": "vellum-workflows",
+    "ok": true,
+    "entry_id": "qx76g2h7cgxrdv1c50ph1b4vvx8btyyf",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.vellum.ai/_mcp/server",
+    "chars": 4790
+  },
+  {
+    "at": "2026-08-04T08:37:49.344Z",
+    "round": 2,
+    "agent_id": "hyperspell-memory",
+    "ok": true,
+    "entry_id": "qx7e4d00s37377p3ks1neenv318bv7tj",
+    "provenance": "real memory API: Hyperspell add+query (collection arbor-hive-roundtable)",
+    "chars": 260
+  },
+  {
+    "at": "2026-08-04T08:37:49.344Z",
+    "round": 2,
+    "agent_id": "litellm-gateway",
+    "ok": true,
+    "entry_id": "qx7c6y2cydvqtz6gnt9rn8d93n8bt1mw",
+    "provenance": "gateway-backed persona: arbor-azure via OpenAI-compatible proxy at http://127.0.0.1:4400/v1",
+    "chars": 965
+  },
+  {
+    "at": "2026-08-04T08:38:27.343Z",
+    "round": 3,
+    "agent_id": "devin-engineer",
+    "ok": true,
+    "entry_id": "qx78rmyznp7k80p4gh4qawn2h18bvv5g",
+    "provenance": "real agent session: Devin API session devin-8553532ee4f8471eb3e2cf1ce802e451",
+    "chars": 1034
+  },
+  {
+    "at": "2026-08-04T08:38:27.343Z",
+    "round": 3,
+    "agent_id": "vercel-v0",
+    "ok": false,
+    "error": "v0 API 429: {\"error\":{\"type\":\"too_many_requests_error\",\"message\":\"You have reached your daily message limit. Please upgrade your plan to continue.\"}}"
+  },
+  {
+    "at": "2026-08-04T08:38:27.343Z",
+    "round": 3,
+    "agent_id": "nia-context",
+    "ok": true,
+    "entry_id": "qx7e4r9mcwd5ym7cw9avngmvjs8bv4ab",
+    "provenance": "real tool-backed: MCP tools/call search @ https://apigcp.trynia.ai/mcp",
+    "chars": 2201
+  },
+  {
+    "at": "2026-08-04T08:38:27.343Z",
+    "round": 3,
+    "agent_id": "deepwiki-docs",
+    "ok": true,
+    "entry_id": "qx79er5ab9t0b6v6b19gs15qch8bvs8v",
+    "provenance": "real tool-backed: MCP tools/call ask_question @ https://mcp.deepwiki.com/mcp",
+    "chars": 4239
+  },
+  {
+    "at": "2026-08-04T08:38:27.343Z",
+    "round": 3,
+    "agent_id": "context7-docs",
+    "ok": true,
+    "entry_id": "qx7fy3gnm88h5v22h589mn29vh8bt6x7",
+    "provenance": "real tool-backed: MCP tools/call query-docs @ https://mcp.context7.com/mcp",
+    "chars": 3507
+  },
+  {
+    "at": "2026-08-04T08:38:27.343Z",
+    "round": 3,
+    "agent_id": "airweave-context",
+    "ok": true,
+    "entry_id": "qx73ynjj1nps3peqtffd1whk6n8bv5s7",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.airweave.ai/_mcp/server",
+    "chars": 5150
+  },
+  {
+    "at": "2026-08-04T08:38:27.343Z",
+    "round": 3,
+    "agent_id": "vellum-workflows",
+    "ok": true,
+    "entry_id": "qx743qqsqae57vx8raa5geyjen8bv8hm",
+    "provenance": "real tool-backed: MCP tools/call searchDocs @ https://docs.vellum.ai/_mcp/server",
+    "chars": 4512
+  },
+  {
+    "at": "2026-08-04T08:38:27.343Z",
+    "round": 3,
+    "agent_id": "hyperspell-memory",
+    "ok": true,
+    "entry_id": "qx75pb645aqgjpqs97958yjjcx8btf6g",
+    "provenance": "real memory API: Hyperspell add+query (collection arbor-hive-roundtable)",
+    "chars": 238
+  },
+  {
+    "at": "2026-08-04T08:38:27.343Z",
+    "round": 3,
+    "agent_id": "litellm-gateway",
+    "ok": true,
+    "entry_id": "qx73s0hg1x52jdszbj5ptq4sf98bvgsb",
+    "provenance": "gateway-backed persona: arbor-azure via OpenAI-compatible proxy at http://127.0.0.1:4400/v1",
+    "chars": 789
   }
 ]

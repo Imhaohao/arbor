@@ -3,7 +3,7 @@ question: >
   Can non-OpenRouter external agents (agent-session APIs, hosted MCP servers,
   A2A endpoints) actively discuss, cooperate, and negotiate in the Arbor
   hivemind, with at least 5 agents each posting >=2 non-error hive messages?
-status: concluded
+status: inner_loop_phase2
 target_metric: agents_with_2plus_messages >= 5
 current_value: 7  # session dag qd72m0mtj2z237vv7ewc4xdww58btb2f
 hypotheses:
@@ -43,3 +43,15 @@ next:
   - run 3-round discussion, verify 5x2 bar
   - onboard YC sweep additions if endpoints answer
   - screenshots via network canvas / replay UI
+
+phase2:
+  goals:
+    budget_sealed: done  # auctions.ts no longer advertises ceiling
+    azure_backbone: done  # os-setup-resource, agent gpt-5.4-mini, judge gpt-5.6-terra, azure embeddings
+    yc_wireup:
+      live: [nia-context, airweave-context, vellum-workflows, hyperspell-memory, litellm-gateway]
+      env_gated: [superset-tasks, cekura-voice-qa, retell-voice-agents, mem0-memory, silmaril-firewall, kernel-browser]
+      relegated_with_steps: [context-dev, browser-use, golpo, coval, blaxel, cua]
+      policy: no account creation by the agent; signup steps in yc-wireup-status.md
+    desktop_app: done  # desktop/ Electron host, launch-verified
+  session4: qd75my4dg7kr6rdt413v7ejs7h8bvs22

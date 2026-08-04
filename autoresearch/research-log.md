@@ -37,3 +37,21 @@
   21 nodes, 88.7s playback. Report generated in to_human/. Note: protocol
   and results are committed together at the end rather than pre-registered
   per-experiment; flagged as a process deviation.
+
+## 2026-08-04 (phase 2)
+
+- 01:20 New goals: seal budget from agents, Azure backbone, wire all YC
+  agents (no account creation - hard policy), desktop host app. Cron 359b6fea.
+- 01:24 Budget sealed: auctions.ts no longer advertises the ceiling; bidders
+  asked for true delivery cost; server-side validity filter unchanged. House
+  lastResortBidPrice auto-degrades to cost_baseline (was 0.92x ceiling).
+- 01:27 Azure backbone LIVE: os-setup-resource (rg-admin-2806), agent+default
+  gpt-5.4-mini, judge gpt-5.6-terra (gpt-5 returned empty text via responses
+  API - reasoning-token truncation), embeddings text-embedding-3-small via
+  new azure branch in lib/hive/embeddings.ts (azure > openai > local-hash).
+  Env set in .env.local AND Convex deployment. model:smoke green on default
+  and judge routes.
+- 01:30 Hyperspell (YC F25) backend wired and live-tested: real memory
+  add + query through held key (resource Y7xMsatQdI4X1A).
+- Delegated: Electron desktop host app (sonnet), YC gated-roster entries
+  file (sonnet). Both in flight.
