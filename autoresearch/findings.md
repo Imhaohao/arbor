@@ -50,3 +50,35 @@
 
 - Do Superset/Silmaril endpoints answer unauthenticated? (probe pending)
 - Does Devin's reply latency fit a 3-round session within tolerable wall time?
+
+---
+
+# Findings — multi-agent group routing efficiency (started 2026-08-04)
+
+## Current understanding
+
+- The optimization target ($/settled task) is unmeasurable at project start:
+  no live run has ever recorded measured spend (llm_usage empty; all 318
+  graded battery rows carry cost_usd=0 with no tokens), and no battery run
+  has ever passed a reference audit (demo-lane free agents, mean acc 0.197).
+- The product's displayed per-run saving ($3.73 mean, $783.42 total over 210
+  settled tasks) is budget headroom, not saving — documented as such in
+  lib/llm-usage.ts's own header. Replacing it with an honest counterfactual
+  metric is H4.
+- Instrumentation precedes optimization: E1 (cost capture + Azure prices in
+  MODEL_PRICES) blocks every downstream experiment.
+
+## Lessons and constraints
+
+- Zero-credit battery sweeps produce structurally worthless efficiency data:
+  free agents fail everything, so (cost, accuracy) collapses to (0, 0.2).
+  Never run efficiency batteries on the demo lane.
+- Azure lane models (gpt-5.4-mini, gpt-5.6-terra) are missing from
+  MODEL_PRICES — priceForModel returns undefined = "cost unknown", which is
+  correct behavior but means capture must ship WITH prices.
+
+## Open questions
+
+- Real judge-accept baseline on a funded lane (H2 predicts 30-70%).
+- Does probe-gating actually convert its 0.959 AUC into >=30% cost cut at
+  unchanged accept rate (H3)?

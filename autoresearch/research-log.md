@@ -55,3 +55,26 @@
   add + query through held key (resource Y7xMsatQdI4X1A).
 - Delegated: Electron desktop host app (sonnet), YC gated-roster entries
   file (sonnet). Both in flight.
+- 01:47 Session 4 (dag qd75my4dg7kr6rdt413v7ejs7h8bvs22, 9 agents, no budget
+  in goal) BAR MET: 21 entries, 8/9 agents >=2 non-error (v0 fully blocked
+  by its own daily plan limit - honest zero). All 21 entries embedded via
+  azure:text-embedding-3-small inside Convex - Azure proven e2e.
+  DeepWiki SSE comment-keepalive parse bug found and fixed (tests green).
+- 01:50 Commits 78a4399 (code) + e7c25ce (results). Desktop host app landed
+  in desktop/ (launch-verified by subagent). LiteLLM proxy on :4400.
+
+## 2026-08-04 (new project: multi-agent group routing efficiency)
+
+- 22:5x Prior project archived (bar met). New target: usd_per_settled_task,
+  guardrail judge_accept_rate. Loop: cron 49ef6bf7 @20m.
+- E0 (baseline measurement, dev deployment): target metric is UNMEASURABLE
+  today. battery_runs 334: 318 graded, 0 passed audit (mean accuracy 0.197,
+  demo-lane free agents), cost_usd 0.0 on every row, 0 tokens, 0 models_used.
+  llm_usage table: 0 rows ever. Settled tasks 210, sum paid $593.75.
+- E0 finding (user-facing): the "you saved" number the product shows is
+  max_budget - price_paid = headroom ($783.42 total, mean $3.73/run). The
+  lib/llm-usage.ts header itself disavows it as a savings metric. No real
+  per-run savings number exists until cost capture is wired (E1) and a
+  battery passes audits on a funded lane (E2).
+- Gap found during E0: MODEL_PRICES lacks gpt-5.4-mini / gpt-5.6-terra (the
+  live Azure lane), so even wired capture would report cost-unknown. E1 scope.

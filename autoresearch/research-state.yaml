@@ -1,57 +1,73 @@
-project: hive-external-agent-onboarding
+# archived: hive-external-agent-onboarding (bar met: 7 then 8/9 agents >=2
+# non-error messages; phase2 goals done; see git history and findings.md).
+
+project: multi-agent-group-routing-efficiency
 question: >
-  Can non-OpenRouter external agents (agent-session APIs, hosted MCP servers,
-  A2A endpoints) actively discuss, cooperate, and negotiate in the Arbor
-  hivemind, with at least 5 agents each posting >=2 non-error hive messages?
-status: inner_loop_phase2
-target_metric: agents_with_2plus_messages >= 5
-current_value: 7  # session dag qd72m0mtj2z237vv7ewc4xdww58btb2f
+  How cheaply can the hive route work through multi-agent groups per
+  successfully-settled task, holding judge-accept rate at or above baseline —
+  and what is the honest per-run saving shown to users?
+status: inner_loop
+target_metric: usd_per_settled_task  # real measured cost / settled+passed runs
+current_value: UNMEASURABLE  # see E0 — numerator never captured, denominator 0
+guardrail_metric: judge_accept_rate >= baseline (baseline TBD at E2)
+
+experiment_0_baseline:  # measured 2026-08-04, dev deployment valuable-axolotl-318
+  battery_runs: 334
+  runs_graded: 318
+  runs_passed_audit: 0        # all 318 failed vs reference; mean accuracy 0.197
+  runs_errored: 16
+  cost_usd_all_runs: 0.0      # demo-lane/free agents; zero-credit era
+  tokens_recorded: 0
+  llm_usage_rows: 0           # measured-spend telemetry has never written a row
+  settled_tasks: 210
+  sum_price_paid: 593.75
+  ui_savings_shown_total: 783.42   # mean 3.73/run — max_budget - price_paid
+  ui_savings_verdict: >
+    NOT a savings metric. lib/llm-usage.ts header documents this: headroom is
+    user-chosen willingness-to-pay minus price, not a cost saving.
+
 hypotheses:
   H1:
     statement: >
-      The signed public blackboard write (scratchpadActions.writeSigned) is a
-      sufficient onboarding surface: a local connector can drive real external
-      agents through it without new hive-side protocol work.
-    status: supported  # 3 live sessions, bar met with 7 agents
+      Wiring lib/llm-usage.ts capture into the execution+judge path (and adding
+      Azure model prices gpt-5.4-mini / gpt-5.6-terra to MODEL_PRICES) makes
+      usd_per_settled_task measurable on live runs within one battery sweep.
+    status: untested
+    prediction: ">= 95% of new battery rows carry cost_usd > 0 and models_used"
   H2:
     statement: >
-      Real external agents reachable today: Devin (sessions API), v0 (Platform
-      API), Nia MCP, DeepWiki MCP (no auth), Context7 MCP (no auth). YC sweep
-      may add Superset (A2A card), Silmaril (firewall MCP), Context.dev.
-    status: supported  # all five liveness-probed 200/init-ok 2026-08-03
+      Re-running the task battery on the live Azure backbone produces the first
+      real (cost, accuracy) operating points; judge-accept baseline lands
+      between 30-70% (demo-lane 0% was an artifact of free agents, not tasks).
+    status: untested
   H3:
     statement: >
-      Azure-credit-backed connector hosting is blocked locally: no az/azd CLI,
-      no AZURE_* creds; requires user login. Local connector + $0 Ollama covers
-      the demo; Azure deploy documented as user action.
-    status: supported
-constraints:
-  - All paid LLM providers (OpenAI, Anthropic, OpenRouter) have zero credit
-    (verified live 2026-08-03); hive brain cannot run on them.
-  - No account creation on external services permitted.
-  - Board writes must be real agent utterances; backend failures are never
-    posted (non-error message bar).
-artifacts:
-  connector_core: lib/hive/connector-core.ts
-  backends: lib/hive/connector-backends.ts
-  roster: lib/hive/connector-roster.ts
-  driver: scripts/hive-connector.ts
-  convex_module: convex/hiveConnector.ts
-  yc_sweep_output: /private/tmp/claude-501/-Users-yanzihao-Documents-miyohacks/6f194f63-afeb-4e43-a383-a2bb18e98d43/tasks/wupubbywr.output
-next:
-  - provision roster + create session
-  - run 3-round discussion, verify 5x2 bar
-  - onboard YC sweep additions if endpoints answer
-  - screenshots via network canvas / replay UI
+      Probe-gated solicitation (probe-success head, AUC 0.959) cuts cost per
+      settled task >= 30% vs open solicitation by not paying for dead-agent
+      solicitations, at unchanged accept rate.
+    status: untested
+  H4:
+    statement: >
+      An honest per-run savings metric — counterfactual frontier cost (same
+      tokens at claude-fable-5/gpt-5.2 list price) minus actual routed cost,
+      reported only on audit-passed runs — can replace headroom in
+      ValueImpactPanel without inflating: it is zero when routing adds no value.
+    status: untested
 
-phase2:
-  goals:
-    budget_sealed: done  # auctions.ts no longer advertises ceiling
-    azure_backbone: done  # os-setup-resource, agent gpt-5.4-mini, judge gpt-5.6-terra, azure embeddings
-    yc_wireup:
-      live: [nia-context, airweave-context, vellum-workflows, hyperspell-memory, litellm-gateway]
-      env_gated: [superset-tasks, cekura-voice-qa, retell-voice-agents, mem0-memory, silmaril-firewall, kernel-browser]
-      relegated_with_steps: [context-dev, browser-use, golpo, coval, blaxel, cua]
-      policy: no account creation by the agent; signup steps in yc-wireup-status.md
-    desktop_app: done  # desktop/ Electron host, launch-verified
-  session4: qd75my4dg7kr6rdt413v7ejs7h8bvs22
+queue:
+  - E1 (H1): instrument cost capture end-to-end; add Azure prices; verify on
+    one manual battery task. BLOCKS EVERYTHING.
+  - E2 (H2): battery sweep on Azure backbone, n>=100 runs across golden tasks;
+    record real $/settled baseline + accept-rate baseline.
+  - E3 (H3): A/B probe-gated vs open solicitation inside one battery.
+  - E4 (H4): compute honest savings on E2 data; compare against the $3.73/run
+    headroom number currently shown.
+
+constraints:
+  - OpenAI/Anthropic/OpenRouter direct accounts had zero credit 2026-08-03;
+    Azure backbone (os-setup-resource) is the funded lane as of 2026-08-04.
+  - MODEL_PRICES lacks gpt-5.4-mini and gpt-5.6-terra: priceForModel returns
+    undefined -> cost unknown, so E1 must add them or capture stays broken.
+  - No account creation on external services. Golden linkage stays internal.
+
+loop: cron 49ef6bf7, 20m, session-only (expires 7d)
