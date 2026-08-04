@@ -357,6 +357,33 @@ export const _setResult = internalMutation({
   },
 });
 
+/** Measured execution spend from the winner's in-process model calls.
+ * Internal-only and self-validating: non-finite or negative telemetry is
+ * dropped (recorded nothing) rather than corrupting the row — the value
+ * panel treats absence as "not measured", which is the honest state. */
+export const _recordExecutionUsage = internalMutation({
+  args: {
+    task_id: v.id("tasks"),
+    cost_usd: v.number(),
+    input_tokens: v.number(),
+    output_tokens: v.number(),
+    models: v.array(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const ok = (n: number) => Number.isFinite(n) && n >= 0;
+    if (!ok(args.cost_usd) || !ok(args.input_tokens) || !ok(args.output_tokens)) {
+      return;
+    }
+    await ctx.db.patch(args.task_id, {
+      execution_cost_usd: args.cost_usd,
+      execution_input_tokens: args.input_tokens,
+      execution_output_tokens: args.output_tokens,
+      execution_models: args.models.slice(0, 16),
+    });
+  },
+});
+
 export const _setVerdict = internalMutation({
   args: { task_id: v.id("tasks"), verdict: v.any() },
   handler: async (ctx, args) => {

@@ -1176,7 +1176,16 @@ export const execute = internalAction({
       // tool-calling loops (6 rounds × ~30s each worst case for Reacher /
       // Nia), so 60s would force a timeout before they finish. Plain
       // (mock) specialists return well under this.
-      const executeResult = await Promise.race([
+      // Measured spend for the winner's in-process model calls. External-infra
+      // runners (A2A/MCP) bill on their side and record nothing here — absence
+      // means "not captured", which the value panel renders as unmeasured
+      // rather than pretending $0 or headroom.
+      const { collectUsage } = await import("../lib/llm-usage");
+      const {
+        result: executeResult,
+        records: executionCalls,
+        totals: executionUsage,
+      } = await collectUsage(() => Promise.race([
         runner.execute(promptForExecution, task.task_type, {
           task_id: args.task_id,
           agent_id: winner.agent_id,
@@ -1186,7 +1195,7 @@ export const execute = internalAction({
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("execution timeout (180s)")), 180_000),
         ),
-      ]);
+      ]));
       const normalized = normalizeSpecialistOutput(executeResult.output);
       const provenance: SpecialistProvenance = finalizeProvenance(
         executeResult.provenance,
@@ -1228,6 +1237,16 @@ export const execute = internalAction({
         // sets task status to failed, and writes execution_failed with the
         // structured reason.
         throw new Error(`partial_receipt: missing ${missing.join(", ")}`);
+      }
+
+      if (executionUsage.calls > 0) {
+        await ctx.runMutation(internal.tasks._recordExecutionUsage, {
+          task_id: args.task_id,
+          cost_usd: executionUsage.cost_usd ?? 0,
+          input_tokens: executionUsage.input_tokens ?? 0,
+          output_tokens: executionUsage.output_tokens ?? 0,
+          models: [...new Set(executionCalls.map((c) => c.model))],
+        });
       }
 
       await ctx.runMutation(internal.tasks._setResult, {

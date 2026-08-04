@@ -22,6 +22,10 @@ export interface TaskPlanStep {
 }
 
 export interface TaskDoc {
+  execution_cost_usd?: number;
+  execution_input_tokens?: number;
+  execution_output_tokens?: number;
+  execution_models?: string[];
   _id: string;
   _creationTime: number;
   posted_by: string;

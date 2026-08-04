@@ -57,6 +57,14 @@ export default defineSchema({
     model_gateway: v.optional(v.string()),
     result: v.optional(v.any()),
     judge_verdict: v.optional(v.any()),
+    /** Real measured execution spend (lib/llm-usage.ts pricing), written by
+     * auctions.execute when the winner's runner makes model calls in-process.
+     * Absent = not captured (external-infra agents); zero = free lane. The
+     * value panel must never present headroom as savings when this is absent. */
+    execution_cost_usd: v.optional(v.number()),
+    execution_input_tokens: v.optional(v.number()),
+    execution_output_tokens: v.optional(v.number()),
+    execution_models: v.optional(v.array(v.string())),
     /**
      * If set, this task is a sub-step in a larger plan. The auction lifecycle
      * runs identically; on settle, control returns to the parent task to
