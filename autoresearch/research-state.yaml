@@ -6,7 +6,7 @@ question: >
   How cheaply can the hive route work through multi-agent groups per
   successfully-settled task, holding judge-accept rate at or above baseline —
   and what is the honest per-run saving shown to users?
-status: inner_loop
+status: concluding  # outer loop 3; next tick: ml-paper-writing draft from paper/SKELETON.md
 target_metric: usd_per_settled_task  # real measured cost / settled+passed runs
 current_value: 0.001248  # FULL-COVERAGE policy (28/28, zero declines), n=161 attempted (E5c)
 alt_operating_point: 0.000986  # 26-class policy @ 88.3% if coverage is traded for cost
