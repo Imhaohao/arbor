@@ -12,8 +12,11 @@ current_value: 0.000986  # blended class-conditional policy, pooled n=154 attemp
 adopted_policy: >
   class-conditional: 25 servable classes -> backstop@gpt-5.4-mini;
   dom-spatial-curation -> backstop@gpt-5.6-terra (E3: 4/4 @ $0.0113/settled);
-  dom-ai-governance + dom-incident-recovery -> decline-with-refund CANDIDATE
-  (E3: 105x frontier / unrescued; E4 finalizes on blended-frontier math)
+  dom-incident-recovery -> backstop@gpt-5.6-terra (E5: reference was
+  over-narrow; post-fix terra 3/3 @ ~$0.0114/settled);
+  dom-ai-governance -> decline-with-refund candidate, verdict SUSPECT pending
+  E5b same-rubric review (its E3 economics were measured under an unreviewed
+  reference)
 guardrail_metric: judge_accept_rate >= 0.580  # E2 baseline, n=112
 
 experiment_0_baseline:  # measured 2026-08-04, dev deployment valuable-axolotl-318

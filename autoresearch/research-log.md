@@ -111,3 +111,11 @@
   where headroom showed $0.00 saved vs measured $0.0018 — headroom is wrong
   in BOTH directions. Sub-cent formatMoney bug caught in browser verify.
   Decline-with-refund finalized for governance+incident.
+- E5 DONE (protocol 8564f95, results b5d35d0): rubric fired (a) — the
+  incident-recovery reference enforced its own step ordering against valid
+  alternatives; no substrings anchored it. Fix (equivalence language,
+  criteria unchanged) flips the class: terra 0/4 -> 3/3, mini 0/10 -> 1/4.
+  E3's unservable verdict for this class was an instrument error, not a
+  capability fact. Governance verdict now suspect -> E5b. Coverage 27/28
+  pending. THE research finding so far: reference error manufactured a
+  false market conclusion; audits need reference-error reporting.

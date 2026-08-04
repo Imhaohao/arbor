@@ -151,3 +151,20 @@ purpose-scoped env overrides give clean model A/Bs with zero code change;
   in one day. The panel bug (sub-cent rounding to $0.00) was only findable
   in a browser, not in unit tests — verification layers are complementary,
   which is also this project's thesis.
+
+## E5 update (2026-08-04) — the instrument was broken, not the market
+
+- A golden reference with no deterministic anchors and an implicit ordering
+  requirement failed valid work at both tiers, and the routing layer
+  faithfully concluded "unservable class, decline." The conclusion was
+  wrong because the measuring instrument was wrong. Post-fix: terra 3/3.
+- Generalization: every class-level routing decision is downstream of
+  reference quality. Before declaring any class unservable, run the E5
+  rubric (read failed deliveries against the WRITTEN criteria, blind to the
+  reference's specific answer). This is the routing-loop version of the
+  settlement-audit protocol's reference-error leg, now with an in-the-wild
+  positive: the audit lane's own instrument produced a false negative that
+  propagated into policy.
+- For the paper: "judge error" decomposes into judge-vs-reference and
+  reference-vs-truth. We measured the second term existing at class-flipping
+  magnitude. Nobody in the simulation literature can observe this term.
