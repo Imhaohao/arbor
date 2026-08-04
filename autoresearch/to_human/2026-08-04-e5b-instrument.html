@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Routing efficiency — the instrument was the bottleneck</title>
+<style>
+body{font-family:-apple-system,Segoe UI,sans-serif;max-width:880px;margin:2rem auto;padding:0 1rem;color:#1a1a2e;line-height:1.55}
+h1{font-size:1.4rem} h2{font-size:1.1rem;margin-top:1.6rem}
+table{border-collapse:collapse;width:100%;font-size:.9rem} td,th{border:1px solid #d0d0e0;padding:.4rem .6rem;text-align:left}
+th{background:#f0f0f8} .ok{color:#0a7a3d;font-weight:600} .bad{color:#b00020;font-weight:600}
+.muted{color:#666;font-size:.85rem} .big{font-size:1.5rem;font-weight:700}
+.callout{border-left:4px solid #4a5fc1;background:#f6f7fd;padding:.7rem 1rem;margin:1rem 0}
+</style></head><body>
+<h1>Nine experiments in: every "unservable" class was our instrument, not the market</h1>
+<p class="muted">2026-08-04 · 400+ graded runs · ~$0.75 total spend · all protocols pre-registered (git-locked before results)</p>
+
+<h2>What just happened</h2>
+<table>
+<tr><th>Class</th><th>Before</th><th>After instrument repair</th><th>What was actually broken</th></tr>
+<tr><td>dom-incident-recovery</td><td class="bad">0/14 both tiers ("unrescued")</td><td class="ok">terra 3/3; mini re-check queued</td><td>Reference enforced its own step ordering against equally valid incident practice; zero deterministic anchors</td></tr>
+<tr><td>dom-ai-governance</td><td class="bad">0/12; "1/4 at 105x cost, decline"</td><td class="ok">mini 4/4 @ $0.0025 (2.7x frontier); terra 4/4</td><td>Same reference narrowness PLUS: the battery sliced deliveries to 4,000 chars BEFORE grading — the grader failed verbose answers for sections the model actually wrote</td></tr>
+<tr><td>dom-spatial-curation</td><td class="bad">mini 0/10</td><td class="ok">terra 4/4 @ 12x (E3, stands)</td><td>Nothing — a genuine, purchasable capability gap</td></tr>
+</table>
+
+<div class="callout"><b>The decline-with-refund bucket is empty.</b> Of three classes the pre-registered pipeline declared unservable, two were manufactured by measurement defects and one is served by paid escalation. Candidate coverage: 28/28.</div>
+
+<h2>The two instrument defects, named</h2>
+<p><b>1. Reference error.</b> Golden references that encode one valid answer and silently fail equivalents. Found twice by the same cheap procedure: read failed deliveries against the <i>written</i> criteria, blind to the reference's specific answer. Both fixes added equivalence language; the pass/fail contract never changed.</p>
+<p><b>2. Measurement-pipeline error.</b> <code>MAX_OUTPUT_CHARS=4000</code> truncated deliveries before the grader saw them — differentially punishing the verbose tier and producing E3's odd "terra scores lower while both fail" inversion. Now aligned to the audit window (6,000). Rule: <i>store what you grade; any cap upstream of the grader is part of the instrument.</i></p>
+
+<h2>Why this is the paper</h2>
+<p>Apparent market failure in a deployed agent marketplace decomposes into (i) true capability gaps, (ii) reference error, (iii) pipeline error — and (ii)+(iii) were the majority here. Simulation testbeds cannot observe those two terms: their references and pipes are correct by construction. Only a deployed system with a reference-graded audit lane can measure them, and ours just did, at class-flipping magnitude, twice in one day. "Audit the auditor" is not hygiene; it is where most of the correction came from.</p>
+
+<h2>Current ledger</h2>
+<table>
+<tr><td>Cheap-lane frontier</td><td><b>$0.000933</b>/settled @ 78.6% (a floor — the old truncation could only deflate accepts)</td></tr>
+<tr><td>Blended policy</td><td><b>$0.000986</b>/settled @ 88.3%, improving with governance on mini</td></tr>
+<tr><td>Honest per-run saving (live in product)</td><td>mean <b>$0.001692</b>, median $0.000882, 132/132 positive, vs gpt-5.2 list</td></tr>
+<tr><td>Next</td><td>E5c: mini re-checks on incident + spatial under the fixed instrument — completes or honestly bounds the 28/28 claim</td></tr>
+</table>
+</body></html>
