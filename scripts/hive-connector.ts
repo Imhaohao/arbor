@@ -31,8 +31,10 @@ import {
 } from "../lib/hive/connector-core";
 import {
   callDevin,
+  callHyperspell,
   callMcpAgent,
   callOllamaPersona,
+  callOpenAICompat,
   callV0,
   type BackendReply,
 } from "../lib/hive/connector-backends";
@@ -269,6 +271,34 @@ async function callBackend(
       toolPreference: entry.backend.toolPreference,
       argsFor: entry.backend.argsFor,
       query: entry.backend.queryFor(round, goal, digest),
+    });
+  }
+  if (entry.backend.type === "hyperspell") {
+    return await callHyperspell({
+      round,
+      goal,
+      digest,
+      query: entry.backend.queryFor(round, goal, digest),
+    });
+  }
+  if (entry.backend.type === "openai-compat") {
+    return await callOpenAICompat({
+      baseUrl: entry.backend.baseUrl,
+      model: entry.backend.model,
+      bearer: entry.backend.bearerEnv
+        ? process.env[entry.backend.bearerEnv]
+        : undefined,
+      system: entry.system_prompt,
+      prompt: buildRoundPrompt({
+        goal,
+        agentId: entry.agent_id,
+        displayName: entry.display_name,
+        sponsor: entry.sponsor,
+        capabilities: entry.capabilities,
+        memberIds: session.agent_ids,
+        round,
+        digest,
+      }),
     });
   }
   return await callOllamaPersona({

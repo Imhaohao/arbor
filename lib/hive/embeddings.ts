@@ -73,21 +73,70 @@ async function openAIEmbed(texts: string[]): Promise<number[][]> {
   return json.data.map((d) => d.embedding);
 }
 
+// --- Azure OpenAI embedder ---
+
+function azureEmbedConfig(): {
+  endpoint: string;
+  key: string;
+  deployment: string;
+} | null {
+  const endpoint = process.env.AZURE_OPENAI_ENDPOINT?.trim().replace(/\/+$/, "");
+  const key = process.env.AZURE_OPENAI_API_KEY?.trim();
+  const deployment = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT?.trim();
+  if (!endpoint || !key || !deployment) return null;
+  return { endpoint, key, deployment };
+}
+
+async function azureEmbed(texts: string[]): Promise<number[][]> {
+  const config = azureEmbedConfig()!;
+  const version = process.env.AZURE_OPENAI_API_VERSION?.trim() || "2024-10-21";
+  const url = `${config.endpoint}/openai/deployments/${config.deployment}/embeddings?api-version=${version}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "api-key": config.key,
+      },
+      body: JSON.stringify({ input: texts, dimensions: 1536 }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) {
+    const snippet = (await res.text()).slice(0, 300);
+    throw new Error(`azure embed ${res.status}: ${snippet}`);
+  }
+  const json = (await res.json()) as { data: { embedding: number[] }[] };
+  return json.data.map((d) => d.embedding);
+}
+
 // --- public API ---
 
-export function embeddingBackend(): "openai" | "local-hash" {
-  if (
-    process.env.OPENAI_API_KEY &&
-    process.env.HIVE_EMBEDDINGS_FORCE_LOCAL !== "true"
-  ) {
-    return "openai";
-  }
+// Azure outranks OpenAI: when both are configured but the OpenAI account has
+// no credit (the measured state), preferring OpenAI means every embed call
+// burns a failed request before falling back to local-hash.
+export function embeddingBackend(): "azure" | "openai" | "local-hash" {
+  if (process.env.HIVE_EMBEDDINGS_FORCE_LOCAL === "true") return "local-hash";
+  if (azureEmbedConfig()) return "azure";
+  if (process.env.OPENAI_API_KEY) return "openai";
   return "local-hash";
 }
 
 export async function embedTexts(texts: string[]): Promise<number[][]> {
   const inputs = texts.map((t) => t.trim().slice(0, 8000));
-  if (embeddingBackend() === "openai") {
+  const backend = embeddingBackend();
+  if (backend === "azure") {
+    try {
+      return await azureEmbed(inputs);
+    } catch (err) {
+      console.warn(`embedTexts: azure failed, falling back to local-hash: ${(err as Error).message}`);
+    }
+  } else if (backend === "openai") {
     try {
       return await openAIEmbed(inputs);
     } catch (err) {

@@ -146,14 +146,22 @@ export function buildRoundPrompt(args: RoundPromptArgs): string {
 export function parseSseJson(text: string): unknown {
   const trimmed = text.trim();
   if (!trimmed) throw new Error("empty MCP response body");
-  if (!trimmed.startsWith("event:") && !trimmed.startsWith("data:")) {
+  // SSE bodies can OPEN with a comment keepalive line (": ping - <ts>"),
+  // not only "event:"/"data:" — DeepWiki does exactly this under load.
+  const looksLikeSse =
+    trimmed.startsWith("event:") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith(":") ||
+    trimmed.includes("\ndata:");
+  if (!looksLikeSse) {
     return JSON.parse(trimmed);
   }
   const datas = trimmed
     .split("\n")
+    .map((line) => line.trim())
     .filter((line) => line.startsWith("data:"))
     .map((line) => line.slice(5).trim())
-    .filter(Boolean);
+    .filter((payload) => Boolean(payload) && payload !== "ping");
   if (datas.length === 0) throw new Error("SSE body carried no data lines");
   return JSON.parse(datas[datas.length - 1]);
 }

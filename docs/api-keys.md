@@ -192,6 +192,9 @@ fallback used by both paths when the provider-specific var is unset.
 | `GITHUB_TOKEN` | Next, Convex if called from actions | Optional | GitHub-backed demos, Devin bridge repository access, catalog GitHub MCP specialist, and the new `github-pr-review` specialist. Public PRs work unauthenticated but are rate-limited; a token raises limits and unlocks private repos. Also accepted as `GITHUB_PAT`. |
 | `STRIPE_API_KEY`, `NOTION_API_KEY`, `LINEAR_API_KEY`, `VERCEL_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`, `SENTRY_AUTH_TOKEN`, `ATLASSIAN_API_TOKEN`, `NEON_API_KEY`, `FIGMA_API_TOKEN` | Next, Convex if called from actions | Optional per specialist | Catalog MCP specialists. Missing values leave the matching specialist not market-ready. |
 | `MCP_REGISTRY_URL` | Next, Convex if called from actions | Optional | MCP registry URL override. |
+| `TIKTOK_ACCESS_TOKEN` | Convex | Optional | OAuth access token for the TikTok Content Posting API used by `convex/tiktokUploadActions.ts`. Presence is surfaced (never the value) by `convex/hiveNetwork.ts` so the agent-network canvas can say "not configured" instead of implying a delivery it cannot make. Uploads target the **inbox** endpoint, which lands a draft the account owner must finish posting; direct publishing requires an audited TikTok app. |
+| `ARBOR_TIKTOK_SINGLE_TENANT_UPLOADS` | Next | Optional | Set to `true` to allow `/api/v1/tiktok/uploads` on a single-account deployment. Without it, uploads require per-user OAuth and the route refuses. Leave unset for any multi-tenant deployment. |
+| `ARBOR_TIKTOK_MAX_UPLOAD_BYTES` | Convex | Optional | Overrides the upload size ceiling for TikTok video handoff. |
 
 ## Hyperspell And Nia Verification (2026-07-10)
 
@@ -243,3 +246,20 @@ Twilio Docs, Cloudflare Docs).
 
 Do not print, commit, or paste real API keys in logs, docs, tests, or chat
 summaries.
+
+## Hive Connector Roundtable Agents
+
+| Var | Where (Next / Convex / both) | Required? | Purpose |
+| --- | --- | --- | --- |
+| `SUPERSET_API_KEY` | connector runtime (`scripts/hive-connector.ts`) | Optional | Activates the Superset (YC SP26) roundtable agent via `https://api.superset.sh/mcp`. |
+| `CEKURA_API_KEY` | connector runtime | Optional | Activates the Cekura (YC F24) roundtable agent via `https://api.cekura.ai/mcp`. |
+| `RETELL_API_KEY` | connector runtime | Optional | Activates the Retell (YC W24) roundtable agent via `https://mcp.retellai.com`. |
+| `MEM0_API_KEY` | connector runtime | Optional | Activates the Mem0 (YC S24) roundtable agent via `https://mcp.mem0.ai/mcp` (read-only tools). |
+| `SILMARIL_API_KEY` | connector runtime | Optional | Activates the Silmaril firewall roundtable agent via `https://firewall-mcp.silmaril.dev/mcp`. |
+| `KERNEL_API_KEY` | connector runtime | Optional | Activates the Kernel (YC S25) roundtable agent via `https://mcp.onkernel.com/mcp` (read-only `search_docs`). |
+| `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | Next + Convex | Optional | Azure embeddings deployment for `lib/hive/embeddings.ts` (backend order: azure > openai > local-hash). |
+
+The roundtable roster (`lib/hive/connector-roster.ts` + `connector-roster-yc.ts`)
+is env-gated: entries stay inactive until their key exists. See
+`autoresearch/yc-wireup-status.md` for signup URLs. Never create vendor
+accounts automatically; the operator signs up and pastes keys.

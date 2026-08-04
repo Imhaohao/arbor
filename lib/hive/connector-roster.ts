@@ -6,6 +6,7 @@
 // runtime rather than silently downgraded to a mock.
 
 import type { McpToolInfo } from "./connector-core";
+import { YC_GATED_ROSTER } from "./connector-roster-yc";
 
 export type RosterBackend =
   | { type: "devin" }
@@ -19,7 +20,22 @@ export type RosterBackend =
       /** Build the tool query for a round from goal + digest. */
       queryFor: (round: number, goal: string, digest: string) => string;
     }
-  | { type: "ollama"; model: string };
+  | { type: "ollama"; model: string }
+  | {
+      /** Hyperspell memory agent: real add+query per round via held key. */
+      type: "hyperspell";
+      queryFor: (round: number, goal: string, digest: string) => string;
+    }
+  | {
+      /**
+       * OpenAI-compatible chat endpoint (e.g. a self-hosted LiteLLM proxy).
+       * Gateway-backed persona — the provenance label must say so.
+       */
+      type: "openai-compat";
+      baseUrl: string;
+      model: string;
+      bearerEnv?: string;
+    };
 
 export interface RosterEntry {
   agent_id: string;
@@ -220,6 +236,51 @@ export const CONNECTOR_ROSTER: RosterEntry[] = [
             : "deploy workflows to production and track releases",
     },
   },
+  {
+    agent_id: "hyperspell-memory",
+    display_name: "Hyperspell",
+    sponsor: "Hyperspell",
+    yc_batch: "F25",
+    capabilities: ["durable-memory", "cross-session-recall", "context-store"],
+    system_prompt:
+      "You are hyperspell-memory, the Hyperspell memory agent participating in an Arbor hive roundtable.",
+    cost_per_task_estimate: 0.3,
+    starting_reputation: 0.6,
+    provenance_label: "real memory API (Hyperspell add+query)",
+    requiresEnv: ["HYPERSPELL_API_KEY"],
+    backend: {
+      type: "hyperspell",
+      queryFor: (round, goal) =>
+        round === 1
+          ? `prior decisions and division-of-labor patterns relevant to: ${goal}`
+          : round === 2
+            ? `conflicts or overlaps recorded in earlier hive roundtables about: ${goal}`
+            : `final commitments stored from this roundtable about: ${goal}`,
+    },
+  },
+  {
+    agent_id: "litellm-gateway",
+    display_name: "LiteLLM",
+    sponsor: "LiteLLM (BerriAI)",
+    yc_batch: "W23",
+    capabilities: ["llm-gateway", "model-routing", "cost-tracking"],
+    system_prompt:
+      "You are litellm-gateway, the LiteLLM gateway representative in an Arbor hive roundtable. " +
+      "You speak for the model-routing/gateway layer: routing, fallbacks, per-agent cost " +
+      "tracking, and provider abstraction. Your replies are generated through a live " +
+      "self-hosted LiteLLM proxy in front of Azure OpenAI, which is itself the product you represent.",
+    cost_per_task_estimate: 0.1,
+    starting_reputation: 0.5,
+    provenance_label:
+      "gateway-backed persona (self-hosted LiteLLM proxy over Azure OpenAI)",
+    requiresEnv: ["AZURE_OPENAI_API_KEY"],
+    backend: {
+      type: "openai-compat",
+      baseUrl: "http://127.0.0.1:4400/v1",
+      model: "arbor-azure",
+    },
+  },
+  ...YC_GATED_ROSTER,
 ];
 
 /** Roster entries whose env requirements are satisfied right now. */

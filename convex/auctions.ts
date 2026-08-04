@@ -491,9 +491,18 @@ export const solicitBids = internalAction({
     const taskContext = await ctx.runQuery(internal.taskContexts._latestForTask, {
       task_id: args.task_id,
     });
+    // The buyer's max_budget is deliberately NOT advertised to bidders.
+    // Advertising it anchored every price to the ceiling (house last-resort
+    // agents literally bid 0.92x the parsed ceiling), so the "budget" became
+    // the price. Bidders are asked for their true delivery cost instead;
+    // affordability is enforced server-side by the bid validity filter and
+    // the specialists' own cost-vs-price decline logic falls back to
+    // cost_baseline when no ceiling is present in the prompt.
     const promptForAgents = [
       task.prompt,
-      `Budget ceiling: $${task.max_budget.toFixed(2)}. Do not bid above this budget.`,
+      "Price your bid at the lowest amount you can credibly deliver this " +
+        "task for. No budget ceiling is disclosed; bids the buyer cannot " +
+        "afford are rejected without being seen.",
       taskContext ? `---\n\n${taskContext.prompt_addendum}` : undefined,
     ]
       .filter((part): part is string => Boolean(part))

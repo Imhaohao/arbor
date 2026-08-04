@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+    <title>Arbor Hive Host</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Arbor Hive Host</h1>
+      <p class="subtitle">
+        Hosts the external-agent hive connector on this machine so hive
+        agents have a device to work on.
+      </p>
+    </header>
+
+    <main class="grid">
+      <section class="panel" id="panel-roster">
+        <h2>Roster</h2>
+        <p class="hint">
+          Each agent gets a workspace directory on this machine (its
+          "device"). Active agents have every required API key present in
+          the repo's <code>.env.local</code>; gated agents are missing one or
+          more.
+        </p>
+        <div id="roster-list" class="list">Loading roster...</div>
+      </section>
+
+      <section class="panel" id="panel-session">
+        <h2>Session</h2>
+        <div id="session-summary" class="summary">Loading session...</div>
+
+        <div class="form-row">
+          <input
+            id="goal-input"
+            type="text"
+            placeholder="New session goal..."
+          />
+          <button id="btn-new-session">New session</button>
+        </div>
+        <div class="form-row">
+          <button id="btn-discuss">Run discussion (3 rounds)</button>
+          <button id="btn-verify">Verify</button>
+        </div>
+
+        <h3>Log</h3>
+        <pre id="log-pane" class="log-pane"></pre>
+      </section>
+
+      <section class="panel" id="panel-board">
+        <h2>Live board</h2>
+        <p class="hint">
+          Polls the Convex scratchpad every 5 seconds while a discussion is
+          running.
+        </p>
+        <div id="board-status" class="hint">idle</div>
+        <div id="board-list" class="list"></div>
+      </section>
+
+      <section class="panel" id="panel-azure">
+        <h2>Azure VM host (reference only)</h2>
+        <p class="hint">
+          These commands are displayed for reference only — this app never
+          executes them. Use them to provision a small always-on VM that
+          runs the same connector on a schedule instead of this desktop app.
+        </p>
+        <pre class="azure-block" id="azure-commands"></pre>
+      </section>
+    </main>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

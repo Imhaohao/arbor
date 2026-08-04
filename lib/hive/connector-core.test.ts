@@ -106,6 +106,13 @@ assert.deepEqual(
   true,
 );
 assert.throws(() => parseSseJson(""));
+// Comment keepalives before the payload (DeepWiki under load).
+assert.deepEqual(
+  parseSseJson(
+    ': ping - 2026-08-04 08:31:00\n\nevent: message\ndata: {"jsonrpc":"2.0","id":3,"result":{"ok":2}}',
+  ),
+  { jsonrpc: "2.0", id: 3, result: { ok: 2 } },
+);
 
 assert.equal(
   extractMcpText({

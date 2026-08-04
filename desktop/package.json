@@ -1,0 +1,13 @@
+{
+  "name": "arbor-hive-host",
+  "version": "1.0.0",
+  "description": "Arbor Hive Host — desktop app that hosts the external-agent hive connector on this machine",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^43.2.0"
+  }
+}

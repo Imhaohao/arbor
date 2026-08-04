@@ -24,9 +24,10 @@ const SEMANTIC_DEFAULT = 8;
 const SEMANTIC_MAX = 20;
 
 function modelLabel(): string {
-  return embeddingBackend() === "openai"
-    ? "openai:text-embedding-3-small"
-    : "local-hash";
+  const backend = embeddingBackend();
+  if (backend === "azure") return "azure:text-embedding-3-small";
+  if (backend === "openai") return "openai:text-embedding-3-small";
+  return "local-hash";
 }
 
 // Strip the 1536-float embedding off an entry doc before returning it.

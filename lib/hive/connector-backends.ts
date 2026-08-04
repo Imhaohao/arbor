@@ -370,6 +370,101 @@ export async function callV0(options: {
   };
 }
 
+// ── Hyperspell (YC F25) memory agent ────────────────────────────────────────
+
+/**
+ * Hyperspell participates as the hive's durable-memory agent: each round it
+ * WRITES the board digest into Hyperspell as a memory, then QUERIES the
+ * memory store for the round's question. Both are real API calls against the
+ * held key; the message reports what the memory layer actually did and
+ * recalled, never a fabricated opinion.
+ */
+export async function callHyperspell(options: {
+  round: number;
+  goal: string;
+  digest: string;
+  query: string;
+}): Promise<BackendReply> {
+  const { addMemory, searchMemories } = await import("../hyperspell");
+  const userId = process.env.HYPERSPELL_USER_ID?.trim() || "arbor-hive";
+  const stored = await addMemory({
+    userId,
+    title: `hive roundtable round ${options.round}`,
+    collection: "arbor-hive-roundtable",
+    text: `Objective: ${options.goal}\n\nBoard digest:\n${options.digest || "(empty board)"}`,
+  });
+  const recalled = await searchMemories({
+    userId,
+    query: options.query,
+    answer: true,
+    maxResults: 5,
+  });
+  const answer =
+    (recalled as { answer?: string }).answer?.trim() ??
+    (recalled as { data?: { answer?: string } }).data?.answer?.trim();
+  const docCount =
+    (recalled as { documents?: unknown[] }).documents?.length ??
+    (recalled as { data?: { documents?: unknown[] } }).data?.documents?.length ??
+    0;
+  const storedId =
+    (stored as { resource_id?: string }).resource_id ??
+    (stored as { data?: { resource_id?: string } }).data?.resource_id ??
+    "ok";
+  const text = answer
+    ? `Memory recall on "${options.query.slice(0, 90)}": ${answer}\n(I also archived this round's board as durable memory ${storedId}.)`
+    : `I archived this round's board digest as durable memory ${storedId} in collection arbor-hive-roundtable; recall for "${options.query.slice(0, 90)}" returned ${docCount} stored documents so far. My slice: I keep the roundtable's decisions durable and queryable across sessions.`;
+  return {
+    text,
+    provenance: `real memory API: Hyperspell add+query (collection arbor-hive-roundtable)`,
+    external_id: typeof storedId === "string" ? storedId : undefined,
+  };
+}
+
+// ── OpenAI-compatible proxy (LiteLLM and friends) ───────────────────────────
+
+export async function callOpenAICompat(options: {
+  baseUrl: string;
+  model: string;
+  system: string;
+  prompt: string;
+  bearer?: string;
+  timeoutMs?: number;
+}): Promise<BackendReply> {
+  const response = await fetchWithTimeout(
+    `${options.baseUrl.replace(/\/+$/, "")}/chat/completions`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(options.bearer ? { authorization: `Bearer ${options.bearer}` } : {}),
+      },
+      body: JSON.stringify({
+        model: options.model,
+        max_tokens: 400,
+        messages: [
+          { role: "system", content: options.system },
+          { role: "user", content: options.prompt },
+        ],
+      }),
+    },
+    options.timeoutMs ?? 120_000,
+  );
+  if (!response.ok) {
+    throw new Error(
+      `openai-compat ${response.status}: ${(await response.text()).slice(0, 200)}`,
+    );
+  }
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error("openai-compat endpoint returned no content");
+  return {
+    text,
+    provenance: `gateway-backed persona: ${options.model} via OpenAI-compatible proxy at ${options.baseUrl}`,
+  };
+}
+
 // ── local Ollama persona (labeled, never counted as external) ───────────────
 
 export async function callOllamaPersona(options: {
