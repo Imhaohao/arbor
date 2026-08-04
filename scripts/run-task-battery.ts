@@ -132,7 +132,12 @@ function option(name: string, fallback?: string): string | undefined {
  * local grader is never silently mixed with frontier labels. */
 let GRADER_MODEL = "none";
 
-const MAX_OUTPUT_CHARS = 4000;
+// Aligned to goldenAuditUserPrompt's 6000-char delivery window. At 4000 this
+// truncated deliveries BEFORE grading (line ~260), so verbose-but-valid
+// answers lost their final section and were failed for "missing" content the
+// model actually wrote — found in E5b, where it differentially punished
+// terra's table-heavy style and produced E3's mean-accuracy inversion.
+const MAX_OUTPUT_CHARS = 6000;
 
 function deliveryText(result: unknown): string {
   if (typeof result === "string") return result;

@@ -356,9 +356,9 @@ const DEFAULT_GOLDEN_TASKS: Array<{
     task_type: "reasoning",
     max_budget: 0.3,
     reference_answer:
-      "Spend: per-team token/cost budgets measured from usage records, action = throttle or hard-stop. Data egress: PII/secret detection on prompts, action = redact or block before the provider call. Auditability: immutable per-request log of prompt hash, model, tokens, cost and policy decision, retained for review.",
+      "One valid control set — Spend: per-team token/cost budgets measured from usage records, action = throttle or hard-stop. Data egress: PII/secret detection on prompts, action = redact or block before the provider call. Auditability: immutable per-request log of prompt hash, model, tokens, cost and policy decision, retained for review. EQUIVALENT CONTROLS ARE CORRECT: rate/concurrency quotas, per-request cost ceilings, burn-rate alerts, DLP classification, residency/allowlist routing, policy-decision traces, or tamper-evident logging all satisfy an area, provided each named control states a measurable signal and a concrete enforcement action.",
     success_criteria:
-      "Must cover all three areas with a measurable signal AND a concrete enforcement action for each. Listing controls with no measurement or no action is a failure.",
+      "Must cover all three areas (spend, data egress, auditability) with a measurable signal AND a concrete enforcement action for each. Listing controls with no measurement or no action is a failure. Do NOT fail a delivery for choosing different valid controls than the reference's examples; fail only for a missing area, a control without a signal, or a control without an enforcement action.",
   },
   {
     golden_id: "golden-dom-security-review",
