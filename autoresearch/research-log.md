@@ -90,3 +90,9 @@
   $0.00098/settled vs 41% @ $0.00111); task classes bimodal (9/28 at 4/4,
   6/28 at 0/4, failures concentrated in dom-*). Queued E3' dominance check
   ahead of probe-gating E3. HTML report -> to_human/.
+- E3' DONE (protocol bf73c7f, results 675c182): 4/4 predictions pass, n=336.
+  Route-all-to-backstop ADOPTED: +22.9pp accept, -12.2% $/settled vs 50/50
+  mix (simulated on pooled real runs). Sign test 19W/5T/1L over 25 eligible
+  classes. Three classes unservable by cheap lane entirely (0/12): the
+  escalation targets for reshaped E3. Baseline-agent drift noted (41%->29%
+  across sweep pairs) — pooled claims only.

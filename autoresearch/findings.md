@@ -96,3 +96,17 @@
 - Constraint learned: same-family grader for worker and audit — keep as a
   named validity caveat on every accept-rate claim until grader moves to a
   different family (candidate E2b, low priority).
+
+## E3' update (2026-08-04)
+
+- Dominance is real, not a mix artifact: backstop wins or ties 24/25 eligible
+  classes. First routing policy adopted (route-all-to-backstop). The cheap
+  lane's frontier is now accept 0.786 @ $0.000933/settled.
+- The residual is structural, not statistical: 3 classes are 0/12 across
+  both agents. No amount of cheap-lane routing fixes them — escalation or
+  honest decline are the only moves. This is the empirical case for
+  class-conditional escalation (reshaped E3) and for decline-as-a-mechanism
+  (ties back to bid-calibration's abstention design).
+- Method lesson: per-agent accept at sweep scale (n=56) drifts +-6pp;
+  lock policy decisions to pooled data and keep stability bands in every
+  protocol (P3 caught this).
