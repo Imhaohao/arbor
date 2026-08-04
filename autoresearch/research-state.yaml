@@ -9,7 +9,11 @@ question: >
 status: inner_loop
 target_metric: usd_per_settled_task  # real measured cost / settled+passed runs
 current_value: 0.001063  # pooled n=336 under 50/50 mix (operating point)
-adopted_policy: route-all-to-backstop  # E3'; projected 0.000933 @ accept 0.786 (simulated on real runs)
+adopted_policy: >
+  class-conditional: 25 servable classes -> backstop@gpt-5.4-mini;
+  dom-spatial-curation -> backstop@gpt-5.6-terra (E3: 4/4 @ $0.0113/settled);
+  dom-ai-governance + dom-incident-recovery -> decline-with-refund CANDIDATE
+  (E3: 105x frontier / unrescued; E4 finalizes on blended-frontier math)
 guardrail_metric: judge_accept_rate >= 0.580  # E2 baseline, n=112
 
 experiment_0_baseline:  # measured 2026-08-04, dev deployment valuable-axolotl-318
@@ -43,10 +47,13 @@ hypotheses:
     status: supported  # E2: accept 0.580, $/settled 0.001026, all 4 predictions pass
   H3:
     statement: >
-      Probe-gated solicitation (probe-success head, AUC 0.959) cuts cost per
-      settled task >= 30% vs open solicitation by not paying for dead-agent
-      solicitations, at unchanged accept rate.
-    status: untested
+      (reshaped at E3') Cheap-lane failure on the unservable classes is model
+      capability, not task impossibility: terra escalation lifts them at
+      bounded cost.
+    status: supported-with-structure  # E3: true for 1/3 classes; 105x/unrescued for other 2
+  H3-original:
+    statement: probe-gated solicitation cuts $/settled >= 30% (deferred; roster is 2 known-live agents, gate has nothing to prune yet)
+    status: deferred
   H4:
     statement: >
       An honest per-run savings metric — counterfactual frontier cost (same

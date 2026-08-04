@@ -110,3 +110,31 @@
 - Method lesson: per-agent accept at sweep scale (n=56) drifts +-6pp;
   lock policy decisions to pooled data and keep stability bands in every
   protocol (P3 caught this).
+
+## Outer-loop reflection 1 (2026-08-04, after E0-E3)
+
+What we know: the marketplace's cheap lane has a real, measured frontier —
+accept 0.786 @ $0.000933/settled (backstop@mini, n=168) — and deviations
+from it are now CLASSIFIED, not mysterious: (a) 22/28 classes sit on or near
+the frontier; (b) 1 class (spatial) is a pure capability gap that 12x spend
+closes completely; (c) 2 classes resist 9-10x spend and belong to
+decline-with-refund or golden-task review, not routing.
+
+The pattern across E2->E3: every "routing" gain so far decomposed into
+SELECTION (pick the dominant agent) or TIERING (pay for capability only
+where it pays back). Nothing yet required the auction/probe machinery —
+with a 2-agent live roster there is nothing to prune or price. The probe
+head and Vickrey layer become testable only when the roster grows (H3
+original stays deferred; noted so we do not claim more than the data shows).
+
+Story test: could a reader write the abstract? "In a deployed agent
+marketplace we made cost-per-settled-task measurable, found the displayed
+savings metric was headroom, established a $0.001 frontier, and showed the
+residual failures split into one purchasable capability gap and two classes
+where honest decline beats any routing" — yes. E4 (honest savings swap)
+completes the user-facing half; E5 guards the claim hygiene.
+
+Method lessons this cycle: (1) lock decision rules but write them per-class
+— pooled rules can technically fire on economics no one should ship; (2)
+purpose-scoped env overrides give clean model A/Bs with zero code change;
+(3) pass rate, not mean accuracy, is the signal near the grader threshold.

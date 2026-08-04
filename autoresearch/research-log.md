@@ -96,3 +96,10 @@
   classes. Three classes unservable by cheap lane entirely (0/12): the
   escalation targets for reshaped E3. Baseline-agent drift noted (41%->29%
   across sweep pairs) — pooled claims only.
+- E3 DONE (protocol f2adccc, results bf1ed4b): 4/4 predictions pass, rule
+  fired. Structure: spatial RESCUED (4/4 @ 12x frontier), governance 1/4 @
+  105x (poor economics), incident 0/4 both tiers (golden-task review queued
+  as E5). Grader purpose isolation verified pre-lock (agent vs default).
+  Mean-accuracy inversion below pass line: pass rate, not mean acc, is the
+  escalation signal. --golden-ids flag landed in battery. Spend: $0.212.
+- OUTER LOOP (after 5 experiments): see findings.md reflection.
