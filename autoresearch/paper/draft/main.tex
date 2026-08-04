@@ -1,0 +1,98 @@
+\documentclass{article}
+
+\usepackage[nonatbib, preprint]{neurips}
+\usepackage[numbers]{natbib}
+
+\makeatletter
+\renewcommand{\@noticestring}{\centering Workshop preprint. Numbers trace to pre-registered experiment records (git-locked protocols preceding results).}
+\makeatother
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{xcolor}
+
+\title{Audit the Auditor: Instrument Error Dominates Apparent\\Market Failure in a Deployed Agent Marketplace}
+
+\author{%
+  Zihao Yan\\
+  Arbor\\
+  \texttt{imzihaoi@gmail.com}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We report a pre-registered measurement campaign in a deployed agent marketplace with reference-graded audit tasks. We first made cost-per-settled-task measurable --- discovering that the product's displayed ``savings'' was budget headroom, wrong in both directions --- then optimized it: agent selection and model tiering produced a \$0.00125-per-settled-task operating point at 88.8\% judge-accept across 28 task classes. The central finding concerns the residual. Of three task classes our pipeline declared unservable, two were manufactured by our own measurement instruments: a reference answer that failed valid work for deviating from its specific ordering, and a grading pipeline that truncated deliveries to 4{,}000 characters \emph{before} the grader saw them, differentially failing the verbose model tier for content it actually wrote. One class was a genuine, purchasable capability gap. A cheap pre-registered rubric --- read failed deliveries against the \emph{written} acceptance criteria, blind to the reference's specific answer --- discriminated all three endpoints correctly, flipping one class from ``unservable'' to 8/8 passing on the cheapest tier at 2.7$\times$ the frontier cost. We argue that apparent market failure in agent marketplaces decomposes into capability gaps, reference error, and pipeline error; the latter two dominated here, and both are invisible to simulation testbeds, whose instruments are correct by construction.
+\end{abstract}
+
+\section{Introduction}
+
+Agent marketplaces route tasks to autonomous workers, settle payment on a judge's verdict, and increasingly justify themselves with efficiency claims. A growing literature studies each layer: mechanism design for LLM bidders \citep{duetting2024mechanismdesignlargelanguage}, simulated agent labor markets \citep{liu2026diagonprogrammabletestbedaiagent, chiu2026aiagentscompetejobs}, routing policy \citep{mahmood2026routingcascadesuserchoice}, judge reliability \citep{norman2026reliabilityvaliditysystematiclargescale}, and failure taxonomies that name task verification a root failure class \citep{cemri2025multiagentllmsystemsfail}. What this literature shares is that its measurement instruments --- references, graders, pipelines --- are correct by construction. Real deployments do not get that guarantee.
+
+We ran ten pre-registered experiments on a deployed marketplace (1{,}233 registered agents; a 2-agent live execution roster; Vickrey settlement; a curated battery of 28 reference-graded audit classes) with one optimization target: dollars per successfully settled task, holding judge-accept rate at or above baseline. Contributions:
+
+\begin{itemize}
+  \item \textbf{Honest metrics from a deployed system.} We instrumented real token spend end-to-end, found and fixed a silent pricing bug (longest-prefix model matching overbilling the workhorse tier 3.3--4.4$\times$), and replaced the product's displayed ``savings'' --- budget headroom, which overstates on cheap wins and understates to \$0.00 on full-budget runs --- with a measured counterfactual (mean \$0.0017 per settled run, positive on 132/132).
+  \item \textbf{A measured routing frontier.} Route-to-dominant-agent plus class-conditional tiering yields \$0.00125/settled at 88.8\% accept over all 28 classes (leaner 26-class variant: \$0.00099 at 88.3\%), confirmed per-class against Simpson-style artifacts.
+  \item \textbf{The instrument result.} Both classes that resisted routing and escalation were false negatives of the audit instrument itself; a third was genuine. We give the rubric that discriminated them and quantify the repair: one class went 0/12 to 8/8 on the cheap tier.
+\end{itemize}
+
+\section{Setting}
+
+The marketplace is a single-task, single-agent, instantaneous-assignment allocation problem in the classical taxonomy \citep{Gerkey_2004}; market-based allocation of exactly this shape was surveyed two decades ago with the standing caveat that deployments beyond ``a few robots'' did not exist \citep{Dias_2006}. Tasks post to a sealed-bid auction; the winner executes; a model judge settles. An audit lane posts \emph{golden} tasks --- ordinary-looking tasks with a curated reference answer and optional deterministic substring anchors --- through the same pipeline; a reference-based grader (a different deployment than the worker, given the known answer) produces pass/fail and a quality score. The task battery fans one golden task to many agents and grades all deliveries, yielding per-class cost--accuracy operating points. Two execution-capable agents ride the funded lane: a cheap tier (gpt-5.4-mini) and an expensive tier (gpt-5.6-terra), the latter reachable per-run by a purpose-scoped deployment override that cannot touch the grader.
+
+\section{Making the target measurable}
+
+At project start the target was unmeasurable: the spend-telemetry table had zero rows ever; all 318 graded battery runs carried \$0 cost (zero-credit demo agents) and 0/318 passed audit. The displayed per-run ``saving'' was \texttt{max\_budget} $-$ \texttt{price\_paid} --- headroom a user chooses, disavowed as a savings metric in the codebase's own comments. Instrumentation produced two corrections worth reporting. First, model pricing by longest-prefix matching silently billed the Azure lane models against a generic \texttt{gpt-5} entry: 3.3--4.4$\times$ too high for the workhorse, 2$\times$ too low for the judge. Second, the honest replacement metric --- the same tokens priced at frontier list minus actual measured cost, reported only on settled runs --- is small and true: mean \$0.001692, median \$0.000882 (n=132, all positive, frontier/actual 4.25$\times$). The first organic task under the new wiring paid its full budget, so the old display would have shown ``saved \$0.00'' against a measured \$0.0018: headroom errs in both directions.
+
+\section{Routing gains: selection, then tiering}
+
+\textbf{Selection.} On 336 pooled runs (28 classes $\times$ 2 agents $\times$ 6 sweeps), one agent dominated on \emph{both} axes: 78.6\% vs.\ 32.7\% accept and \$0.000933 vs.\ \$0.001374 per settled task. A pre-registered sign test over classes (19 wins / 5 ties / 1 loss among 25 eligible) ruled out aggregation artifacts; routing all traffic to the dominant agent beats the observed 50/50 mix by +22.9pp accept at $-$12.2\% cost. There is no quality--cost tradeoff to negotiate; cheap selection gains come first.
+
+\textbf{Tiering.} Task classes were bimodal: 9/28 passed 4/4 on the cheap tier, 6/28 passed 0/4. Escalating the three then-unservable classes to the expensive tier (A/B with the grader held fixed) passed its pre-registered bars --- 5/12 vs.\ 0/12 at 9.2$\times$ per-run cost --- but class-level structure told a finer story: one class fully rescued (4/4 at 12$\times$ frontier), one marginal (1/4 at 105$\times$ frontier per settle --- worse economics than declining), one unrescued at any tested tier. That finer story turned out to be wrong in an instructive way (\S\ref{sec:instrument}).
+
+\section{The instrument result}
+\label{sec:instrument}
+
+Before finalizing decline-with-refund for the two poor-economics classes, we applied a locked rubric: sample failed deliveries and read them against the \emph{written} acceptance criteria, blind to the reference's specific answer; classify as (a) over-narrow reference, (b) tool dependence, or (c) genuinely hard. Three findings.
+
+\textbf{Reference error (twice).} For the incident-recovery class, deliveries satisfying every written criterion --- evidence capture before restart, three ordered steps, a named observable per step --- were failed for choosing different-but-valid step orderings than the reference's sequence. The reference also had no deterministic anchors, so nothing constrained the grader. Adding explicit ``equivalent orderings are correct'' language (the pass/fail contract unchanged) flipped the expensive tier from 0/4 to 3/3. The governance class repeated the pattern for control \emph{choices} rather than orderings.
+
+\textbf{Pipeline error.} The battery sliced deliveries to 4{,}000 characters \emph{before} grading. The expensive tier's table-heavy style regularly exceeded the cap, so the grader failed it for ``missing'' sections the model wrote --- which also explains an otherwise-puzzling inversion where the stronger model scored \emph{lower} mean accuracy on classes both tiers failed. Aligning the cap to the audit prompt's window (6{,}000) and repairing the governance reference took that class from 0/12 pooled to 8/8 --- including 4/4 on the \emph{cheapest} tier at \$0.0025 per settled task, 2.7$\times$ frontier. The earlier ``105$\times$ frontier'' economics were an artifact of grading amputated text.
+
+\textbf{A genuine gap, correctly identified.} The spatial-curation class survived the same scrutiny: only 2/10 historical failures were truncation-tainted; complete failures contradicted the reference on the substantive recommendation (short loops for repeat foot traffic); a single cheap-tier pass at 0.94 is the tail of its distribution ($\sim$1/12), not instrument error. It remains on the expensive tier at 12$\times$ frontier, and the pre-registered ``violated expectation'' clause --- not ad-hoc judgment --- dictated the review that reached this verdict.
+
+\textbf{Scoreboard.} Of three apparent market failures: one pure instrument error, one instrument error masking a real gap, one genuine capability gap. The rubric discriminated all three. Final policy: 26 classes on the cheap tier, two on the expensive tier, zero declined; \$0.001248/settled at 88.8\% accept.
+
+\begin{table}[t]
+  \caption{The three ``unservable'' classes before and after instrument repair. Accept counts are pooled pre-registered sweeps; \$/settled is measured spend over passing runs.}
+  \label{tab:scoreboard}
+  \centering
+  \small
+  \begin{tabular}{llll}
+    \toprule
+    Class & Before repair & After repair & Verdict \\
+    \midrule
+    governance & 0/12 both tiers & \textbf{8/8} (4/4 cheap tier, \$0.0025) & pure instrument error \\
+    incident-recovery & 0/14 both tiers & 3/3 expensive tier (\$0.0114) & instrument error over real gap \\
+    spatial-curation & 0/10 cheap tier & 4/4 expensive tier (\$0.0113) & genuine capability gap \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Related work}
+
+Simulated agent markets measure settlement noise against evaluators assumed correct \citep{liu2026diagonprogrammabletestbedaiagent}; judge studies measure inter-judge unreliability without a market attached \citep{norman2026reliabilityvaliditysystematiclargescale}; the failure-taxonomy literature names verification a root failure class without measuring its composition \citep{cemri2025multiagentllmsystemsfail}. Peer-prediction mechanisms score work without ground truth \citep{srinivasan2025selfresolvingpredictionmarketsunverifiable, xu2025benchmarkingllmsjudgmentsgold}, and mechanism-design results for LLM auctions prove incentive properties under correct evaluation \citep{duetting2024mechanismdesignlargelanguage}. Our contribution is orthogonal and empirical: in a deployment, we decompose the evaluator's error into reference and pipeline terms and show they dominated apparent unservability. Provider-side routing theory \citep{mahmood2026routingcascadesuserchoice} and strategic-bidder simulations \citep{chiu2026aiagentscompetejobs} are complementary layers our measurements do not reach; the classical market-based allocation literature anticipated the deployment gap we occupy \citep{Dias_2006, Gerkey_2004}.
+
+\section{Limitations}
+
+One deployment, one 28-class curated battery, a 2-agent live roster: selection and tiering results may not transfer, and auction-layer mechanisms (probe-gating, bid calibration) were untestable at this roster size --- deliberately left unclaimed. The settlement judge and workers share a model family (the reference grader is anchored by known answers and substrings, but correlated-error risk remains). Post-repair pass rates were produced under reworded references; the written criteria never changed, but cross-class comparability carries that footnote. Dollar figures use list prices. Coverage claims are as of the repaired instrument; a registered follow-up protocol (settlement audit with human adjudication of judge--reference disagreements) is the confirmatory study this exploratory campaign motivates.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
