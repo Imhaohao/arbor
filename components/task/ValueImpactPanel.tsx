@@ -3,18 +3,17 @@
 import { Card, CardHeader } from "@/components/ui/Card";
 import { savingsDisplay } from "@/lib/honest-savings";
 import { formatMoney } from "@/lib/utils";
-import type {
-  AuctionResolvedPayload,
-  LifecycleEventDoc,
-  TaskDoc,
+import {
+  executionElapsedMs,
+  type AuctionResolvedPayload,
+  type LifecycleEventDoc,
+  type TaskDoc,
 } from "@/lib/task-view";
 
 interface Props {
   task: TaskDoc;
   events: LifecycleEventDoc[];
 }
-
-const BASELINE_GENERALIST_SECONDS = 30 * 60;
 
 /** Measured routing savings are routinely sub-cent; two-decimal money
  * formatting renders them all as $0.00 and hides the entire metric. */
@@ -24,6 +23,12 @@ function formatUsdFine(n: number): string {
   return `$${n.toFixed(4)}`;
 }
 
+function formatElapsed(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  if (ms < 90_000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${(ms / 60_000).toFixed(1)}min`;
+}
+
 export function ValueImpactPanel({ task, events }: Props) {
   const resolved = events.find((e) => e.event_type === "auction_resolved");
   if (!resolved || typeof task.price_paid !== "number") return null;
@@ -31,14 +36,7 @@ export function ValueImpactPanel({ task, events }: Props) {
   const payload = resolved.payload as unknown as AuctionResolvedPayload;
   const display = savingsDisplay(task);
   const estimatedSeconds = Math.max(1, payload.winner.estimated_seconds);
-  const efficiencyLift = Math.max(
-    0,
-    Math.round(
-      ((BASELINE_GENERALIST_SECONDS - estimatedSeconds) /
-        BASELINE_GENERALIST_SECONDS) *
-        100,
-    ),
-  );
+  const elapsedMs = executionElapsedMs(events);
 
   return (
     <Card className="animate-fade-up bg-brand-50">
@@ -66,9 +64,9 @@ export function ValueImpactPanel({ task, events }: Props) {
           />
         )}
         <Metric
-          label="Efficiency improved"
-          value={`${efficiencyLift}%`}
-          sub={`vs. ${Math.round(BASELINE_GENERALIST_SECONDS / 60)} min generalist baseline`}
+          label="Execution time (measured)"
+          value={elapsedMs !== undefined ? formatElapsed(elapsedMs) : "—"}
+          sub={`specialist quoted ${estimatedSeconds}s`}
         />
         <Metric
           label="Specialized agent"
@@ -93,8 +91,8 @@ export function ValueImpactPanel({ task, events }: Props) {
             this run&apos;s execution cost was captured.
           </>
         )}{" "}
-        Efficiency is an estimate from the winning specialist&apos;s quoted
-        time.
+        Execution time is measured from lifecycle events; the quoted figure is
+        the specialist&apos;s own pre-award estimate.
       </p>
     </Card>
   );

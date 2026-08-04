@@ -87,6 +87,23 @@ export interface EscrowDoc {
   status: EscrowStatus;
 }
 
+/** Measured wall-clock execution time from lifecycle events, or undefined
+ * when either endpoint is missing or clocks disagree (never a negative or
+ * invented duration — absence renders as unmeasured). */
+export function executionElapsedMs(
+  events: Pick<LifecycleEventDoc, "event_type" | "timestamp">[],
+): number | undefined {
+  const at = (type: string) =>
+    events.find((e) => e.event_type === type)?.timestamp;
+  const started = at("execution_started");
+  const completed = at("execution_complete");
+  if (typeof started !== "number" || typeof completed !== "number") {
+    return undefined;
+  }
+  const elapsed = completed - started;
+  return elapsed >= 0 ? elapsed : undefined;
+}
+
 export interface LifecycleEventDoc {
   _id: string;
   _creationTime: number;
