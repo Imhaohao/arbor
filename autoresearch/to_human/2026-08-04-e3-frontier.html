@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Routing efficiency — E3 frontier</title>
+<style>
+body{font-family:-apple-system,Segoe UI,sans-serif;max-width:880px;margin:2rem auto;padding:0 1rem;color:#1a1a2e;line-height:1.5}
+h1{font-size:1.4rem} h2{font-size:1.1rem;margin-top:1.6rem}
+table{border-collapse:collapse;width:100%;font-size:.9rem} td,th{border:1px solid #d0d0e0;padding:.35rem .6rem;text-align:left}
+th{background:#f0f0f8} .ok{color:#0a7a3d;font-weight:600} .bad{color:#b00020;font-weight:600} .warn{color:#a05a00;font-weight:600}
+.muted{color:#666;font-size:.85rem} .big{font-size:1.6rem;font-weight:700}
+.grid{display:flex;gap:1rem;margin:1rem 0} .card{flex:1;border:1px solid #d0d0e0;border-radius:8px;padding:.8rem}
+</style></head><body>
+<h1>Routing efficiency after 5 experiments: the frontier, and what breaks it</h1>
+<p class="muted">2026-08-04 · 384 graded runs · $0.41 total research spend · every experiment pre-registered (protocol commit before results commit)</p>
+
+<div class="grid">
+<div class="card"><div class="muted">Cheap-lane frontier</div><div class="big">$0.000933</div><div class="muted">per settled task @ 78.6% accept (backstop on gpt-5.4-mini, n=168)</div></div>
+<div class="card"><div class="muted">Routing policy gain vs 50/50 mix</div><div class="big ok">+22.9pp accept<br>−12.2% cost</div><div class="muted">route-to-dominant-agent, confirmed per-class (19W/5T/1L)</div></div>
+</div>
+
+<h2>Every failure now has a name</h2>
+<table>
+<tr><th>Bucket</th><th>Classes</th><th>Evidence</th><th>Policy</th></tr>
+<tr><td class="ok">On-frontier</td><td>22 of 28</td><td>backstop 5/6+ each (incl. sql-reasoning, table-lookup, regex-spec at 6/6 where baseline scored 0)</td><td>backstop @ gpt-5.4-mini</td></tr>
+<tr><td class="ok">Purchasable capability gap</td><td>1 (spatial-curation)</td><td>mini 0/10 pooled; terra <b>4/4, acc 0.94</b>, $0.0113/settled (12x frontier)</td><td>escalate to terra</td></tr>
+<tr><td class="warn">Poor escalation economics</td><td>1 (ai-governance)</td><td>terra 1/4 = $0.0977/settled — <b>105x frontier</b></td><td>decline-with-refund candidate (E4 finalizes)</td></tr>
+<tr><td class="bad">Unrescued at any tested tier</td><td>1 (incident-recovery)</td><td>mini 0/10, terra 0/4; mean acc <i>drops</i> under terra (0.54→0.47)</td><td>golden-task review first (E5) — reference may be defective or task needs tools</td></tr>
+</table>
+
+<h2>Why this matters for the product</h2>
+<p>The displayed "you saved $3.73/run" is budget headroom, already disavowed in the codebase. The honest number now exists: a settled task costs <b>~$0.001</b> on the routed lane; the same tokens at frontier list price would cost several times that. E4 ships the per-run counterfactual delta — small, true, and defensible — plus decline-with-refund for the two classes where taking the money would be dishonest. That last part is the thesis: <i>a marketplace that proves what it cannot do is the one whose savings number you can believe.</i></p>
+
+<h2>Method notes a reviewer would ask about</h2>
+<p class="muted">Grader is reference-anchored but same-family as workers (named caveat on all accept rates). Worker/grader ride distinct Azure purposes, so the terra A/B never touched the grader. Per-agent accept drifts ±6pp at single-sweep scale — all policy claims rest on pooled n. Near the pass threshold, mean accuracy inverts (mini "outscores" terra while both fail) — pass rate is the only trustworthy escalation signal. Probe-gating and auction-layer experiments stay deferred until the live roster exceeds 2 agents; claiming otherwise would outrun the data.</p>
+</body></html>
