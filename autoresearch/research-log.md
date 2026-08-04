@@ -126,3 +126,10 @@
   audit window; equivalence language). Governance 0/12 -> 8/8; MINI alone
   4/4 @ ~$0.0025 (2.7x frontier, not 105x). Decline bucket EMPTY. Substring
   audit: 7/28 anchor-free = the dom-* set. E5c queued.
+- E5c DONE (protocol 2bc52e0, results be37c0f): incident mini 0/3 -> terra
+  stands; spatial suspicion clause fired (1/2 mini pass at 0.94) and was
+  discharged by review — genuine capability gap, tail pass, terra stands.
+  FINAL POLICY: 28/28 served, zero declines, $0.001248/settled @ 88.8%
+  (alt: 26-class $0.000986 @ 88.3%). Instrument scoreboard: pure-instrument
+  / instrument-masking-real-gap / genuine-capability — one class each; the
+  E5 rubric discriminated all three.

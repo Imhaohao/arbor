@@ -202,3 +202,17 @@ check len distributions before comparing tiers; (c) instrument review
 (E5 rubric) belongs BEFORE escalation experiments in the dependency order;
 we ran it after and had to retract two conclusions. Cheap lesson at n=28
 tasks; expensive at marketplace scale.
+
+## E5c update (2026-08-04) — the arc closes
+
+- Final: 28/28 classes served, nothing declined, $0.001248/settled @ 88.8%
+  (or $0.000986 @ 88.3% without the two terra classes). Guardrail 0.580
+  held with >50% margin at both operating points.
+- The three "unservable" classes ended at three DIFFERENT truths — pure
+  instrument error (governance), instrument error masking a real gap
+  (incident), genuine capability (spatial) — and the same cheap rubric
+  discriminated all three. That generality is the method contribution.
+- A violated locked expectation (spatial 1/2 on mini) was handled by the
+  pre-registered suspicion clause rather than ad-hoc judgment: review,
+  classify, discharge. Pre-registration is not just honesty theater; it
+  told us exactly what to do when surprised.
