@@ -133,3 +133,9 @@
   (alt: 26-class $0.000986 @ 88.3%). Instrument scoreboard: pure-instrument
   / instrument-masking-real-gap / genuine-capability — one class each; the
   E5 rubric discriminated all three.
+- E7 DONE (protocol dd56c1b, results 7248360): panel invention-free;
+  quoted-vs-measured latency (40s vs 2.6s) is a free calibration signal.
+- OUTER LOOP 3: CONCLUDE recommended. Paper skeleton at
+  autoresearch/paper/SKELETON.md. Remaining queue requires roster growth
+  (different project) or has no live target. Loop continues only for
+  paper-writing or user-directed pivots.

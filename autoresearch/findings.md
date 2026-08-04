@@ -216,3 +216,13 @@ tasks; expensive at marketplace scale.
   pre-registered suspicion clause rather than ad-hoc judgment: review,
   classify, discharge. Pre-registration is not just honesty theater; it
   told us exactly what to do when surprised.
+
+## Outer-loop reflection 3 (2026-08-04, after E7) — CONCLUDE
+
+Abstract test: passes (draft written, paper/SKELETON.md). Ten pre-registered
+experiments, three retracted-and-corrected conclusions, one shipped product
+change (invention-free value panel), and a discriminating rubric with a 3/3
+record. The efficiency loop's remaining hypotheses are blocked on roster
+growth, which is product work. Recommend: write the workshop paper; run the
+settlement-audit protocol as the registered confirmatory study; treat
+roster growth + auction-layer experiments as the sequel project.
