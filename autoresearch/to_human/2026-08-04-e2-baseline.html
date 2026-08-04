@@ -1,0 +1,48 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Routing efficiency — E2 baseline</title>
+<style>
+body{font-family:-apple-system,Segoe UI,sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#1a1a2e;line-height:1.5}
+h1{font-size:1.4rem} h2{font-size:1.1rem;margin-top:1.6rem} 
+table{border-collapse:collapse;width:100%;font-size:.9rem} td,th{border:1px solid #d0d0e0;padding:.35rem .6rem;text-align:left}
+th{background:#f0f0f8} .big{font-size:1.8rem;font-weight:700} .ok{color:#0a7a3d} .bad{color:#b00020}
+.grid{display:flex;gap:1rem;margin:1rem 0} .card{flex:1;border:1px solid #d0d0e0;border-radius:8px;padding:.8rem}
+.muted{color:#666;font-size:.85rem} .bar{height:10px;background:#e8e8f4;border-radius:5px;overflow:hidden}
+.bar>div{height:100%;background:#4a5fc1}
+</style></head><body>
+<h1>Multi-agent routing efficiency — first real baseline (E2)</h1>
+<p class="muted">2026-08-04 · dev deployment · batteries e17aeedf + b3c3be6c · protocol locked at commit 1298954 before results</p>
+
+<div class="grid">
+<div class="card"><div class="muted">Cost per settled task</div><div class="big">$0.001026</div><div class="muted">total $0.0667 / 65 settled</div></div>
+<div class="card"><div class="muted">Judge-accept rate</div><div class="big">58.0%</div><div class="muted">65 of 112 graded, 0 errors</div></div>
+<div class="card"><div class="muted">Rows fully priced</div><div class="big ok">100%</div><div class="muted">tokens + model + USD on every row</div></div>
+</div>
+
+<h2>Trajectory</h2>
+<table>
+<tr><th>Step</th><th>State of the metric</th></tr>
+<tr><td>E0</td><td class="bad">Unmeasurable — 0 rows of real spend ever recorded; 318/318 demo-lane runs failed audit; UI "savings" was budget headroom ($3.73/run, disavowed by the codebase itself)</td></tr>
+<tr><td>E1</td><td>Measurable — capture wired, silent 3.3–4.4x mispricing bug found+fixed, first datapoint $0.000776 (n=1)</td></tr>
+<tr><td>E2</td><td class="ok">Baselined — $0.001026/settled, 58.0% accept, n=112, all 4 locked predictions pass</td></tr>
+</table>
+
+<h2>Finding 1 — one agent dominates on BOTH axes</h2>
+<table>
+<tr><th>Agent</th><th>Accept</th><th>$/settled</th><th></th></tr>
+<tr><td>arbor-hive-backstop</td><td class="ok">75% (42/56)</td><td class="ok">$0.00098</td><td><div class="bar" style="width:150px"><div style="width:75%"></div></div></td></tr>
+<tr><td>arbor-baseline</td><td>41% (23/56)</td><td>$0.00111</td><td><div class="bar" style="width:150px"><div style="width:41%"></div></div></td></tr>
+</table>
+<p>No quality-cost tradeoff here: the better agent is also cheaper per settled task. If per-class analysis (E3', queued next) confirms it, route-to-best is the first routing win: <b>+17pp accept and about 5% cheaper</b> than the 50/50 mix, with a one-line policy.</p>
+
+<h2>Finding 2 — task classes are bimodal on the cheap lane</h2>
+<table>
+<tr><th>Bucket</th><th>Classes</th><th>Examples</th></tr>
+<tr><td class="ok">4/4 pass (free wins)</td><td>9 of 28</td><td>escrow-math, json-extraction, probability, weighted-average, code-bugfix, dom-security-review</td></tr>
+<tr><td>Partial</td><td>13 of 28</td><td>unit-conversion, sql-reasoning, table-lookup, policy-summary</td></tr>
+<tr><td class="bad">0/4 pass (hopeless on cheap lane)</td><td>6 of 28</td><td>contradiction-detect (acc 0.05), dom-incident-recovery (0.10), dom-capability-routing, dom-web-retrieval</td></tr>
+</table>
+<p>Failures concentrate in domain-expert (dom-*) classes. That is where escalation to gpt-5.6-terra or multi-agent fan-out should spend — and where the cheap lane should decline. Per-class cost spread is 11.7x, so class-aware budget caps are practical.</p>
+
+<h2>Next</h2>
+<p>E3': confirm backstop dominance per class (4 more sweeps). E3: probe-gated vs open solicitation A/B. E4: replace the UI's $3.73 "headroom" savings with the honest counterfactual metric — same tokens priced at frontier list minus actual routed cost, reported only on settled runs. Current honest per-run frame: <b>a settled task on the routed lane costs ~$0.001; the same tokens at gpt-5.2 list would cost ~$0.0035</b> — the defensible per-run saving is the difference, computed per run, and it is three orders of magnitude smaller than the number currently displayed.</p>
+<p class="muted">Grader caveat: battery audits are model-graded by the same Azure family as the workers, anchored by reference answers and required substrings. Accept-rate claims are conditional on this grader until E2b moves it to a different family.</p>
+</body></html>
