@@ -8,7 +8,7 @@ question: >
   and what is the honest per-run saving shown to users?
 status: inner_loop
 target_metric: usd_per_settled_task  # real measured cost / settled+passed runs
-current_value: 0.001063  # pooled n=336 under 50/50 mix (operating point)
+current_value: 0.000986  # blended class-conditional policy, pooled n=154 attempted (E4 P1)
 adopted_policy: >
   class-conditional: 25 servable classes -> backstop@gpt-5.4-mini;
   dom-spatial-curation -> backstop@gpt-5.6-terra (E3: 4/4 @ $0.0113/settled);
@@ -60,7 +60,7 @@ hypotheses:
       tokens at claude-fable-5/gpt-5.2 list price) minus actual routed cost,
       reported only on audit-passed runs — can replace headroom in
       ValueImpactPanel without inflating: it is zero when routing adds no value.
-    status: untested
+    status: supported  # E4: mean $0.001692/run on 132 settled; shipped e2e, browser-verified
 
 queue:
   - E2 (H2): battery sweep on Azure backbone, n>=100 runs across golden tasks;

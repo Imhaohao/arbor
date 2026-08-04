@@ -103,3 +103,11 @@
   Mean-accuracy inversion below pass line: pass rate, not mean acc, is the
   escalation signal. --golden-ids flag landed in battery. Spend: $0.212.
 - OUTER LOOP (after 5 experiments): see findings.md reflection.
+- E4 DONE (protocol d35771e, results 5fffe41): all 3 parts pass. Blended
+  frontier $0.000986/settled @ 88.3% accept (26/28 coverage); honest metric
+  mean $0.001692/settled run (132/132 positive, 4.25x ratio); organic e2e
+  task recorded $0.000679 cost and panel now shows measured savings, with
+  headroom demoted to "Budget unspent". Demonstration case: full-budget task
+  where headroom showed $0.00 saved vs measured $0.0018 — headroom is wrong
+  in BOTH directions. Sub-cent formatMoney bug caught in browser verify.
+  Decline-with-refund finalized for governance+incident.

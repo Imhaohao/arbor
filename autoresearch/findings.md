@@ -138,3 +138,16 @@ Method lessons this cycle: (1) lock decision rules but write them per-class
 — pooled rules can technically fire on economics no one should ship; (2)
 purpose-scoped env overrides give clean model A/Bs with zero code change;
 (3) pass rate, not mean accuracy, is the signal near the grader threshold.
+
+## E4 update (2026-08-04)
+
+- The user-facing savings story is now measured end to end: routed lane
+  $0.000986/settled, honest per-run saving mean $0.001692 vs frontier list,
+  live in the panel with "list price, not an invoice" wording. The old
+  headroom metric was wrong in both directions (overstates on cheap wins,
+  understates to $0.00 on full-budget runs) — the strongest possible case
+  for the swap, found by accident in the P3 e2e task.
+- Instrumentation-first paid off: E1's capture is what made E2-E4 possible
+  in one day. The panel bug (sub-cent rounding to $0.00) was only findable
+  in a browser, not in unit tests — verification layers are complementary,
+  which is also this project's thesis.
