@@ -8,8 +8,8 @@ question: >
   and what is the honest per-run saving shown to users?
 status: inner_loop
 target_metric: usd_per_settled_task  # real measured cost / settled+passed runs
-current_value: 0.000776  # E1 smoke scale n=1 settled; real baseline lands at E2
-guardrail_metric: judge_accept_rate >= baseline (baseline TBD at E2)
+current_value: 0.001026  # E2 baseline, n=112, batteries e17aeedf+b3c3be6c
+guardrail_metric: judge_accept_rate >= 0.580  # E2 baseline, n=112
 
 experiment_0_baseline:  # measured 2026-08-04, dev deployment valuable-axolotl-318
   battery_runs: 334
@@ -39,7 +39,7 @@ hypotheses:
       Re-running the task battery on the live Azure backbone produces the first
       real (cost, accuracy) operating points; judge-accept baseline lands
       between 30-70% (demo-lane 0% was an artifact of free agents, not tasks).
-    status: untested
+    status: supported  # E2: accept 0.580, $/settled 0.001026, all 4 predictions pass
   H3:
     statement: >
       Probe-gated solicitation (probe-success head, AUC 0.959) cuts cost per

@@ -84,3 +84,9 @@
   scale. Roster gap found: specialist runners bypass Azure lane (nia-context
   429 on direct OpenAI) — E2 constraint. Task-class spread hint: same model
   0.98 escrow vs 0.08 unit-conversion.
+- E2 DONE (protocol 1298954, results 643bd4f): all 4 predictions pass.
+  BASELINES SET: $/settled 0.001026, accept 0.580 (n=112, 0 errors, $0.0667).
+  Exploratory: backstop dominates baseline on both axes (75% accept @
+  $0.00098/settled vs 41% @ $0.00111); task classes bimodal (9/28 at 4/4,
+  6/28 at 0/4, failures concentrated in dom-*). Queued E3' dominance check
+  ahead of probe-gating E3. HTML report -> to_human/.

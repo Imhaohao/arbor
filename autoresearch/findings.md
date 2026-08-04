@@ -82,3 +82,17 @@
 - Real judge-accept baseline on a funded lane (H2 predicts 30-70%).
 - Does probe-gating actually convert its 0.959 AUC into >=30% cost cut at
   unchanged accept rate (H3)?
+
+## E2 update (2026-08-04)
+
+- Real baselines exist: $0.001026/settled, 0.580 accept, n=112 (protocol
+  and results committed separately; 19.5x under the $0.02 prediction bar).
+- Pattern: the two-agent pool is NOT a quality-cost tradeoff — backstop is
+  better AND cheaper per settled task. Routing gains may come from simple
+  dominance, not frontier tradeoffs. Check per-class before believing it.
+- Pattern: task-class bimodality (a third of classes free, a fifth hopeless
+  on the cheap lane). Class-conditional escalation is the obvious H3 shape;
+  the dom-* failures are where fan-out/terra spend belongs.
+- Constraint learned: same-family grader for worker and audit — keep as a
+  named validity caveat on every accept-rate claim until grader moves to a
+  different family (candidate E2b, low priority).
