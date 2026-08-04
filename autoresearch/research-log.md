@@ -139,3 +139,7 @@
   autoresearch/paper/SKELETON.md. Remaining queue requires roster growth
   (different project) or has no live target. Loop continues only for
   paper-writing or user-directed pivots.
+- PAPER DRAFTED (d5a0397): autoresearch/paper/draft/main.tex + references.bib
+  (10/10 citations fetched programmatically: 8 arXiv bibtex endpoint, 2
+  CrossRef DOI negotiation; zero from memory). No local TeX — compile on
+  Overleaf. Next tick: novelty re-checks (protocol section 8) + polish.
