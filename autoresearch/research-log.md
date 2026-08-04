@@ -143,3 +143,7 @@
   (10/10 citations fetched programmatically: 8 arXiv bibtex endpoint, 2
   CrossRef DOI negotiation; zero from memory). No local TeX — compile on
   Overleaf. Next tick: novelty re-checks (protocol section 8) + polish.
+- E8 novelty checks DONE: both claims survive (narrowed for check 1);
+  must-cites 2607.04382 + 2601.20299 added to main.tex (bibtex fetched
+  programmatically); JUDGe 2026 workshop = venue candidate. Project
+  ARCHIVED; loop stopped.
