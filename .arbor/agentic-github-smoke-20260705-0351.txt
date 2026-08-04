@@ -1,0 +1,4 @@
+Arbor GitHub autonomy smoke test
+repo: Imhaohao/miyohacks
+created_at: 2026-07-04T19:16:01Z
+purpose: verify Arbor can create a branch, commit a file, and open a PR through the authenticated GitHub account.
