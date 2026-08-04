@@ -119,3 +119,10 @@
   capability fact. Governance verdict now suspect -> E5b. Coverage 27/28
   pending. THE research finding so far: reference error manufactured a
   false market conclusion; audits need reference-error reporting.
+- E5b DONE (protocol 5f01294, results 639d537): TWO instrument defects.
+  (1) rubric (a) again on the reference; (2) NEW: MAX_OUTPUT_CHARS=4000
+  truncated deliveries BEFORE grading — grader failed verbose (terra-style)
+  answers for content the model wrote. Both fixed (cap -> 6000 aligned to
+  audit window; equivalence language). Governance 0/12 -> 8/8; MINI alone
+  4/4 @ ~$0.0025 (2.7x frontier, not 105x). Decline bucket EMPTY. Substring
+  audit: 7/28 anchor-free = the dom-* set. E5c queued.

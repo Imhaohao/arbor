@@ -168,3 +168,37 @@ purpose-scoped env overrides give clean model A/Bs with zero code change;
 - For the paper: "judge error" decomposes into judge-vs-reference and
   reference-vs-truth. We measured the second term existing at class-flipping
   magnitude. Nobody in the simulation literature can observe this term.
+
+## Outer-loop reflection 2 (2026-08-04, after E5b — 9 experiments)
+
+The project's story inverted twice and is now coherent:
+1. E2-E3' said: routing is selection + tiering; residual failures are
+   capability limits; decline the rest.
+2. E5/E5b say: BOTH "capability limit" classes were instrument artifacts —
+   an over-narrow reference (twice) and a grading pipe that amputated
+   deliveries at 4000 chars before the grader saw them. Post-repair, one
+   class runs on the frontier-cheap tier at 2.7x, the other on terra at
+   12x. Nothing in the current task set is unservable. Coverage 28/28
+   pending E5c re-checks.
+
+The durable claim is methodological, and it is the paper's spine: in a
+deployed agent market, apparent market failures decompose into (i) true
+capability gaps, (ii) reference error, (iii) measurement-pipeline error —
+and (ii)+(iii) were the MAJORITY here (2 of 3 classes). Simulation work
+cannot observe terms (ii) and (iii) because its instruments are correct by
+construction. A real marketplace must therefore audit its auditors: the
+E5 rubric (read failures against written criteria, blind to the reference's
+specific answer) is the cheap, repeatable procedure that caught both.
+
+Efficiency ledger this loop: frontier $0.000933/settled (floor — truncation
+could only deflate historical accepts); blended policy $0.000986 @ 88.3%
+pre-E5b, improving with governance on mini; honest per-run saving mean
+$0.001692 live in product. Total research spend ~$0.75.
+
+Method lessons: (a) store what you grade — any cap applied before grading
+is part of the instrument and must match the audit window; (b) length is a
+confound: style-verbose models fail truncating graders at higher rates —
+check len distributions before comparing tiers; (c) instrument review
+(E5 rubric) belongs BEFORE escalation experiments in the dependency order;
+we ran it after and had to retract two conclusions. Cheap lesson at n=28
+tasks; expensive at marketplace scale.
