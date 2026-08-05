@@ -20,7 +20,7 @@ import {
   flattenToolResult,
   type RemoteMcpTool,
 } from "../mcp-outbound";
-import { parseJSONLoose } from "../openai";
+import { chatCompletionsTransport, parseJSONLoose } from "../openai";
 import { buildTaskContext } from "../campaign-context";
 import {
   mcpToolOutcome,
@@ -50,17 +50,10 @@ import {
   type HarnessTranscriptEntry,
 } from "../tool-harness";
 
-const MODEL = "gpt-5.5";
-const CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const MAX_EXECUTE_ROUNDS = 6;
 const VICKREY_PRELUDE =
   "You are bidding in a Vickrey second-price sealed-bid auction. The price you actually pay if you win is set by the second-highest bid, so your dominant strategy is to bid your true cost. Bid honestly. The same applies to \"confidence\": it is scored against the judge's actual verdict with a proper scoring rule, and a rejected delivery slashes your reputation in proportion to the confidence you claimed, so state your true probability of acceptance — or decline, which never costs anything.";
 
-function apiKey(): string {
-  const k = process.env.OPENAI_API_KEY;
-  if (!k) throw new Error("OPENAI_API_KEY is not set");
-  return k;
-}
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -115,18 +108,27 @@ function providerFromConfig(config: SpecialistConfig): string {
 }
 
 async function chatCompletion(body: Record<string, unknown>, timeoutMs: number): Promise<ChatResponse> {
-  // gpt-5.5 rejects `reasoning_effort` together with `tools` on /v1/chat/completions
-  // ("Function tools with reasoning_effort are not supported"). Strip it when
-  // tools are present; keep it on plain calls where it prevents empty output.
-  const sanitized: Record<string, unknown> = { ...body };
-  if (sanitized.tools && "reasoning_effort" in sanitized) {
+  // Provider-aware: routes to whatever lane funds the "agent" purpose (Azure
+  // deployment, OpenRouter, or OpenAI direct) instead of hardcoding
+  // api.openai.com — the hardcode kept these specialists 429ing on the dead
+  // OpenAI account while the funded Azure lane sat idle.
+  const transport = chatCompletionsTransport("agent");
+  const sanitized: Record<string, unknown> = { ...body, model: transport.model };
+  // gpt-5.x rejects `reasoning_effort` together with `tools` on
+  // /chat/completions. Strip it when tools are present; keep it on plain
+  // calls where it prevents empty output. Azure deployments reject it always.
+  if (
+    (sanitized.tools && "reasoning_effort" in sanitized) ||
+    transport.provider === "azure-openai" ||
+    transport.provider === "foundry"
+  ) {
     delete sanitized.reasoning_effort;
   }
   const res = await withTimeout(
-    fetch(CHAT_URL, {
+    fetch(transport.url, {
       method: "POST",
       headers: {
-        authorization: `Bearer ${apiKey()}`,
+        ...transport.headers,
         "content-type": "application/json",
       },
       body: JSON.stringify(sanitized),
@@ -134,7 +136,9 @@ async function chatCompletion(body: Record<string, unknown>, timeoutMs: number):
     timeoutMs,
   );
   if (!res.ok) {
-    throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    throw new Error(
+      `${transport.provider} ${res.status}: ${(await res.text()).slice(0, 300)}`,
+    );
   }
   return (await res.json()) as ChatResponse;
 }
@@ -474,7 +478,6 @@ export function makeMcpForwardingSpecialist(
               });
             }
             const body: Record<string, unknown> = {
-              model: MODEL,
               messages,
               max_completion_tokens: 4000,
             };
@@ -548,7 +551,6 @@ async function callPlain(
 ): Promise<string> {
   const res = await chatCompletion(
     {
-      model: MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
