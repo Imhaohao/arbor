@@ -94,8 +94,58 @@ lift. Moving the roster toward p≈0.37 should raise the win rate toward ~47%.
 1. Does the win rate approach 47% when the roster is tuned to p≈0.37?
 2. Is there any quality (not delivery) advantage? Untested — needs agents that
    can actually perform the tasks, i.e. model-backed agents, i.e. credits.
-3. Are A2A failures independent? The bound assumes independence; shared hosting
-   or a common upstream would lower the real ceiling below 47%.
+3. ~~Are A2A failures independent?~~ **Answered: no.** Measured beta >= 0.60,
+   lowering the realistic k=3 ceiling from 47.2% to ~34%. Corroborated by
+   arXiv:2606.27288 (rho underestimates co-failure ~2.5x).
+
+## Literature corroboration (21 verified papers, survey.md)
+
+Three published results bear directly on ours, and two of them tighten our bound.
+
+**1. Correlated failure caps the ceiling — and standard diagnostics hide it.**
+*When Does Combining Language Models Help? A Co-Failure Ceiling* (arXiv:2606.27288)
+formalises a hard ceiling `acc <= 1 - beta`, where beta is the rate at which all
+members fail together, and shows the commonly-reported pairwise correlation rho
+**underestimates real co-failure by ~2.5x**. *Nine Judges, Two Effective Votes*
+(arXiv:2605.29800) measures a 9-model panel carrying the weight of only ~2
+independent votes, with the single best judge matching or beating the full panel.
+
+This matters because **our 47.2% ceiling assumed independence**. Re-deriving with
+a co-failure floor:
+
+| beta | k=3 ceiling |
+|---|---|
+| 0.00 | 47.2% |
+| 0.30 | 46.8% |
+| 0.40 | 44.2% |
+| **0.60 (ours)** | **33.7%** |
+
+Our measured hive delivery of 40.0% implies beta >= 0.60 for this roster, which
+drops the realistic k=3 ceiling to **~34%**. Our observed 30% is therefore close
+to the achievable maximum, not far below it — a materially different reading
+than the independence bound suggested. **The 47.2% figure was optimistic; the
+honest number for this roster is ~34%.**
+
+**2. Ensembles help weak solo baselines and HURT strong ones.**
+*Towards a Science of Scaling Agent Systems* (arXiv:2512.08296), a 260-configuration
+controlled study, finds coordination gains flip negative (beta = -0.408, p<0.001)
+once a single agent exceeds ~45% solo accuracy, and multi-agent variants degrade
+performance 39-70% on sequential/non-decomposable tasks. This independently
+confirms our lift curve's shape and retro-explains H1's null: we drew the
+healthiest roster (p~1.0), landing exactly in the regime where the literature
+says teaming stops helping and starts hurting.
+
+**3. Consensus is not verification.**
+*Consensus is Not Verification* (arXiv:2603.06612) finds that in domains lacking
+an external verifier, polling gives no consistent gain even at 25x inference
+cost, and amplifies shared misconceptions — models predict each other better than
+they identify truth. This bounds open question 2: a hive QUALITY advantage should
+not be expected on unverifiable tasks regardless of credits. Golden tasks have
+known answers, so they remain a fair test; open-ended generation would not be.
+
+**Net effect on our conclusions:** the direction of H1.1 is unchanged and now has
+independent support, but the ceiling is lower than we computed, and the "90%"
+target is even further out of reach than the independence bound implied.
 
 ## Provenance
 
