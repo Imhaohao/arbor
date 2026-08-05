@@ -92,3 +92,42 @@ shared upstream model, or a common protocol fault) rather than independent.
 - With n=10 the confidence interval is wide; report it rather than claiming a
   point estimate is precise.
 - Any post-hoc slice is labelled EXPLORATORY.
+
+---
+
+# H1.1 — Corrected roster (LOCKED before execution, after H1's null)
+
+## What H1 actually measured
+
+46/46 runs completed. Zero errors. **Delivery rate was 100% for both arms**, so
+the redundancy mechanism had nothing to act on and the primary metric was
+undefined — not refuted, *untestable in that design*.
+
+**The error was mine.** I drew the roster from the 10 healthiest agents, putting
+member reliability at p≈1.0. My own lift table predicts +0.099 at p=0.9 and 0 at
+p=1.0. I selected on the exact variable the mechanism operates on, which
+guaranteed a null. This is a selection effect, not evidence against H1.
+
+Quality was also ~0 (41 of 46 runs at 0.00), so the secondary metric had no
+headroom either. Domain-matching the tasks was not sufficient.
+
+## The corrected design
+
+Draw the roster from the **full A2A population**, which is the actual routing
+condition: 120 registered endpoints, 45 alive (p = 0.375). Excluding the dead
+ones was the unrealistic choice — a real router must pick from the population
+that exists, and that population is where redundancy pays.
+
+**H1.1.** With a roster mixing live and dead endpoints (p ≈ 0.375), a 3-member
+hive achieves a materially higher DELIVERY rate than the best solo agent.
+
+- Predicted solo delivery: ~0.37
+- Predicted hive-3 delivery: ~0.75
+- Predicted lift: ~+0.38
+
+**Falsified** if delivery lift is under +0.15 across 10 paired tasks, which would
+indicate failures are correlated (shared hosting or a common protocol fault)
+rather than independent.
+
+Quality remains secondary and is expected to stay near zero for this roster; it
+is reported but no claim is made on it.
