@@ -11,6 +11,11 @@ export type ModelPurpose =
   | "default"
   | "agent"
   | "judge"
+  // Reference-based golden audit grader. MUST resolve to a different model
+  // family than "judge": the settlement-audit protocol treats grader/judge
+  // independence as the correlated-failure control, so sharing a deployment
+  // would bias the measured FAR/FRR toward agreement.
+  | "grader"
   | "suggester"
   | "intake"
   | "planner"
@@ -651,6 +656,75 @@ export function describeOpenAIPathReadiness(
     provider: selected,
     model,
     missing_env: missing,
+  };
+}
+
+export interface ChatCompletionsTransport {
+  url: string;
+  headers: Record<string, string>;
+  /** Model (or Azure deployment) to place in the request body. */
+  model: string;
+  provider: ModelProvider;
+}
+
+/**
+ * Provider-aware transport for raw /chat/completions callers that need
+ * features callOpenAI does not expose (tool calling, multi-turn transcripts).
+ * Mirrors the exact URL/header construction of callAzureChat/callFoundryChat/
+ * openAIChatUrl so specialists stop hardcoding api.openai.com — that bypass
+ * is why MCP-forwarding specialists 429'd on the dead OpenAI account while
+ * the funded Azure lane sat idle.
+ */
+export function chatCompletionsTransport(
+  purpose?: ModelPurpose,
+): ChatCompletionsTransport {
+  if (openrouterEnabled()) {
+    return {
+      url: openRouterChatUrl(),
+      headers: openRouterHeaders(),
+      model: openRouterModel(purpose),
+      provider: "openai",
+    };
+  }
+  const selected = provider();
+  if (selected === "disabled") {
+    throw new Error(
+      "model calls are disabled (ARBOR_MODEL_SPEND_DISABLED / provider off)",
+    );
+  }
+  if (selected === "azure-openai") {
+    const endpoint = normalizeEndpoint(azureEndpoint(), true);
+    const deployment = encodeURIComponent(azureDeployment(purpose));
+    const apiVersion = env("AZURE_OPENAI_API_VERSION") ?? DEFAULT_AZURE_API_VERSION;
+    return {
+      url: `${appendPath(
+        endpoint,
+        `/openai/deployments/${deployment}/chat/completions`,
+      )}?api-version=${encodeURIComponent(apiVersion)}`,
+      headers: { "api-key": azureApiKey() },
+      model: azureDeployment(purpose),
+      provider: selected,
+    };
+  }
+  if (selected === "foundry") {
+    const endpoint = foundryEndpoint();
+    const deployment = encodeURIComponent(foundryDeployment(purpose));
+    const apiVersion = env("AZURE_FOUNDRY_API_VERSION") ?? DEFAULT_AZURE_API_VERSION;
+    return {
+      url: `${appendPath(
+        endpoint,
+        `/openai/deployments/${deployment}/chat/completions`,
+      )}?api-version=${encodeURIComponent(apiVersion)}`,
+      headers: { "api-key": foundryApiKey() },
+      model: foundryDeployment(purpose),
+      provider: selected,
+    };
+  }
+  return {
+    url: openAIChatUrl(),
+    headers: openAIHeaders(),
+    model: openAIModel(purpose),
+    provider: selected,
   };
 }
 

@@ -178,6 +178,46 @@ export const markStripeCaptured = mutation({
   },
 });
 
+// Escrows awaiting the human capture/cancel decision, masked for the public
+// surface (full payment-intent ids never leave the deployment; the capture
+// action resolves them server-side). Escrow volume is small; the bounded
+// scan below is fine until an index on payment_status is warranted.
+export const pendingCapturesMasked = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      task_id: v.id("tasks"),
+      seller_id: v.string(),
+      locked_amount: v.number(),
+      payment_intent_tail: v.string(),
+      task_status: v.optional(v.string()),
+      judge_accepted: v.boolean(),
+      authorized_at: v.optional(v.number()),
+    }),
+  ),
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("escrow").order("desc").take(200);
+    const pending = rows.filter((r) => r.payment_status === "authorized");
+    const out = [];
+    for (const row of pending) {
+      const task = await ctx.db.get(row.task_id);
+      const verdict = task?.judge_verdict as { verdict?: string } | undefined;
+      out.push({
+        task_id: row.task_id,
+        seller_id: row.seller_id,
+        locked_amount: row.locked_amount,
+        payment_intent_tail: row.stripe_payment_intent_id
+          ? `...${row.stripe_payment_intent_id.slice(-6)}`
+          : "(none)",
+        task_status: task?.status,
+        judge_accepted: verdict?.verdict === "accept",
+        authorized_at: row.payment_authorized_at,
+      });
+    }
+    return out;
+  },
+});
+
 export const markStripeCanceled = mutation({
   args: {
     bridge_secret: v.optional(v.string()),

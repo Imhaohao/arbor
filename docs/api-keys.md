@@ -95,13 +95,22 @@ live against `GET https://openrouter.ai/api/v1/models` on 2026-07-04):
 | Bulk / cost-capped (open-weight, alt) | `moonshotai/kimi-k2.6` | $0.66 / $3.41 | Second open-weight bulk option; use where DeepSeek is unavailable or for diversity. |
 
 Recommended env values per purpose (`ModelPurpose` in `lib/types.ts`: `default`,
-`agent`, `judge`, `suggester`, `intake`, `planner`, `discovery`, `demo`):
+`agent`, `judge`, `grader`, `suggester`, `intake`, `planner`, `discovery`,
+`demo`):
+
+`grader` must resolve to a different model family than `judge`. The golden-task
+audit measures judge error against the reference, so a shared deployment
+correlates their failures and biases the measured accept/reject rates toward
+agreement. `goldenTaskAudit` records both resolved model ids and a
+`grader_judge_independent` flag on every run so this is checkable after the
+fact rather than assumed.
 
 | Purpose | OpenRouter path (`ARBOR_OPENROUTER_ENABLED=true`) | Azure path |
 | --- | --- | --- |
 | `planner` (hard/abstract reasoning) | `OPENROUTER_PLANNER_MODEL=openai/gpt-5.5` | `AZURE_OPENAI_PLANNER_DEPLOYMENT=<your-gpt-5.5-deployment-name>` |
 | `agent` (default/tool-loop/high-volume) | `OPENROUTER_AGENT_MODEL=google/gemini-3.5-flash` + `ARBOR_AGENT_MAX_OUTPUT_TOKENS=<cap>` | `AZURE_OPENAI_AGENT_DEPLOYMENT=<your-gemini-3.5-flash-deployment-name>` (only if the resource fronts a Gemini deployment; otherwise keep the existing GPT-5 agent deployment and route Flash traffic through OpenRouter) |
 | `judge` | `OPENROUTER_JUDGE_MODEL=openai/gpt-5.5` (or `google/gemini-3.5-flash` for cheaper high-volume judging) | `AZURE_OPENAI_JUDGE_DEPLOYMENT=<your-judge-deployment-name>` |
+| `grader` (golden-task reference audit) | `OPENROUTER_GRADER_MODEL=<a different family than the judge>` | `AZURE_OPENAI_GRADER_DEPLOYMENT=<your-grader-deployment-name>` |
 | PR-review / hard SWE (routed via `agent` purpose today; no dedicated purpose yet) | `OPENROUTER_AGENT_MODEL=anthropic/claude-opus-4.8` when the task is tagged PR-review/hard-SWE, else Flash | `AZURE_OPENAI_AGENT_DEPLOYMENT=<your-opus-4.8-deployment-name>` for a PR-review-dedicated deployment |
 | bulk / cost-capped batches | `OPENROUTER_MODEL=deepseek/deepseek-v4-pro` (or `moonshotai/kimi-k2.6`) for scripts/batches that don't set a purpose | n/a — open-weight models are OpenRouter-only here |
 
@@ -239,6 +248,8 @@ Twilio Docs, Cloudflare Docs).
 | `ARBOR_WORKER_BEARER` | Next / worker runtime | Optional | Standalone Arbor A2A worker bearer auth. |
 | `ARBOR_A2A_DIRECTORY` | Next, Convex if discovery runs there | Optional | Comma-separated runtime A2A discovery URLs. |
 | `ARBOR_A2A_HMAC_REQUIRED` | Next | Optional | Requires HMAC validation on `/api/a2a/market`. |
+| `ARBOR_A2A_CARD_SIGNING_JWK` | Next | Optional | Private JWK (EC P-256 -> ES256, or RSA -> RS256) as a JSON string. When set, the market agent card is JWS-signed (A2A v1.0 JCS procedure) and the public key is served at `/.well-known/jwks.json`. Unset = card served unsigned. Generate: `node -e "const k=require('crypto').generateKeyPairSync('ec',{namedCurve:'prime256v1'});console.log(JSON.stringify(k.privateKey.export({format:'jwk'})))"`. |
+| `ARBOR_A2A_CARD_SIGNING_KID` | Next | Optional | Key id for the card signature header and JWKS entry. Default `arbor-1`. |
 | `ARBOR_LOOPBACK_BASE` | Next | Optional | Local loopback base URL for demo/internal A2A specialists. |
 | `ARBOR_INCLUDE_DEMO_MOCK_SPECIALISTS` | Next | Optional | Includes demo/mock specialists in local specialist registry. |
 | `DEBUG_A2A_DISCOVERY` | Next, Convex if discovery runs there | Optional | Emits A2A discovery diagnostics. Do not enable in production logs with secrets. |
@@ -263,3 +274,17 @@ The roundtable roster (`lib/hive/connector-roster.ts` + `connector-roster-yc.ts`
 is env-gated: entries stay inactive until their key exists. See
 `autoresearch/yc-wireup-status.md` for signup URLs. Never create vendor
 accounts automatically; the operator signs up and pastes keys.
+
+## Stripe Payout Rail (approval-gated)
+
+| Var | Where | Required? | Purpose |
+| --- | --- | --- | --- |
+| `STRIPE_SECRET_KEY` | Next + Convex | For payments | Stripe secret key (sk_test today). `stripePayouts.approveCapture` falls back to `STRIPE_API_KEY`. |
+| `ARBOR_PAYMENTS_MODE` | Next + Convex | For payments | `stripe_checkout` turns on real payment side effects (auction award gates on authorization; capture is human-approved). |
+| `ADMIN_DASHBOARD_SECRET` | Convex | For payouts | Required by `stripePayouts.approveCapture` — the single money-moving action. |
+
+Flow: checkout authorizes with manual capture; `npm run payouts -- list` shows
+escrows awaiting the human decision; `approve --task <id>` captures ONLY when
+the judge verdict is an accept (`--force` overrides and is logged); `cancel`
+voids the authorization. Connect destination transfers require enabling
+Stripe Connect in the dashboard (not yet enabled on this platform account).
