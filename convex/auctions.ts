@@ -13,6 +13,7 @@ import {
   toPublicTier,
   ARBOR_FLOOR_AGENT_IDS,
 } from "../lib/specialists/registry";
+import { capOpenRoster } from "../lib/auction-roster";
 import { makeMockSpecialist } from "../lib/specialists/base";
 import { MCP_CATALOG } from "../lib/specialists/catalog";
 import type {
@@ -263,6 +264,35 @@ function clusterAcceptFloor(): number | undefined {
   if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
   return Math.min(1, parsed);
 }
+
+/**
+ * Optional open-auction fan-out cap (ARBOR_MAX_SOLICITED_AGENTS). Unset →
+ * no cap (default), so research runs and the golden-audit lane keep probing
+ * the full roster exactly as before.
+ *
+ * Why this exists: `discovered_specialists` holds ~1,155 rows, and a task
+ * with no `invited_agent_ids` solicits every one of them. Most have a dead
+ * or keyless endpoint, and each still costs two DB round-trips (agent
+ * lookup + incentive stats) before `solicitSpecialist` can even decide to
+ * skip it, so an open auction took ~12 minutes to reach
+ * `solicitation_complete` — measured 726s on the 2026-08-06 baseline. That
+ * is well past BID_WINDOW_SECONDS and far past anything demoable.
+ *
+ * ARBOR_CLUSTER_ACCEPT_FLOOR does NOT solve this: it is evaluated inside
+ * the fan-out, after those two queries per agent have already run. The cap
+ * has to be applied to the invite list itself.
+ */
+function maxSolicitedAgents(): number | undefined {
+  const raw = process.env.ARBOR_MAX_SOLICITED_AGENTS;
+  if (!raw) return undefined;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+  return Math.floor(parsed);
+}
+
+// Ranking itself lives in lib/auction-roster.ts so it can be unit-tested
+// without the Convex server runtime; see lib/auction-roster.test.ts for the
+// floor-agent invariant.
 
 /**
  * Resolve the capability cluster for a task. Hive child tasks reuse the class
@@ -622,6 +652,9 @@ export const solicitBids = internalAction({
         ? new Set(task.invited_agent_ids)
         : null;
     let invitedSpecialists: SpecialistConfig[];
+    // Tracks the open-auction paths (no shortlist, or a shortlist that
+    // matched nothing). Only those are eligible for the fan-out cap.
+    let openRoster = false;
     if (task.task_type === "reacher-live-launch") {
       // Sponsor-demo invariant: reacher-live-launch always solicits only
       // reacher-social, regardless of any per-task shortlist.
@@ -634,6 +667,7 @@ export const solicitBids = internalAction({
         // Over-restrictive shortlist (no roster member matches): degrade to
         // the open auction rather than guaranteeing an auction_failed.
         invitedSpecialists = roster;
+        openRoster = true;
         await ctx.runMutation(internal.lifecycle.log, {
           task_id: args.task_id,
           event_type: "auction_shortlist_empty",
@@ -654,6 +688,36 @@ export const solicitBids = internalAction({
       }
     } else {
       invitedSpecialists = roster;
+      openRoster = true;
+    }
+
+    // Open auctions only. An explicit shortlist is already small and was
+    // chosen deliberately by the router or the buyer, so capping it would
+    // silently discard that intent.
+    const solicitCap = maxSolicitedAgents();
+    if (
+      openRoster &&
+      solicitCap !== undefined &&
+      invitedSpecialists.length > solicitCap
+    ) {
+      const rosterSize = invitedSpecialists.length;
+      invitedSpecialists = capOpenRoster(invitedSpecialists, solicitCap, {
+        floorAgentIds: ARBOR_FLOOR_AGENT_IDS,
+        env: process.env,
+      });
+      // Logged rather than silently truncated: an auction that probed 40 of
+      // 1,155 agents is a materially different claim from an open auction,
+      // and the replay//admin surfaces should be able to say so.
+      await ctx.runMutation(internal.lifecycle.log, {
+        task_id: args.task_id,
+        event_type: "auction_roster_capped",
+        payload: {
+          cap: solicitCap,
+          roster_size: rosterSize,
+          solicited: invitedSpecialists.length,
+          dropped: rosterSize - invitedSpecialists.length,
+        },
+      });
     }
 
     const solicitSpecialist = async (spec: SpecialistConfig): Promise<void> => {
