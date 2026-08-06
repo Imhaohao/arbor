@@ -452,7 +452,7 @@ Availability is real in provenance but stale in fact: of 45 A2A agents marked `r
 2. **Backfill `hive_agent_embeddings`** to the full corpus — the single highest-leverage routing fix, since 90% of agents currently cannot be discovered at all.
 3. **Rolling recalibration** for both heads on the last N observed outcomes (window 3000, refit every 250). Shipped Platt pairs are cold-start bootstraps, not the evaluated calibrators.
 4. **Populate reputation or drop its weight** — 0.30 of the blend currently cannot reorder anything.
-5. **Measured control arm** (`golden_task_runs` is still 0 rows) before any user-facing savings claim; `ValueImpactPanel` still reports budget headroom as "you saved" against a hardcoded 30-minute baseline.
+5. ~~Measured control arm before any user-facing savings claim~~ **DONE 2026-08-04**: `ValueImpactPanel` now shows measured counterfactual savings (same tokens at gpt-5.2 list minus actual measured spend, `lib/honest-savings.ts`) and lifecycle-measured execution time; the headroom number is relabeled "Budget unspent" and the 30-minute baseline constant is deleted. Cost capture is live on organic tasks (`execution_cost_usd` on the task row via `collectUsage` in `auctions.execute`). Evidence: autoresearch/experiments/e4-honest-savings/ and e7-measured-latency/.
 6. **Quality head** remains untrainable: 231 judge-graded smoke rows are 73 agents × 73 prompts, exactly 1:1, so an encoder could only memorise agent identity. Needs a shared task battery.
 
 | Work | Model |

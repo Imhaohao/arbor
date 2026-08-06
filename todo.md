@@ -23,13 +23,14 @@ still see audit tasks as ordinary tasks in the auction.
 
 - Dashboard stat cards and "Recent tasks" rows are illustrative (labeled), not
   live buyer analytics.
-- `ValueImpactPanel` claims "you saved $X / improved efficiency N%" against a
-  hardcoded 30-minute baseline; PROGRESS.md flags this as unmeasured. Needs a
-  measured control arm (`golden_task_runs` currently ~0 rows) before the claim
-  is defensible.
-- Task execution currently fails live with provider 429s — both OpenRouter and
-  OpenAI accounts have zero credit. UI degrades honestly (refund + error), but
-  no judged deliverable can be produced until credit exists.
+- ~~ValueImpactPanel fake savings/efficiency claims~~ FIXED 2026-08-04: panel
+  now shows measured counterfactual savings (`lib/honest-savings.ts`) and
+  lifecycle-measured execution time; headroom is labeled "Budget unspent",
+  the 30-minute baseline constant is deleted. Browser-verified on a live task.
+- ~~Task execution fails live with provider 429s~~ RESOLVED 2026-08-04: the
+  Azure lane (gpt-5.4-mini agent / gpt-5.6-terra judge) executes end-to-end;
+  see the demo run-sheet below. Direct OpenRouter/OpenAI accounts remain at
+  zero credit, so specialist runners that bypass the Azure lane still 429.
 
 ## Features still lacking a UI surface (backend exists)
 
@@ -37,8 +38,9 @@ still see audit tasks as ordinary tasks in the auction.
   BidWindow renders sealed bids from lifecycle events pre-close, so showing
   calibrated confidence needs a post-close design in AuctionResolution.
 - Golden-task / battery lane (`convex/battery.ts`, `goldenTaskAudit.ts`): all
-  queries are internal-only and `battery_runs` is empty; add a public admin
-  query + table once a funded battery run exists.
+  queries are internal-only. Precondition met as of 2026-08-04 — `battery_runs`
+  holds ~400 funded, graded rows (batteries e17aeedf..93d45119 and E3/E5
+  sweeps) — so the public admin query + table is now buildable.
 - Codebase-explainer lessons: rendered audio/video will appear in the new
   Media artifacts panel, but there is no transcript/lesson viewer for the
   two-host script itself.
@@ -52,8 +54,7 @@ still see audit tasks as ordinary tasks in the auction.
 
 ## Demo run-sheet (measured 2026-08-06, capped roster)
 
-The task-execution note above ("fails live with provider 429s") is stale. The
-flow works on the Azure lane. Measured over 22 realistic buyer tasks with
+The flow works on the Azure lane. Measured over 22 realistic buyer tasks with
 `ARBOR_MAX_SOLICITED_AGENTS=40`: 11/22 reach a judged deliverable, median
 128s, 0 auctions fail outright, and 85.7% of wins go to a genuine specialist
 rather than an Arbor floor agent.
