@@ -355,10 +355,12 @@ fan-out harness into a decoupling dataset generator.
   beats random by >5x, and — importantly — an assertion that the encoder head
   does *not* claim to beat the measured head. A metric claim that isn't a test
   will drift.
-- **Ban silent constants.** Hardcoded baselines (`BASELINE_GENERALIST_SECONDS =
-  30 * 60`) and self-reported estimates (ranking on an agent's own quoted time)
-  are the two most common sources of fake numbers. A test that greps for them is
-  cheap.
+- **Ban silent constants.** Hardcoded baselines and self-reported estimates
+  (ranking on an agent's own quoted time) are the two most common sources of
+  fake numbers. A test that greps for them is cheap. The canonical offender,
+  `BASELINE_GENERALIST_SECONDS = 30 * 60`, was retired 2026-08-04 —
+  `ValueImpactPanel` now shows lifecycle-measured execution time instead
+  (`executionElapsedMs` in `lib/task-view.ts`).
 
 ---
 
@@ -384,3 +386,36 @@ validated offline model.
 - [Artificial Analysis — Claude Opus 5 vs GPT-5.2](https://artificialanalysis.ai/models/comparisons/claude-opus-5-vs-gpt-5-2)
 - [MixLLM: Dynamic Routing in Mixed LLMs](https://arxiv.org/pdf/2502.18482) (TTFT as cost term)
 - [Breaking Model Lock-in: Zero-Shot LLM Routing via a Universal Latent Space](https://arxiv.org/pdf/2601.06220) (pre-calibrated TTFT/TPOT)
+
+---
+
+## Addendum (2026-08-04): measured costs, pricing fix, adopted routing policy
+
+Ten pre-registered experiments (protocols and results in `autoresearch/`)
+changed the facts this document should carry forward:
+
+- **Pricing bug, fixed.** `priceForModel` matched by longest prefix, so the
+  Azure lane billed against the generic `gpt-5` entry: `gpt-5.4-mini` was
+  overpriced 3.3-4.4x, `gpt-5.6-terra` underpriced ~2x. `MODEL_PRICES` now
+  carries explicit entries for both (regression-tested in
+  `lib/llm-usage.test.ts`). Any cost figure produced before this fix is wrong.
+- **Cost capture is live.** `auctions.execute` wraps the winner's runner in
+  `collectUsage` and writes `execution_cost_usd` / tokens / models onto the
+  task row. External-infra agents record nothing — absence renders as
+  "unmeasured", never $0.
+- **Adopted routing policy** (all verdicts under the repaired grading
+  instrument — see the truncation and reference-error notes in
+  `autoresearch/experiments/e5*`): 26 golden classes -> backstop on
+  `gpt-5.4-mini`; `dom-incident-recovery` + `dom-spatial-curation` ->
+  backstop on `gpt-5.6-terra` via the per-purpose deployment override;
+  declined: none. Operating point $0.001248/settled at 88.8% accept (n=161
+  attempted, pooled). Escalation decisions use PASS RATE, not mean accuracy —
+  mean accuracy inverts near the grader threshold.
+- **Instrument rules learned the hard way.** Store what you grade (any
+  truncation upstream of the grader is part of the instrument — the battery
+  cap is now 6000, aligned to the audit window), and review references
+  against their WRITTEN criteria before declaring a class unservable: two of
+  three "unservable" classes were manufactured by instrument error.
+- Full narrative: `autoresearch/findings.md`; paper:
+  `autoresearch/paper/draft/`; follow-up study:
+  `research/settlement-audit-protocol.md`.
