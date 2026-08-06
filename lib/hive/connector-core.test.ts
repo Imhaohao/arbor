@@ -267,3 +267,54 @@ assert.equal(suggestArgFromError("Internal server error", "q"), null);
 assert.equal(suggestArgFromError("", "q"), null);
 
 console.log("error-guided retry tests passed");
+
+// ── schema-aware argument synthesis ─────────────────────────────────────────
+
+// An enum is the server telling us exactly what it accepts.
+assert.deepEqual(
+  buildToolArgs(
+    {
+      properties: { industry: { type: "string", enum: ["plumbing", "hvac"] } },
+      required: ["industry"],
+    } as never,
+    "overview capabilities",
+  ),
+  { industry: "plumbing" },
+);
+// Defaults beat free text.
+assert.deepEqual(
+  buildToolArgs(
+    { properties: { limit: { type: "integer", default: 3 } }, required: ["limit"] } as never,
+    "q",
+  ),
+  { limit: 3 },
+);
+// Format-shaped strings must not receive prose.
+assert.deepEqual(
+  buildToolArgs(
+    { properties: { when: { type: "string", format: "date" } }, required: ["when"] } as never,
+    "q",
+  ),
+  { when: "2026-01-01" },
+);
+// Arrays recurse into their item schema.
+assert.deepEqual(
+  buildToolArgs(
+    {
+      properties: { tags: { type: "array", items: { type: "string", enum: ["a", "b"] } } },
+      required: ["tags"],
+    } as never,
+    "q",
+  ),
+  { tags: ["a"] },
+);
+// Plain strings still take the query.
+assert.deepEqual(
+  buildToolArgs(
+    { properties: { q: { type: "string" } }, required: ["q"] } as never,
+    "find things",
+  ),
+  { q: "find things" },
+);
+
+console.log("schema-aware arg tests passed");

@@ -5,7 +5,7 @@
     "sponsor": "agentdomainsearch.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75qwdfpjgsnrk6rqzxv6kj7h8bycws",
+    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
     "failure": "MCP tool get_pricing on https://agentdomainsearch.com/mcp returned an error result: Error: get_price_domain API is not supported for 'limitations and requirements'"
   },
   {
@@ -14,7 +14,7 @@
     "sponsor": "cloud",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72rftzrmev4r167fb4xcwf9h8bztcm",
+    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
     "failure": "MCP tools/call failed 400: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32602,\"message\":\"Invalid industry. Available: plumbing, hvac, electrical, roofing, contractor, landscaping, handyman, painting, carp"
   },
   {
@@ -23,7 +23,7 @@
     "sponsor": "ganty.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7fk1my4wjrmn298r3j5tdbmh8bykwh",
+    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"message\":\"Unauthorized: invalid or missing API token\"}}"
   },
   {
@@ -32,17 +32,19 @@
     "sponsor": "at",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7fk1my4wjrmn298r3j5tdbmh8bykwh",
+    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
     "failure": "MCP tool get_bundle on https://uurl.at/mcp returned an error result: {\"error\": \"Invalid short URL ID.\"}"
   },
   {
     "agent_id": "mcp-jinko-mcp-178787e",
     "display_name": "Jinko MCP",
     "sponsor": "gojinko",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7fk1my4wjrmn298r3j5tdbmh8bykwh",
-    "failure": "MCP tool find_destination on https://mcp.gojinko.com/ returned an error result: MCP error -32602: Input validation error: Invalid arguments for tool find_destination: [\n  {\n    \"received\": \"limitation"
+    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
+    "ability_statement": "I am a travel-focused agent. I can use find_destination, flight_search, and hotel_search. I can help a software team compare travel options when they need trip planning support. I would own destination search, since find_destination is available to me.",
+    "tool_used": "find_destination",
+    "cooperation_excerpt": "I own destination lookup, flight search, and hotel search. I will not cover booking, pricing guarantees, or anything beyond what those tools return. My current destination lookup returned no destinations found, so I can only say the criteria may need adjusting."
   },
   {
     "agent_id": "mcp-census-county-business-patte-75181ca",
@@ -50,7 +52,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78zvst9qteyx0a2a2ekzqqcs8byp7p",
+    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
     "failure": "MCP tool get_county_business_patterns on https://mcp.olyport.com/census-cbp/mcp returned an error result: Error: ValueError: Invalid state code: limitations and requirements"
   },
   {
@@ -59,7 +61,7 @@
     "sponsor": "industry-lens.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78zvst9qteyx0a2a2ekzqqcs8byp7p",
+    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
     "failure": "MCP tool get_competitive_profile on https://api.industry-lens.com/mcp/public returned an error result: Provide a company domain or name."
   },
   {
@@ -68,7 +70,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78zvst9qteyx0a2a2ekzqqcs8byp7p",
+    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -77,7 +79,7 @@
     "sponsor": "100hires.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78zvst9qteyx0a2a2ekzqqcs8byp7p",
+    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Missing or invalid Authorization header\"},\"id\":null}"
   },
   {
@@ -86,7 +88,7 @@
     "sponsor": "example4.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd798qsdc1e9yc4s1ykbs9rrzd8bz1sy",
+    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
     "failure": "MCP tool xmp4_info on https://mcp.example4.ai/mcp returned an error result: Error: project_id_not_found: \"limitations and requirements\"\n\nAll xmp4 data tools require a valid project id in their `projec"
   },
   {
@@ -95,7 +97,7 @@
     "sponsor": "sats4ai.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd798qsdc1e9yc4s1ykbs9rrzd8bz1sy",
+    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
     "failure": "MCP tool get_job_result on https://sats4ai.com/api/mcp returned no text content"
   },
   {
@@ -104,7 +106,7 @@
     "sponsor": "decibelshield.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd798qsdc1e9yc4s1ykbs9rrzd8bz1sy",
+    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
     "failure": "MCP tool get_city_noise on https://decibelshield.app/api/mcp returned an error result: No data for \"limitations and requirements\". Cities covered: Dhaka, Moradabad, Delhi, Cairo, Mumbai, Kolkata, Kara"
   },
   {
@@ -113,7 +115,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd798qsdc1e9yc4s1ykbs9rrzd8bz1sy",
+    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
     "failure": "MCP tool get_schools on https://mcp.olyport.com/nces-education/mcp returned an error result: Error: ValueError: Invalid state code: limitations and requirements"
   },
   {
@@ -122,8 +124,8 @@
     "sponsor": "catchintent.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd798qsdc1e9yc4s1ykbs9rrzd8bz1sy",
-    "failure": "MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T09:40:09.764Z\",\"message\":\"MCP authentication required\",\"code\":\"UNAUTHORIZED\",\"path\":\"/mcp\",\"method\":\"POST\"}"
+    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
+    "failure": "MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T09:59:00.438Z\",\"message\":\"MCP authentication required\",\"code\":\"UNAUTHORIZED\",\"path\":\"/mcp\",\"method\":\"POST\"}"
   },
   {
     "agent_id": "mcp-com-googleapis-bigtableadmin-3de122b",
@@ -131,7 +133,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd74jn29kfpe4737gb6mpvcaks8by68s",
+    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -140,7 +142,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd74jn29kfpe4737gb6mpvcaks8by68s",
+    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -149,7 +151,7 @@
     "sponsor": "saber",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd74jn29kfpe4737gb6mpvcaks8by68s",
+    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
     "failure": "MCP tools/call failed 401: {\"error\":\"Missing Authorization header\"}"
   },
   {
@@ -158,7 +160,7 @@
     "sponsor": "eurorackref.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd74jn29kfpe4737gb6mpvcaks8by68s",
+    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
     "failure": "MCP tool get_module on https://eurorackref.com/mcp returned an error result: Error: Module not found: limitations and requirements. Use search_modules or search_manual to find the correct id."
   },
   {
@@ -167,7 +169,7 @@
     "sponsor": "switchapp.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd74jn29kfpe4737gb6mpvcaks8by68s",
+    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Unauthorized — provide Authorization: Bearer <mcp_api_key> or complete OAuth via the resource_metadata URL.\"}}"
   },
   {
@@ -176,7 +178,7 @@
     "sponsor": "bot",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd745pe7rn8jc88zn2651ntvhd8bzdvg",
+    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
     "failure": "MCP tool find_events on https://yeehaw.bot/mcp returned no text content"
   },
   {
@@ -185,7 +187,7 @@
     "sponsor": "co",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd745pe7rn8jc88zn2651ntvhd8bzdvg",
+    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
     "failure": "MCP tool get_plan on https://mcp.tempguru.co/mcp returned an error result: Input validation error: Invalid arguments for tool get_plan: plan_id: Too big: expected string to have <=12 characters, plan_"
   },
   {
@@ -194,7 +196,7 @@
     "sponsor": "am",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79jj65cr8487d7myzcq051658bzfpz",
+    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
     "failure": "MCP tool search_community_apps on https://api.mana.am/mcp returned no text content"
   },
   {
@@ -203,7 +205,7 @@
     "sponsor": "freqblog.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79jj65cr8487d7myzcq051658bzfpz",
+    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
     "failure": "MCP tool get_audio_features on https://mcp.freqblog.com/mcp returned an error result: Error executing tool get_audio_features: Provide exactly one of: track (optionally with artist), isrc, mbid, or sp"
   },
   {
@@ -212,7 +214,7 @@
     "sponsor": "petabloom.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79jj65cr8487d7myzcq051658bzfpz",
+    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
     "failure": "MCP tool search_episodes on https://podcasts.petabloom.com/mcp returned an error result: You must provide at least one search parameter (query, podcast_name, published_within_hours, published_after, o"
   },
   {
@@ -221,7 +223,7 @@
     "sponsor": "aftership",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78wt6mgdv9s66g289emy2mrs8byzza",
+    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
     "failure": "MCP tool get_returns_demo on https://mcp.aftership.com/tracking/public returned an error result: store_url is not a valid URL"
   },
   {
@@ -230,7 +232,7 @@
     "sponsor": "aidoos.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78wt6mgdv9s66g289emy2mrs8byzza",
+    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
     "failure": "MCP tool get_plan_status on https://aidoos.com/mcp returned an error result: Error: Plan not found. The plan_id may be invalid, or the plan may have expired. Generate a fresh one with plan_vdc."
   },
   {
@@ -239,7 +241,7 @@
     "sponsor": "de",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78wt6mgdv9s66g289emy2mrs8byzza",
+    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
     "failure": "MCP tool list_data_slots on https://agentview.de/mcp returned an error result: Authentication required.\nThis tool requires the user to be authenticated. No token, session_request_id, or active session"
   },
   {
@@ -248,7 +250,7 @@
     "sponsor": "trydock.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78wt6mgdv9s66g289emy2mrs8byzza",
+    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"message\":\"Unauthorized\"}}"
   },
   {
@@ -257,7 +259,7 @@
     "sponsor": "kernelcad.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bycmah3dnrj0ca23geb2ym58bzbrb",
+    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
     "failure": "MCP tool get_project on https://mcp.kernelcad.com/mcp returned an error result: get_project: listing your projects requires authentication. Connect with OAuth, or pass `slug` to fetch a shared /p/<slu"
   },
   {
@@ -266,7 +268,7 @@
     "sponsor": "stayker.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bycmah3dnrj0ca23geb2ym58bzbrb",
+    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
     "failure": "MCP tool search_hotels on https://mcp.stayker.com/mcp returned an error result: {\"error\":\"Provide either a location (city, address, or landmark), or both latitude and longitude.\"}"
   },
   {
@@ -275,7 +277,7 @@
     "sponsor": "health",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd77dp8adp4fqmxdqgkke1qn798byc1p",
+    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
     "failure": "MCP tool medications_list on https://mcp.chia.health/ returned an error result: Error executing tool medications_list: cannot import name 'Program' from 'protocols.models' (/app/platform/protocols/mod"
   },
   {
@@ -284,7 +286,7 @@
     "sponsor": "unulu.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd77dp8adp4fqmxdqgkke1qn798byc1p",
+    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
     "failure": "MCP tool unulu_get_state on https://mcp.unulu.ai/ returned no text content"
   },
   {
@@ -293,7 +295,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd77dp8adp4fqmxdqgkke1qn798byc1p",
+    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
     "failure": "MCP tools/call failed 402: {\"x402Version\":2,\"accepts\":[{\"scheme\":\"exact\",\"network\":\"eip155:8453\",\"amount\":\"1000\",\"asset\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"payTo\":\"0x6E8B64638b24C6D625b045d"
   },
   {
@@ -302,7 +304,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd77dp8adp4fqmxdqgkke1qn798byc1p",
+    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -311,7 +313,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73nm2fsvxxh7ap3bs4t0kxx98bzhvq",
+    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
     "failure": "MCP tools/call failed 402: {\"error\":\"Payment required. Provide a valid x402 payment header or API key.\",\"code\":\"CACHE_PAYMENT_REQUIRED\",\"retryable\":true,\"tool\":\"cache_query\",\"price\":0.001,\"currency\":\""
   },
   {
@@ -320,7 +322,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73nm2fsvxxh7ap3bs4t0kxx98bzhvq",
+    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
     "failure": "MCP tools/call failed 402: {\"error\":\"Payment required\",\"code\":\"SEARCH_PAYMENT_REQUIRED\",\"retryable\":true,\"tool\":\"web_search_simple\",\"price\":0.003,\"currency\":\"USD\",\"pricing_url\":\"https://search.api.ain"
   },
   {
@@ -329,8 +331,8 @@
     "sponsor": "com.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ezqm4hqj2zrc7sn0r8qj4n58bykkc",
-    "failure": "MCP tools/call failed 400: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":\"-32400\",\"message\":\"Error calling tool findPetsByStatus: 400 Bad Request\",\"data\":{\"error\":{\"code\":400,\"message\":\"Input error: query p"
+    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
+    "failure": "MCP tools/call failed 500: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":\"-32500\",\"message\":\"Error calling tool findPetsByStatus: 500 Internal Server Error\",\"data\":{\"error\":{\"code\":500,\"message\":\"There was "
   },
   {
     "agent_id": "mcp-dreamlit-9800827",
@@ -338,7 +340,7 @@
     "sponsor": "dreamlit.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ezqm4hqj2zrc7sn0r8qj4n58bykkc",
+    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Dreamlit authorization is required. Reconnect Dreamlit and try again.\",\"data\":{\"error\":\"invalid_token\",\"error_descr"
   },
   {
@@ -347,7 +349,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7crtha2yat4sx925v1amggxd8bzfz4",
+    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
     "failure": "MCP tool get_recalls on https://mcp.olyport.com/nhtsa/mcp returned an error result: {\"error\": \"Provide at least one of: make, model, or year\"}"
   },
   {
@@ -356,7 +358,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7crtha2yat4sx925v1amggxd8bzfz4",
+    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
     "failure": "MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Method doesn't allow unregistered callers (callers without established identity). Please use API Key or other form of A"
   },
   {
@@ -365,7 +367,7 @@
     "sponsor": "exploit-intel.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7crtha2yat4sx925v1amggxd8bzfz4",
+    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
     "failure": "MCP tool search_vulnerabilities on https://mcp.exploit-intel.com/mcp returned an error result: Validation error: Provide a search query or at least one filter."
   },
   {
@@ -374,17 +376,19 @@
     "sponsor": "ca",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7f60bz2d3b7eek1ks385h8a18bzrxd",
+    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
     "failure": "MCP tool swiftsign_list_envelopes on https://swiftsign.ca/mcp returned an error result: No SwiftSign API key available. Run swiftsign_signup to mint a sandbox key (sk_test_…), then set SWIFTSIGN_API_K"
   },
   {
     "agent_id": "mcp-devexpress-documentation-231082d",
     "display_name": "DevExpress Documentation",
     "sponsor": "devexpress.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7f60bz2d3b7eek1ks385h8a18bzrxd",
-    "failure": "MCP tool devexpress_docs_search on https://api.devexpress.com/mcp/docs returned an error result: Error executing tool devexpress_docs_search: 1 validation error for devexpress_docs_searchArguments\ntec"
+    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
+    "ability_statement": "I can search DevExpress docs and fetch content for the team. I’d own answering documentation questions with exact links and details from the docs. For example, I found Angular PivotGrid overview content, including its purpose and key elements.",
+    "tool_used": "devexpress_docs_search",
+    "cooperation_excerpt": "I own the Angular TreeList AI Column limitations slice. I will cover that AI columns cannot be in band columns, TreeList does not save AI-generated values or support AI editing, filtering, searching, and sorting, and AI columns ignore listed columns[] properties. I will not cover other technologies or topics beyond this slice."
   },
   {
     "agent_id": "mcp-com-googleapis-developerknow-c85b3db",
@@ -392,7 +396,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7f60bz2d3b7eek1ks385h8a18bzrxd",
+    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -401,7 +405,7 @@
     "sponsor": "eurocomply.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78zs8t2h6vbc1eg0jb179gax8by4jh",
+    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
     "failure": "MCP tool regulation_lookup on https://eurocomply.app/api/mcp returned an error result: No regulation found matching \"limitations and requirements\". Available slugs: ai-act, gdpr, nis2, dora, cra, data"
   },
   {
@@ -410,7 +414,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78zs8t2h6vbc1eg0jb179gax8by4jh",
+    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
     "failure": "MCP tool get_current_aqi on https://mcp.olyport.com/epa/mcp returned an error result: {\"error\": \"EPA AirNow API key not configured. Set the EPA_AIRNOW_KEY environment variable. Register at https://doc"
   },
   {
@@ -419,7 +423,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78zs8t2h6vbc1eg0jb179gax8by4jh",
+    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
     "failure": "MCP tool get_fair_market_rents on https://mcp.olyport.com/hud-housing/mcp returned an error result: Error: ValueError: Invalid state code: limitations and requirements"
   },
   {
@@ -428,7 +432,7 @@
     "sponsor": "civilquants.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78zs8t2h6vbc1eg0jb179gax8by4jh",
+    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
     "failure": "MCP tools/call failed 401: {\"data\":null,\"error\":{\"code\":\"TIER_INSUFFICIENT\",\"message\":\"Tool 'compute_reinforced_soil_wall' requires an authenticated paid CivilQuants account. Your MCP client should in"
   },
   {
@@ -437,7 +441,7 @@
     "sponsor": "fyi",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78zs8t2h6vbc1eg0jb179gax8by4jh",
+    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
     "failure": "MCP tool search on https://mcp.medrates.fyi/mcp returned an error result: Error executing tool search: MedRates API 400 for GET http://web:8000/api/search?q=limitations+and+requirements&page=1&page_si"
   },
   {
@@ -446,7 +450,7 @@
     "sponsor": "weftly.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75g792c9jhtgnse3zhk7mk2h8bypvs",
+    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
     "failure": "MCP tool summarize on https://api.weftly.ai/mcp returned an error result: filename is required when creating a new job. Include it with a recognized extension (e.g. \"podcast.mp3\")."
   },
   {
@@ -455,7 +459,7 @@
     "sponsor": "co",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75g792c9jhtgnse3zhk7mk2h8bypvs",
+    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
     "failure": "MCP tool get_asset on https://mcp.truemarkets.co/marketdata/mcp returned an error result: status 422: {\"error\":\"\",\"message\":\"invalid chain\",\"code\":422}"
   },
   {
@@ -464,17 +468,19 @@
     "sponsor": "cryptorefills.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75g792c9jhtgnse3zhk7mk2h8bypvs",
+    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
     "failure": "MCP tool listBrands on https://api.cryptorefills.com/mcp/sse returned no text content"
   },
   {
     "agent_id": "mcp-mental-health-care-60c908b",
     "display_name": "Mental Health Care",
     "sponsor": "emorahealth.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd75g792c9jhtgnse3zhk7mk2h8bypvs",
-    "failure": "MCP tool find_provider on https://www.emorahealth.com/api/mcp/v1 returned an error result: Input validation error: Invalid arguments for tool find_provider: state: Invalid option: expected one of \"Flo"
+    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
+    "ability_statement": "I can help your team use find_provider, search_content, get_cost_estimate, and get_crisis_resources. I can support provider matching, content lookup, cost checks, and crisis-resource routing. I would own get_crisis_resources, because timely support is critical.",
+    "tool_used": "find_provider",
+    "cooperation_excerpt": "I cover provider matching from the listed tools, plus content search, cost estimates, and crisis resources. I will not cover anything beyond those tools, and I will only use what the raw output shows."
   },
   {
     "agent_id": "mcp-depscope-68e7a8c",
@@ -482,8 +488,8 @@
     "sponsor": "depscope.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd77z9px24kp6ban4nw9e1pgrx8by26h",
-    "failure": "MCP tool get_latest_version on https://mcp.depscope.dev/mcp returned an error result: Error: HTTP 404: {\"detail\":\"Package 'limitations and requirements' not found in limitations and requirements\"}"
+    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
+    "failure": "MCP tool get_latest_version on https://mcp.depscope.dev/mcp returned an error result: Error: HTTP 404: {\"detail\":\"Package 'limitations and requirements' not found in npm\"}"
   },
   {
     "agent_id": "mcp-superforms-3a1ea08",
@@ -491,17 +497,19 @@
     "sponsor": "co",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd77z9px24kp6ban4nw9e1pgrx8by26h",
+    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
     "failure": "MCP tool get_responses on https://superforms.co/mcp returned no text content"
   },
   {
     "agent_id": "mcp-holdingsintel-dc6fe8e",
     "display_name": "HoldingsIntel",
     "sponsor": "holdingsintel.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd77z9px24kp6ban4nw9e1pgrx8by26h",
-    "failure": "MCP tool find_signals on https://mcp.holdingsintel.com/sse returned an error result: {\"error\":\"invalid_input\",\"message\":\"Invalid input: type: Invalid enum value. Expected 'convergence' | 'conviction' "
+    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
+    "ability_statement": "I can help a software team find signals across securities, filings, insider trades, fund holdings, activist stakes, and congressional trades. I also can search securities, filers, and quarters. I’d own signal discovery and triage: surfacing the strongest convergence leads for the team to review.",
+    "tool_used": "find_signals",
+    "cooperation_excerpt": "I own the convergence slice from find_signals: GENB, JAN, LINE, SUNB, and PNFP, with scores 78 to 80. I will not cover filings, securities search, quarters, Congress trades, insider trades, activist stakes, or fund holdings beyond what this signal output shows."
   },
   {
     "agent_id": "mcp-metricduck-financial-analysi-eb21bd7",
@@ -509,7 +517,7 @@
     "sponsor": "metricduck.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd77z9px24kp6ban4nw9e1pgrx8by26h",
+    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
     "failure": "MCP tools/call failed 401: {\"error\":\"invalid_token\",\"error_description\":\"Missing or invalid access token\",\"auth_instructions\":\"Free tier available — no credit card needed. In Claude Code: run 'claude "
   },
   {
@@ -518,7 +526,7 @@
     "sponsor": "meetlark.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a68cwxpa2y2c0gq80gt8w3d8bzbg8",
+    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
     "failure": "MCP tool meetlark_get_results on https://meetlark.ai/mcp returned an error result: Unexpected token 'I', \"Internal S\"... is not valid JSON"
   },
   {
@@ -527,7 +535,7 @@
     "sponsor": "cnvs.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a68cwxpa2y2c0gq80gt8w3d8bzbg8",
+    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
     "failure": "MCP tool get_board on https://cnvs.app/mcp returned no text content"
   },
   {
@@ -536,7 +544,7 @@
     "sponsor": "am-lich.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a68cwxpa2y2c0gq80gt8w3d8bzbg8",
+    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
     "failure": "MCP tool get_canchi on https://am-lich.com/mcp returned an error result: invalid date"
   },
   {
@@ -545,7 +553,7 @@
     "sponsor": "myagentinbox.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a68cwxpa2y2c0gq80gt8w3d8bzbg8",
+    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
     "failure": "MCP tool read_message on https://myagentinbox.com/mcp returned an error result: Inbox not found or expired."
   },
   {
@@ -554,7 +562,7 @@
     "sponsor": "chainflip-broker.io",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78h7r5xae6kp0ykkats5sq658byh8t",
+    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
     "failure": "MCP tool get_quotes on https://chainflip-broker.io/mcp returned an error result: An error occurred invoking 'get_quotes': Unknown Source Asset."
   },
   {
@@ -563,7 +571,7 @@
     "sponsor": "wingmanprotocol",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78h7r5xae6kp0ykkats5sq658byh8t",
+    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
     "failure": "MCP tool get_tool_schema on https://agent.wingmanprotocol.com/mcp returned no text content"
   },
   {
@@ -572,7 +580,7 @@
     "sponsor": "intuitek",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78h7r5xae6kp0ykkats5sq658byh8t",
+    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
     "failure": "MCP tool breadcrumb-extractor on https://the-stall.intuitek.ai/mcp returned an error result: {\"x402Version\":2,\"error\":\"Payment required to access this tool\",\"resource\":{\"url\":\"mcp://tool/breadcrumb-ex"
   },
   {
@@ -581,8 +589,8 @@
     "sponsor": "blackveilsecurity.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78h7r5xae6kp0ykkats5sq658byh8t",
-    "failure": "MCP tool get_domain_rank on https://dns-mcp.blackveilsecurity.com/mcp returned an error result: Error: Domain validation failed: Domain must have at least two labels (e.g., example.com)"
+    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
+    "failure": "MCP tools/call failed 429: id: 3\nevent: message\ndata: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32029,\"message\":\"Rate limit exceeded. get_domain_rank is limited to 10 requests per day for free tier use"
   },
   {
     "agent_id": "mcp-contrastapi-cf8b88a",
@@ -590,7 +598,7 @@
     "sponsor": "contrastcyber.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78h7r5xae6kp0ykkats5sq658byh8t",
+    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
     "failure": "MCP tool dns_lookup on https://api.contrastcyber.com/mcp/ returned an error result: Error executing tool dns_lookup: {\"error\":{\"code\":\"invalid_argument\",\"message\":\"Invalid domain format: 'limitations "
   },
   {
@@ -599,26 +607,30 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78vp2yryz7jhe1ttazfw8rcd8bzbeb",
+    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
     "failure": "MCP tool search_campervans on https://hittheroad.rentals/mcp returned an error result: {\"error\":\"Location not found: \\\"limitations and requirements\\\" in LIMITATIONS AND REQUIREMENTS.\",\"suggestion\":\"Ca"
   },
   {
     "agent_id": "mcp-calculators-6264c78",
     "display_name": "Calculators",
     "sponsor": "retirecrunch.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7532fe5szvvgy10krp6xbr6h8byhvc",
-    "failure": "MCP tool get_portfolio_returns on https://mcp.retirecrunch.com/mcp returned an error result: MCP error -32602: Input validation error: Invalid arguments for tool get_portfolio_returns: [\n  {\n    \"rece"
+    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
+    "ability_statement": "I am a calculator agent. I can use get_portfolio_returns to return profile values for cash, conservative, balanced, and aggressive, plus volatility and detail fields like equities_return, bonds_return, cash_return, index, and label. I would own portfolio return lookups for the team.",
+    "tool_used": "get_portfolio_returns",
+    "cooperation_excerpt": "I own the US portfolio returns slice from get_portfolio_returns. I can restate the profiles, volatility, and the details showing equities_return, bonds_return, cash_return, and index S&P 500. I will not cover anything outside that returned US slice."
   },
   {
     "agent_id": "mcp-city24-ee-real-estate-market-2def218",
     "display_name": "City24.ee - Real Estate marketplace",
     "sponsor": "ee",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7532fe5szvvgy10krp6xbr6h8byhvc",
-    "failure": "MCP tool search-listings on https://mcp.city24.ee/_mcp returned no text content"
+    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
+    "ability_statement": "I can search City24.ee listings for real estate, and I can return listing details like title, unit type, transaction type, price, URL, and image. I would own listing search and shortlisting for the team.",
+    "tool_used": "search-listings",
+    "cooperation_excerpt": "I own the apartment sell listings slice returned by search-listings. I will cover the items shown: Tallinn, Lasnamäe, and Märjamaa vald apartments with their prices and links. I will not cover rentals, other unit types, or anything outside the returned listings."
   },
   {
     "agent_id": "mcp-villiers-charter-e8d576b",
@@ -626,7 +638,7 @@
     "sponsor": "villiers.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7532fe5szvvgy10krp6xbr6h8byhvc",
+    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
     "failure": "MCP tool get_jet_estimate on https://mcp.villiers.ai/mcp returned an error result: 'limitations and requirements' isn't in Villiers' private jet network as a `origin` — this covers major and private-j"
   },
   {
@@ -635,7 +647,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7532fe5szvvgy10krp6xbr6h8byhvc",
+    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
     "failure": "MCP tool get_state_crime_estimates on https://mcp.olyport.com/fbi-crime/mcp returned an error result: Error: ValueError: Invalid state code: limitations and requirements"
   },
   {
@@ -644,7 +656,7 @@
     "sponsor": "truevaluerankings.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79a5d1b6jyz5pbw4rnrw23ex8byjds",
+    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
     "failure": "MCP tool get_tvr_score on https://truevaluerankings.com/mcp returned an error result: {\n  \"error\": \"TVR API returned 400: Bad Request\",\n  \"context\": \"True Value Rankings is a cryptocurrency research a"
   },
   {
@@ -653,7 +665,7 @@
     "sponsor": "lionx402.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79a5d1b6jyz5pbw4rnrw23ex8byjds",
+    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
     "failure": "MCP tool lion_company_research on https://lionx402.com/api/mcp returned no text content"
   },
   {
@@ -662,7 +674,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79a5d1b6jyz5pbw4rnrw23ex8byjds",
+    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
     "failure": "MCP tool get_unemployment_rate on https://mcp.olyport.com/bls/mcp returned an error result: Error: ValueError: Invalid state code: limitations and requirements"
   },
   {
@@ -671,7 +683,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7aan0nnhkk76w1gptrc0f0918byw89",
+    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
     "failure": "MCP tools/call failed 402: {\"x402Version\":2,\"accepts\":[{\"scheme\":\"exact\",\"network\":\"eip155:8453\",\"amount\":\"8000\",\"asset\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"payTo\":\"0x6E8B64638b24C6D625b045d"
   },
   {
@@ -680,7 +692,7 @@
     "sponsor": "1stdibs.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7101zta3pgch9zdr6sa98w4x8byt06",
+    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
     "failure": "MCP tool read_taxonomy on https://www.1stdibs.com/soa/mcp/ returned an error result: Error executing read_taxonomy"
   },
   {
@@ -689,17 +701,19 @@
     "sponsor": "babyblueviper.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7101zta3pgch9zdr6sa98w4x8byt06",
+    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
     "failure": "MCP tool audit_agent_readiness on https://api.babyblueviper.com/mcp returned no text content"
   },
   {
     "agent_id": "mcp-law-ai-lawyer-search-6a96a46",
     "display_name": "Law.AI — Lawyer Search",
     "sponsor": "law",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7101zta3pgch9zdr6sa98w4x8byt06",
-    "failure": "MCP tool search_lawyers on https://mcp.law.ai/ returned an error result: canceling statement due to statement timeout"
+    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
+    "ability_statement": "Found 10 lawyers: 1. **Aaron Alexander Moore** Practice Areas: Contract Disputes, General Practice Location: Dallas, TX Firm: FDIC ✓ Verified Profile Profile: https://law.ai/lawyers/aaron-alexander-moore-general-dallas-tx-us-502765 2. **Abdulrashid Buhari kware** Practice Areas: Real Estate Location: Kware, SOKOTO Firm: Y Y Gwazawa & co ✓ Verified Profile Profile: https://law.ai/lawyers/abdulrashi",
+    "tool_used": "search_lawyers",
+    "cooperation_excerpt": "Found 10 lawyers: 1. **Aaron Alexander Moore** Practice Areas: Contract Disputes, General Practice Location: Dallas, TX Firm: FDIC ✓ Verified Profile Profile: https://law.ai/lawyers/aaron-alexander-moore-general-dallas-tx-us-502765 2. **Abdulrashid Buhari kware** Practice Areas: Real Estate Location: Kware, SOKOTO Firm: Y Y Gwazawa & co ✓ Verified Profile Profile: https://law.ai/lawyers/abdulrashi"
   },
   {
     "agent_id": "mcp-xpoz-social-insights-6523a2b",
@@ -707,7 +721,7 @@
     "sponsor": "xpoz.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7101zta3pgch9zdr6sa98w4x8byt06",
+    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
     "failure": "MCP tools/call failed 401: {\"status\":\"error\",\"error\":\"Authentication failed\",\"category\":\"authentication\",\"message\":\"Authorization token is required\",\"suggestion\":\"Provide a valid Bearer token in the A"
   },
   {
@@ -716,7 +730,7 @@
     "sponsor": "zooza.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7101zta3pgch9zdr6sa98w4x8byt06",
+    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Authorization header with a JWT (carrying a `region` claim) is required.\"},\"id\":null}"
   },
   {
@@ -725,7 +739,7 @@
     "sponsor": "flaim.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ea7hrs59r9jzj8q60thhmr98by2m8",
+    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Authentication required. Please provide a valid Bearer token.\"},\"id\":null}"
   },
   {
@@ -734,7 +748,7 @@
     "sponsor": "hu",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ea7hrs59r9jzj8q60thhmr98by2m8",
+    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
     "failure": "MCP tool search_products on https://www.xfish.hu/app/mcpapi.php returned an error result: {\"error\":\"Legalább egy szűrőfeltétel megadása kötelező (query, brand, category_id, manufacturer_id, min_price,"
   },
   {
@@ -743,7 +757,7 @@
     "sponsor": "railway.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ea7hrs59r9jzj8q60thhmr98by2m8",
+    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
     "failure": "MCP tool perception_fetch_tile on https://packagesmcp-perception-production.up.railway.app/mcp returned an error result: AUDIT: tool perception_fetch_tile blocked — Cell limitations and requirements n"
   },
   {
@@ -752,7 +766,7 @@
     "sponsor": "moltravel.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd77gnmwm8ayynn6q2dpx6dheh8bz8s0",
+    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
     "failure": "MCP tool restcountries_country_info on https://mcp.moltravel.com/mcp returned an error result: Error executing tool restcountries_country_info: HTTP Error 403: Forbidden"
   },
   {
@@ -761,7 +775,7 @@
     "sponsor": "proflightsearch.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd77gnmwm8ayynn6q2dpx6dheh8bz8s0",
+    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
     "failure": "MCP tool get_airport_delay_status on https://proflightsearch.com/mcp returned an error result: Could not resolve that to a tracked airport. Ask with one airport IATA code, city, or airport name, for e"
   },
   {
@@ -770,7 +784,7 @@
     "sponsor": "rowhint.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd77gnmwm8ayynn6q2dpx6dheh8bz8s0",
+    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
     "failure": "MCP tool rowhint_get_seat_score on https://mcp.rowhint.com/mcp returned an error result: {\n  \"error\": \"INVALID_SEAT\",\n  \"message\": \"Invalid seat identifier \\\"LIMITATIONS AND REQUIREMENTS\\\". Expected f"
   },
   {
@@ -779,7 +793,7 @@
     "sponsor": "worldairfares.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd77gnmwm8ayynn6q2dpx6dheh8bz8s0",
+    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
     "failure": "MCP tool get_itinerary_details on https://mcp.worldairfares.com/ returned an error result: No flights available. Itinerary not found or search results expired. Please search again.\n{\"error\":\"SearchExp"
   },
   {
@@ -788,7 +802,7 @@
     "sponsor": "coordinalo.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75azq8yd5g7avmf6c6mwxj3x8bzwn3",
+    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
     "failure": "MCP tools/call failed 404: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32602,\"message\":\"Organization 'limitations and requirements' not found\"},\"id\":null}"
   },
   {
@@ -797,7 +811,7 @@
     "sponsor": "skiplagged.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75azq8yd5g7avmf6c6mwxj3x8bzwn3",
+    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
     "failure": "MCP tool sk_flights_search on https://mcp.skiplagged.com/mcp returned no text content"
   },
   {
@@ -806,7 +820,7 @@
     "sponsor": "trip1.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75azq8yd5g7avmf6c6mwxj3x8bzwn3",
+    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
     "failure": "MCP tool search_hotels on https://trip1.com/api/mcp returned an error result: {\"error\":\"Check in can't be blank, Check out can't be blank, Check in must be an ISO 8601 date (YYYY-MM-DD), Check out mus"
   },
   {
@@ -815,7 +829,7 @@
     "sponsor": "vercel.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75azq8yd5g7avmf6c6mwxj3x8bzwn3",
+    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
     "failure": "MCP tool hemmabo_search_properties on https://hemmabo-mcp-server.vercel.app/mcp returned an error result: {\"error\":\"Invalid arguments for hemmabo_search_properties\",\"details\":[{\"path\":\"/checkIn\",\"mess"
   },
   {
@@ -824,7 +838,7 @@
     "sponsor": "de",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d7hnatqxsj9hqp8kddy9gbn8bynde",
+    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
     "failure": "MCP tool claimondo_finde_sachverstaendige on https://mcp.claimondo.de/mcp returned an error result: Fehler: plz (5-stellige PLZ) oder ort (Stadt/Adresse) erforderlich"
   },
   {
@@ -833,8 +847,8 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d7hnatqxsj9hqp8kddy9gbn8bynde",
-    "failure": "MCP tool get_quote on https://hellosafe.com/api/mcp-travel returned an error result: MCP error -32602: Input validation error: Invalid arguments for tool get_quote: [\n  {\n    \"expected\": \"object\",\n   "
+    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "failure": "MCP tool get_quote on https://hellosafe.com/api/mcp-travel returned an error result: MCP error -32602: Input validation error: Invalid arguments for tool get_quote: [\n  {\n    \"expected\": \"string\",\n   "
   },
   {
     "agent_id": "mcp-seo-36c9ca9",
@@ -842,7 +856,7 @@
     "sponsor": "metricspot.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d7hnatqxsj9hqp8kddy9gbn8bynde",
+    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
     "failure": "MCP tool get_audit on https://mcp.metricspot.com/mcp returned an error result: {\"code\":\"UNAUTHORIZED\",\"message\":\"Missing or malformed Authorization header. Expected: Authorization: Bearer ms_live_xxx\""
   },
   {
@@ -851,8 +865,8 @@
     "sponsor": "usecarscout.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d7hnatqxsj9hqp8kddy9gbn8bynde",
-    "failure": "MCP tool get_market_data on https://mcp.usecarscout.com/mcp returned an error result: MCP error -32602: Input validation error: Invalid arguments for tool get_market_data: [\n  {\n    \"code\": \"too_small"
+    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "failure": "MCP tool get_market_data on https://mcp.usecarscout.com/mcp returned an error result: Failed to get market data for 1990 limitations and requirements limitations and requirements: Model not found"
   },
   {
     "agent_id": "mcp-planexe-1a50107",
@@ -860,17 +874,19 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d7hnatqxsj9hqp8kddy9gbn8bynde",
+    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
     "failure": "MCP tool plan_file_info on https://mcp.planexe.org/mcp returned no text content"
   },
   {
     "agent_id": "mcp-admitbase-admissions-a51f3d4",
     "display_name": "AdmitBase Admissions",
     "sponsor": "admitbase.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7d7hnatqxsj9hqp8kddy9gbn8bynde",
-    "failure": "MCP tool search_schools on https://admitbase.com/api/mcp returned an error result: {\n  \"error\": \"Invalid arguments: [\\n  {\\n    \\\"received\\\": \\\"limitations and requirements\\\",\\n    \\\"code\\\": \\\"invalid"
+    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
+    "ability_statement": "I can search schools and get school stats. I can help a software team surface admissions data quickly from those two tools. I would own school lookup and stats retrieval for law programs.",
+    "tool_used": "search_schools",
+    "cooperation_excerpt": "I own the law slice from search_schools and get_school_stats. I will cover law schools, rankings, acceptance rates, class size, GPA, and test-score data when present. I will not cover other programs or anything not returned by those tools."
   },
   {
     "agent_id": "mcp-quizbase-da971ce",
@@ -878,7 +894,7 @@
     "sponsor": "runriva",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d7hnatqxsj9hqp8kddy9gbn8bynde",
+    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
     "failure": "MCP tools/call failed 401: {\"type\":\"https://quizbase.runriva.com/errors/missing_api_key\",\"title\":\"API key required\",\"status\":401,\"detail\":\"Include your API key in the X-API-Key header (or Authorizatio"
   },
   {
@@ -887,7 +903,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bse1ed1x7xh7tmpy2zpghqd8by3nr",
+    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
     "failure": "MCP tools/call failed 401: {\"error\":\"Clé API MCP requise pour cet outil\",\"hint\":\"Utilisez: Authorization: Bearer anteos_mcp_<votre_clé>\"}"
   },
   {
@@ -896,7 +912,7 @@
     "sponsor": "phasefolio.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bse1ed1x7xh7tmpy2zpghqd8by3nr",
+    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
     "failure": "MCP tool get_project on https://app.phasefolio.com/api/mcp returned no text content"
   },
   {
@@ -905,7 +921,7 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bse1ed1x7xh7tmpy2zpghqd8by3nr",
+    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Authentication required. Pass your Apify API token as a Bearer token.\"}}"
   },
   {
@@ -914,7 +930,7 @@
     "sponsor": "sprytools.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bse1ed1x7xh7tmpy2zpghqd8by3nr",
+    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
     "failure": "MCP tools/call failed 401: {\"error\":\"API key required for tools/call. Pass via x-api-key header or Authorization: Bearer. Free signup: POST https://api.sprytools.com/v1/signup {\\\"email\\\"}.\"}"
   },
   {
@@ -923,7 +939,7 @@
     "sponsor": "ifrcoworker.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bse1ed1x7xh7tmpy2zpghqd8by3nr",
+    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
     "failure": "MCP tools/call failed 401: {\"success\":false,\"error\":\"Missing Authorization header. Expected: Bearer <token> (or raw <token>)\",\"hint\":\"Purchase access at POST /api/ifrcoworker/access/purchase, or get a"
   },
   {
@@ -932,7 +948,7 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bse1ed1x7xh7tmpy2zpghqd8by3nr",
+    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Authentication required. Pass your Apify API token as a Bearer token.\"}}"
   },
   {
@@ -941,7 +957,7 @@
     "sponsor": "run.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71qmcqxwt9aqxftn315k6jvn8by2cm",
+    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
     "failure": "MCP tools/call failed 401: {\"error\":\"Missing x-api-key header\"}"
   },
   {
@@ -950,7 +966,7 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71qmcqxwt9aqxftn315k6jvn8by2cm",
+    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Authentication required. Pass your Apify API token as a Bearer token.\"}}"
   },
   {
@@ -959,7 +975,7 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71qmcqxwt9aqxftn315k6jvn8by2cm",
+    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Authentication required. Pass your Apify API token as a Bearer token.\"}}"
   },
   {
@@ -968,7 +984,7 @@
     "sponsor": "com.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71qmcqxwt9aqxftn315k6jvn8by2cm",
+    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":\"-32401\",\"message\":\"Error calling tool listModels: 401 Unauthorized\",\"data\":{\"error\":{\"error\":{\"message\":\"Missing bearer authenticati"
   },
   {
@@ -977,7 +993,7 @@
     "sponsor": "vincario.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71qmcqxwt9aqxftn315k6jvn8by2cm",
+    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
     "failure": "MCP tool vin_decode_info on https://mcp.vincario.com/mcp returned an error result: Error executing tool vin_decode_info: Missing X-API-Key header"
   },
   {
@@ -986,7 +1002,7 @@
     "sponsor": "cz-agents.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71qmcqxwt9aqxftn315k6jvn8by2cm",
+    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
     "failure": "MCP tool qr_read on https://payqr.cz-agents.dev/mcp returned an error result: image_data must be base64 or a data URI"
   },
   {
@@ -995,7 +1011,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72ka62bgf1327ssep1ndn6qx8byrx2",
+    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
     "failure": "MCP tool read_account_info on https://mcp.arcadia.finance/mcp returned an error result: Error: Invalid account_address: \"limitations and requirements\". Expected a 0x-prefixed 42-character hex string."
   },
   {
@@ -1004,7 +1020,7 @@
     "sponsor": "searchcode.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72ka62bgf1327ssep1ndn6qx8byrx2",
+    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
     "failure": "MCP tool code_search on https://api.searchcode.com/v1/mcp returned an error result: {\"code\":\"invalid_params\",\"message\":\"invalid repository URL: limitations and requirements\",\"suggestion\":\"Use an https"
   },
   {
@@ -1013,8 +1029,8 @@
     "sponsor": "agentsim.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72ka62bgf1327ssep1ndn6qx8byrx2",
-    "failure": "MCP tool get_messages on https://mcp.agentsim.dev/mcp returned an error result: 1 validation error for call[get_messages]\ninput\n  Input should be a valid dictionary or instance of SessionInput [type=m"
+    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "failure": "MCP tool get_messages on https://mcp.agentsim.dev/mcp returned an error result: 1 validation error for call[get_messages]\ninput.session_id\n  Field required [type=missing, input_value={}, input_type=di"
   },
   {
     "agent_id": "mcp-isir-1960366",
@@ -1022,7 +1038,7 @@
     "sponsor": "cz-agents.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72ka62bgf1327ssep1ndn6qx8byrx2",
+    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
     "failure": "MCP tool search_person_insolvency on https://isir.cz-agents.dev/mcp returned an error result: ISIR person search failed: CUZK upstream error: WS1 Kontrola na správnost vyplnění parametrů neproběhla v "
   },
   {
@@ -1031,7 +1047,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72ka62bgf1327ssep1ndn6qx8byrx2",
+    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
     "failure": "MCP tool get_county_measures on https://mcp.olyport.com/cdc-places/mcp returned an error result: Error: ValueError: county_fips must be a 5-digit FIPS code (e.g. '53033'), got 'limitations and require"
   },
   {
@@ -1040,7 +1056,7 @@
     "sponsor": "memxus.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7dn622j90fyd4shh3bejpm458bycjr",
+    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
     "failure": "MCP tools/call failed 401: {\"error\":\"invalid_token\",\"error_description\":\"Missing bearer token\"}"
   },
   {
@@ -1049,7 +1065,7 @@
     "sponsor": "useorgx.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7dn622j90fyd4shh3bejpm458bycjr",
+    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
     "failure": "MCP tool get_agent_status on https://mcp.useorgx.com/ returned an error result: Authentication required: Please sign in to OrgX to use get agent status."
   },
   {
@@ -1058,7 +1074,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7dn622j90fyd4shh3bejpm458bycjr",
+    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
     "failure": "MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Permission denied on resource project limitations and requirements.\",\"type\":\"text\"}],\"isError\":true}}"
   },
   {
@@ -1067,7 +1083,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7dn622j90fyd4shh3bejpm458bycjr",
+    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -1076,7 +1092,7 @@
     "sponsor": "simplecohortllc",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7dn622j90fyd4shh3bejpm458bycjr",
+    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
     "failure": "MCP tool bible_search on https://bible.simplecohortllc.com/mcp returned an error result: No verses found"
   },
   {
@@ -1085,7 +1101,7 @@
     "sponsor": "cz-agents.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7dn622j90fyd4shh3bejpm458bycjr",
+    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
     "failure": "MCP tool get_owners on https://dd.cz-agents.dev/mcp returned an error result: {\n  \"error\": \"tier_required\",\n  \"dimension\": \"depth\",\n  \"required_tier\": \"ddplus\",\n  \"country\": \"CZ\",\n  \"upgrade_url\": \"ht"
   },
   {
@@ -1094,7 +1110,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75ysqst1r096v9e95fkg5dwh8by942",
+    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
     "failure": "MCP tools/call failed 402: {}"
   },
   {
@@ -1103,7 +1119,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75ysqst1r096v9e95fkg5dwh8by942",
+    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
     "failure": "MCP tools/call failed 500: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32603,\"message\":\"Failed to fetch https://jono.archangel.agency/.well-known/ai.json: 402\"}}"
   },
   {
@@ -1112,7 +1128,7 @@
     "sponsor": "varynforge.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75ysqst1r096v9e95fkg5dwh8by942",
+    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Unauthorized: Authentication required\",\"www-authenticate\":\"Bearer resource_metadata=\\\"https://app.varynforge.com/api/auth/"
   },
   {
@@ -1121,7 +1137,7 @@
     "sponsor": "wingmanprotocol",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75ekah879fwbw69ck9aa9fcn8bz5j7",
+    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
     "failure": "MCP tool get_tool_schema on https://wingmanprotocol.com/mcp returned no text content"
   },
   {
@@ -1130,7 +1146,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75ekah879fwbw69ck9aa9fcn8bz5j7",
+    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
     "failure": "MCP tool youtube_summarize on https://api.captapi.com/mcp returned an error result: No API key provided. Configure this MCP server with your Captapi key via the 'Authorization: Bearer capt_live_...' h"
   },
   {
@@ -1139,8 +1155,8 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75ekah879fwbw69ck9aa9fcn8bz5j7",
-    "failure": "MCP tool get_refinement_options on https://qasper.ai/mcp returned an error result: An error occurred invoking 'get_refinement_options'."
+    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "failure": "MCP tool get_refinement_options on https://qasper.ai/mcp returned an error result: {\"error\":\"subCategory is required.\",\"suggestion\":\"Pass an exact ProfessionalProfileSubCategory enum value (e.g. \\u002"
   },
   {
     "agent_id": "mcp-catchdoms-expired-domains-ap-fa25812",
@@ -1148,7 +1164,7 @@
     "sponsor": "catchdoms.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71ks7eh8htztg493vef1mwsx8byrzn",
+    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
     "failure": "MCP initialize failed 429: {\n    \"message\": \"Too Many Attempts.\"\n}"
   },
   {
@@ -1157,8 +1173,8 @@
     "sponsor": "datahyena.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71ks7eh8htztg493vef1mwsx8byrzn",
-    "failure": "MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T09:49:41.008Z\",\"message\":\"MCP authentication required\",\"code\":\"UNAUTHORIZED\",\"path\":\"/mcp\",\"method\":\"POST\"}"
+    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "failure": "MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T10:00:56.741Z\",\"message\":\"MCP authentication required\",\"code\":\"UNAUTHORIZED\",\"path\":\"/mcp\",\"method\":\"POST\"}"
   },
   {
     "agent_id": "mcp-com-googleapis-run-mcp-eb86618",
@@ -1166,7 +1182,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71ks7eh8htztg493vef1mwsx8byrzn",
+    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -1175,7 +1191,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71ks7eh8htztg493vef1mwsx8byrzn",
+    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
     "failure": "MCP tool get_county_demographics on https://mcp.olyport.com/census/mcp returned an error result: Error: ValueError: Unknown state 'limitations and requirements'. Use a 2-letter abbreviation (e.g. 'WA'"
   },
   {
@@ -1184,7 +1200,7 @@
     "sponsor": "lionmaster-operations",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76y6151nm6r9t910jxse9k598byd57",
+    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
     "failure": "MCP tool lion_company_research on https://lion-x402.lionmaster-operations.workers.dev/api/mcp returned no text content"
   },
   {
@@ -1193,7 +1209,7 @@
     "sponsor": "info",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76y6151nm6r9t910jxse9k598byd57",
+    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
     "failure": "MCP tool search_clinics on https://vetclinic.info/mcp returned no text content"
   },
   {
@@ -1202,7 +1218,7 @@
     "sponsor": "corpusiq.io",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76y6151nm6r9t910jxse9k598byd57",
+    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\": \"2.0\", \"error\": {\"code\": -32001, \"message\": \"Authentication required\", \"data\": {\"session_handoff_url\": \"https://mcp2.corpusiq.io/session/handoff\", \"hint\": \"Send "
   },
   {
@@ -1211,17 +1227,19 @@
     "sponsor": "dealscanner.io",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76y6151nm6r9t910jxse9k598byd57",
+    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
     "failure": "MCP tool search_deals on https://mcp.dealscanner.io/mcp returned an error result: Error executing tool search_deals: Provide a valid API key (Authorization: Bearer dsk_...) or sign in."
   },
   {
     "agent_id": "mcp-docs-063e6cb",
     "display_name": "Docs",
     "sponsor": "vaadin.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd76y6151nm6r9t910jxse9k598byd57",
-    "failure": "MCP tool get_vaadin_primer on https://mcp.vaadin.com/docs/ returned no text content"
+    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
+    "ability_statement": "# Vaadin 7 Development Primer **Important: Vaadin 7 is a legacy version (2013-2018) that has reached end-of-life. This primer provides context for maintaining existing applications and guidance on upgrading to modern Vaadin.** ## Vaadin 7 Requirements | Requirement | Version | |-------------|---------| | **Java** | 6+ | | **Servlet** | 3.0+ | | **UI Technology** | GWT (Google Web Toolkit) | | **Bu",
+    "tool_used": "get_vaadin_primer",
+    "cooperation_excerpt": "# Vaadin 7 Development Primer **Important: Vaadin 7 is a legacy version (2013-2018) that has reached end-of-life. This primer provides context for maintaining existing applications and guidance on upgrading to modern Vaadin.** ## Vaadin 7 Requirements | Requirement | Version | |-------------|---------| | **Java** | 6+ | | **Servlet** | 3.0+ | | **UI Technology** | GWT (Google Web Toolkit) | | **Bu"
   },
   {
     "agent_id": "mcp-agent-einstein-autonomous-cr-f82b870",
@@ -1229,8 +1247,8 @@
     "sponsor": "emc2ai.io",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd70kwk8bkyz78cqzez8qpvfrd8bym2b",
-    "failure": "MCP initialize failed 429: {\"error\":\"Rate limit exceeded\",\"message\":\"Too many requests, please try again later.\",\"retryAfter\":30}"
+    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
+    "failure": "MCP tools/call failed 402: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32000,\"message\":\"Payment Required\",\"data\":{\"x402\":{\"version\":\"1\",\"accepts\":[{\"scheme\":\"exact\",\"network\":\"eip155:8453\",\"asset\":\"0x833"
   },
   {
     "agent_id": "mcp-arch-tools-25426d8",
@@ -1238,7 +1256,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd70kwk8bkyz78cqzez8qpvfrd8bym2b",
+    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
     "failure": "MCP tool browser-task on https://arch-tools-mcp.onrender.com/sse returned an error result: {\n  \"error\": \"api_key_required\",\n  \"message\": \"This tool requires your own Arch Tools API key. Anonymous demo"
   },
   {
@@ -1247,7 +1265,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd70kwk8bkyz78cqzez8qpvfrd8bym2b",
+    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
     "failure": "MCP tool browser-task on https://arch-tools-mcp.onrender.com/mcp returned an error result: {\n  \"error\": \"api_key_required\",\n  \"message\": \"This tool requires your own Arch Tools API key. Anonymous demo"
   },
   {
@@ -1256,7 +1274,7 @@
     "sponsor": "stocklake.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7cqmt92byp8vxbfbggzwe8qn8byv46",
+    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
     "failure": "MCP tool get_stock on https://api.stocklake.dev/mcp returned an error result: {\"error\":{\"code\":\"symbol_invalid\",\"message\":\"Invalid symbol 'limitations and requirements' — must be 1-10 alphanumeric cha"
   },
   {
@@ -1265,7 +1283,7 @@
     "sponsor": "Google Maps Platform",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7cqmt92byp8vxbfbggzwe8qn8byv46",
+    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
     "failure": "MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Method doesn't allow unregistered callers (callers without established identity). Please use API Key or other form of A"
   },
   {
@@ -1274,7 +1292,7 @@
     "sponsor": "Jina AI",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7fd5j634smyzkew4rk5bwbad8bygn4",
+    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
     "failure": "MCP tool read_url on https://mcp.jina.ai/v1 returned an error result: MCP error -32602: Input validation error: Invalid arguments for tool read_url: [\n  {\n    \"validation\": \"url\",\n    \"code\": \"invalid"
   },
   {
@@ -4026,5 +4044,524 @@
     "ability_statement": "I can help a software team understand Astro docs and configuration basics from the docs I can search. I would own the task of finding and summarizing the right Astro configuration guidance, especially astro.config files and setup references, so the team can move faster with fewer guesses.",
     "tool_used": "search_astro_docs",
     "cooperation_excerpt": "I own the env slice from the search result: astro:env is only for Astro context like middlewares, routes/endpoints, Astro components, framework components, and modules. I will not cover astro.config.mjs or scripts, since the result says those need process.env."
+  },
+  {
+    "agent_id": "mcp-music360-mcp-3ef0eba",
+    "display_name": "Music360 MCP",
+    "sponsor": "music360",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
+    "failure": "MCP tool music360_search on https://app.music360.com.br/mcp/ returned an error result: {\"success\":false,\"error_code\":\"AUTHENTICATION_REQUIRED\",\"message\":\"Token MCP ausente.\"}"
+  },
+  {
+    "agent_id": "mcp-lowvyn-bae7522",
+    "display_name": "Lowvyn",
+    "sponsor": "lowvyn.com",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
+    "failure": "MCP tools/call failed 404: session not found\n",
+    "cooperation_excerpt": "I own product lookup and tracking for the Canadian catalogue, and the tools named here also include categories, retailers, search, price history, and cheaper checks. I will not cover products that are not found in the catalogue, or anything beyond what these tools and the returned message support.",
+    "tool_used": "find_cheaper"
+  },
+  {
+    "agent_id": "mcp-hometeam-directory-823dabe",
+    "display_name": "Hometeam Directory",
+    "sponsor": "github",
+    "messages": 2,
+    "error_messages": 0,
+    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
+    "ability_statement": "I’m Hometeam Directory. I can search businesses, get business details, list categories, list neighborhoods, get the latest draft class, and find by specialty. I’d own search and lookup work for the software team.",
+    "tool_used": "search_businesses",
+    "cooperation_excerpt": "I own the businesses returned by this search: She Is Shemah, The Bartley Group, Brown Professional Services, LLC, and ATI_Training_Development if that fourth result continues. I will not cover anything beyond this raw search output or details not shown here."
+  },
+  {
+    "agent_id": "mcp-world-airfares-flight-search-eeff7e7",
+    "display_name": "World Airfares Flight Search",
+    "sponsor": "worldairfares.com",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
+    "failure": "MCP tool get_itinerary_details on https://mcp.worldairfares.com returned an error result: No flights available. Itinerary not found or search results expired. Please search again.\n{\"error\":\"SearchExpi"
+  },
+  {
+    "agent_id": "mcp-compliance-df99ef9",
+    "display_name": "Compliance",
+    "sponsor": "feedoracle.io",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "failure": "MCP tool ai_explain on https://feedoracle.io/mcp returned an error result: {\n  \"status\": 402,\n  \"error\": \"payment_required\",\n  \"error_type\": \"no_wallet\",\n  \"protocol\": \"feedoracle-402\",\n  \"protocol_ve"
+  },
+  {
+    "agent_id": "mcp-quantum-suitability-validato-8a93154",
+    "display_name": "Quantum Suitability Validator",
+    "sponsor": "github",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "failure": "MCP tool quantum_readiness_report on https://quantum-suitability-validator-mcp-production.up.railway.app/mcp returned an error result: {\"error\":\"Pro API key required\",\"likely_cause\":\"quantum_readiness"
+  },
+  {
+    "agent_id": "mcp-docs-9651564",
+    "display_name": "Docs",
+    "sponsor": "vaadin.com",
+    "messages": 2,
+    "error_messages": 0,
+    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
+    "ability_statement": "# Vaadin 7 Development Primer **Important: Vaadin 7 is a legacy version (2013-2018) that has reached end-of-life. This primer provides context for maintaining existing applications and guidance on upgrading to modern Vaadin.** ## Vaadin 7 Requirements | Requirement | Version | |-------------|---------| | **Java** | 6+ | | **Servlet** | 3.0+ | | **UI Technology** | GWT (Google Web Toolkit) | | **Bu",
+    "tool_used": "get_vaadin_primer",
+    "cooperation_excerpt": "# Vaadin 7 Development Primer **Important: Vaadin 7 is a legacy version (2013-2018) that has reached end-of-life. This primer provides context for maintaining existing applications and guidance on upgrading to modern Vaadin.** ## Vaadin 7 Requirements | Requirement | Version | |-------------|---------| | **Java** | 6+ | | **Servlet** | 3.0+ | | **UI Technology** | GWT (Google Web Toolkit) | | **Bu"
+  },
+  {
+    "agent_id": "mcp-recallchecker-vehicle-safety-8b236b6",
+    "display_name": "RecallChecker — Vehicle Safety Recalls",
+    "sponsor": "checkrecall.com",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd79ean4tt4vbsw93epctkr7698by78g",
+    "ability_statement": "I can check vehicle recalls for a given vehicle. I own the task of finding active recall notices from vehicle details. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-caliper-1b8578d",
+    "display_name": "Caliper",
+    "sponsor": "fit",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd79ean4tt4vbsw93epctkr7698by78g",
+    "ability_statement": "I can detect and convert 3D/point-cloud formats, and run batch formatting across files. I can also help inspect format needs and handle feature requests. I would own file format detection and conversion. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-artidrop-d14bd91",
+    "display_name": "Artidrop",
+    "sponsor": "artidrop.ai",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd79ean4tt4vbsw93epctkr7698by78g",
+    "ability_statement": "I can publish content, publish a site, get items, and inspect versions. I would own publishing a site update. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-token-safety-contract-risk-a-71a8dbc",
+    "display_name": "Token Safety & Contract Risk API",
+    "sponsor": "github",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd79ean4tt4vbsw93epctkr7698by78g",
+    "ability_statement": "I can check token safety and assess contract risk for a software team. I would own token safety screening before integration or trading. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-swiss-army-37a0c05",
+    "display_name": "Swiss Army",
+    "sponsor": "github",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd79ean4tt4vbsw93epctkr7698by78g",
+    "ability_statement": "I can help with data conversion, text and media parsing, validation, security checks, and small utility tasks like hashes, UUIDs, timezones, cron, regex, currency, and metadata extraction. I would own validating IBANs and VAT numbers. My tools can change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-decisions-7b54acf",
+    "display_name": "Decisions",
+    "sponsor": "everydaybudd.com",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd79ean4tt4vbsw93epctkr7698by78g",
+    "ability_statement": "I can help your team decide job offer value, freelance rate floors, Roth vs traditional retirement choices, best filing status, and raise or bonus value. I would own the raise or bonus value task. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-sigil-59cb165",
+    "display_name": "Sigil",
+    "sponsor": "tunnelmind.ai",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd79ean4tt4vbsw93epctkr7698by78g",
+    "ability_statement": "I can verify supply paths, ads.txt, IP type, app bundles, supply chains, traverse supply chains, score entities or batches, register AIT, witness ATAP, and generate receipts. I would own supply-chain verification. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-broker-safety-352d18e",
+    "display_name": "Broker Safety",
+    "sponsor": "brokerchooser.com",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd79ean4tt4vbsw93epctkr7698by78g",
+    "ability_statement": "I can assess whether a broker looks scam-like using the is-broker-scam-tool. I would own broker-scam checks for the software team. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-dilli-email-validation-api-s-37ffd11",
+    "display_name": "Dilli Email Validation Api Server",
+    "sponsor": "dillilabs",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd79ean4tt4vbsw93epctkr7698by78g",
+    "ability_statement": "I can validate email addresses for your team. I own the task of checking whether a specific email looks deliverable and well-formed. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-prince-pdf-converter-a78db50",
+    "display_name": "Prince PDF Converter",
+    "sponsor": "cloud",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd79ean4tt4vbsw93epctkr7698by78g",
+    "ability_statement": "I can convert a URL, Markdown, or HTML into a PDF. I would own the task of generating a PDF from final content for release or review. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-boolsai-scan-e82ecc8",
+    "display_name": "Boolsai Scan",
+    "sponsor": "boolsai.ai",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7f0r3evx5y0967tzcgf19jpx8bzw4c",
+    "ability_statement": "I can run boolsai_scan and boolsai_scan_paths to inspect code paths and likely issue hotspots for a software team. I would own scanning a repository for risky patterns and reporting findings. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-helixar-security-392b916",
+    "display_name": "Helixar Security",
+    "sponsor": "helixar.ai",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7f0r3evx5y0967tzcgf19jpx8bzw4c",
+    "ability_statement": "I can inspect MCP setup and validate HDP-related settings or workflows. I would own validation and review tasks. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-well-being-check-553b28a",
+    "display_name": "Well-Being Check",
+    "sponsor": "keenethics-labs.com",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7f0r3evx5y0967tzcgf19jpx8bzw4c",
+    "ability_statement": "I can help a software team run a mental health check using the mental-health-get-test tool. I would own the task of checking a teammate’s current stress or well-being status. My tools can change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-cool-property-search-server-54f19a1",
+    "display_name": "Cool property search server",
+    "sponsor": "find-me",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7f0r3evx5y0967tzcgf19jpx8bzw4c",
+    "ability_statement": "I can help a software team send emails. I would own email sending tasks. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-offer-hopper-shopping-optimi-4e217b3",
+    "display_name": "Offer Hopper Shopping Optimizer",
+    "sponsor": "offerhopper",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7f0r3evx5y0967tzcgf19jpx8bzw4c",
+    "ability_statement": "I can plan an optimal shopping route for a software team using the published tool plan_optimal_shopping_route. I would own route planning. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-cooper-1c7936c",
+    "display_name": "Cooper",
+    "sponsor": "cooperpetcare",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7f0r3evx5y0967tzcgf19jpx8bzw4c",
+    "ability_statement": "I can help your team inspect services, coverage, breeds, shifts, orders, pets, chats, and messages, and create leads or orders. I’d own creating a lead. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-gemot-deliberation-server-e54bb4f",
+    "display_name": "Gemot Deliberation Server",
+    "sponsor": "gemot.dev",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7f0r3evx5y0967tzcgf19jpx8bzw4c",
+    "ability_statement": "I can help your software team administer, analyze, coordinate, decide, deliberate, and participate in multi-agent workflows. I would own coordination of roundtable decisions. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-linkedin-mcp-server-a106ba0",
+    "display_name": "LinkedIn MCP Server",
+    "sponsor": "com.ai",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7f0r3evx5y0967tzcgf19jpx8bzw4c",
+    "ability_statement": "I can create LinkedIn share posts, retrieve share posts, and get a person profile. I would own drafting and publishing a share post. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-occam-ed2e5fc",
+    "display_name": "Occam",
+    "sponsor": "fit",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7f0r3evx5y0967tzcgf19jpx8bzw4c",
+    "ability_statement": "I can help triage feature requests, run SINDy, run PySR, and estimate PySR uncertainty. I would own symbolic model discovery from data. My tools change real account state, so I need an operator's go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-coachsync-4a2f005",
+    "display_name": "CoachSync",
+    "sponsor": "coachsync.io",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7f0r3evx5y0967tzcgf19jpx8bzw4c",
+    "ability_statement": "I can help your team calculate warmups, load plates, and generate novice linear progression plans. I would own warmup planning. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-pyrimid-protocol-f71e908",
+    "display_name": "Pyrimid Protocol",
+    "sponsor": "pyrimid.ai",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7ee5m6vsj7q72s46abagshb18bz0x6",
+    "ability_statement": "I can browse products, preview items, list categories, buy items, register affiliates, check vendor stats, and check commissions. I would own purchase and affiliate setup tasks. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-pdf-kit-0320fc8",
+    "display_name": "PDF Kit",
+    "sponsor": "hellobasestation.com",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7ee5m6vsj7q72s46abagshb18bz0x6",
+    "ability_statement": "I can create autofill jobs for PDFs. I would own setting up and submitting an autofill job from a template. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-html-to-markdown-api-2778cac",
+    "display_name": "HTML to Markdown API",
+    "sponsor": "github",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7ee5m6vsj7q72s46abagshb18bz0x6",
+    "ability_statement": "I can convert HTML to Markdown. I would own HTML cleanup and documentation migration. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-aeo-scanner-9937381",
+    "display_name": "AEO Scanner",
+    "sponsor": "github",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7ee5m6vsj7q72s46abagshb18bz0x6",
+    "ability_statement": "I can scan sites, audit sites, fix sites, and compare sites. I would own site auditing. My tools can change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-mcp-registry-server-b013389",
+    "display_name": "MCP Registry Server",
+    "sponsor": "com.ai",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7ee5m6vsj7q72s46abagshb18bz0x6",
+    "ability_statement": "I can help your software team discover registry servers, list available versions, and inspect a specific server version. I would own version lookup for a named server. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-hapi-strava-mcp-server-72774e1",
+    "display_name": "HAPI Strava MCP Server",
+    "sponsor": "com.ai",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7ee5m6vsj7q72s46abagshb18bz0x6",
+    "ability_statement": "I can fetch Strava stats, athlete, segment, club, gear, and route data for your team. I would own investigating performance trends from stats and segment efforts. My tools can change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-ivisa-mcp-server-379bd16",
+    "display_name": "iVisa MCP Server",
+    "sponsor": "ivisa",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7ee5m6vsj7q72s46abagshb18bz0x6",
+    "ability_statement": "I can help with visa_availability checks for a software team. I would own checking visa availability for a destination or case. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-ludo-ai-game-assets-008bdae",
+    "display_name": "Ludo AI Game Assets",
+    "sponsor": "ludo.ai",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7ee5m6vsj7q72s46abagshb18bz0x6",
+    "ability_statement": "I can help your team create and edit images, sprites, videos, 3D models, and audio, plus validate API keys and work with animation presets. I would own sprite animation or image generation tasks. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-tracepass-8fe0e6d",
+    "display_name": "TracePass",
+    "sponsor": "eu",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7ee5m6vsj7q72s46abagshb18bz0x6",
+    "ability_statement": "I can work with products, passports, passport fields, passport parties, EPCIS events, and templates. I could own passport data inspection and EPCIS tracing support. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-adis-22d668c",
+    "display_name": "Adis",
+    "sponsor": "cz-agents.dev",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7ee5m6vsj7q72s46abagshb18bz0x6",
+    "ability_statement": "I can check DPH payer status for one account, check it in bulk, and list unreliable payers. I would own payer-status verification. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-hmr-bbf2eb9",
+    "display_name": "Hmr",
+    "sponsor": "promplate.dev",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7072q3khte862c74er76cpxd8bzmz2",
+    "ability_statement": "I can help your team learn HMR basics, inspect HMR core sources, and review HMR unit tests. I would own investigating how HMR behaves in the codebase and explaining findings. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-crontab-generator-api-9218831",
+    "display_name": "Crontab Generator API",
+    "sponsor": "github",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7072q3khte862c74er76cpxd8bzmz2",
+    "ability_statement": "I can generate crontab schedules for your team using utility_generate_crontab. I would own the task of turning a natural-language job schedule into a valid cron expression. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-language-detector-api-a3dbd01",
+    "display_name": "Language Detector API",
+    "sponsor": "github",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7072q3khte862c74er76cpxd8bzmz2",
+    "ability_statement": "I can detect the language of text. I would own language identification for incoming content and route it correctly. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-text-to-speech-api-e9885c3",
+    "display_name": "Text to Speech API",
+    "sponsor": "github",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7072q3khte862c74er76cpxd8bzmz2",
+    "ability_statement": "I can generate speech from media text using media_text_to_speech. I would own turning approved text into audio assets for the team. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-text-translator-api-9534f29",
+    "display_name": "Text Translator API",
+    "sponsor": "github",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7072q3khte862c74er76cpxd8bzmz2",
+    "ability_statement": "I can translate text between languages using text_translate. I would own translation of user-facing copy or support content. My tools change real account state, so I need an operator's go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-compuute-mcp-security-scanne-9e5a90f",
+    "display_name": "Compuute MCP Security Scanner",
+    "sponsor": "github",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7072q3khte862c74er76cpxd8bzmz2",
+    "ability_statement": "I can scan an MCP server for security issues using scan_mcp_server. I would own the task of assessing a server for risky exposures or misconfigurations. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-foresea-forecasting-f7eb9a7",
+    "display_name": "Foresea Forecasting",
+    "sponsor": "ink",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7072q3khte862c74er76cpxd8bzmz2",
+    "ability_statement": "I can forecast outcomes, analyze market signals, scan markets, review track records, and monitor edge boards. I would own market scanning. My tools can change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-agentic-commerce-catalog-f40eacc",
+    "display_name": "Agentic Commerce Catalog",
+    "sponsor": "github",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7072q3khte862c74er76cpxd8bzmz2",
+    "ability_statement": "I can create music, generate images, and produce video for your team. I would own media generation tasks, such as making a promo image or short video from a brief. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-settlementwitness-1af4f7f",
+    "display_name": "SettlementWitness",
+    "sponsor": "defaultverifier.com",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7072q3khte862c74er76cpxd8bzmz2",
+    "ability_statement": "I can witness and record settlement-related events for the software team. I own the task of confirming a settlement action was observed and logged. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-agentcore-4b0e9fa",
+    "display_name": "Agentcore",
+    "sponsor": "railway.app",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7072q3khte862c74er76cpxd8bzmz2",
+    "ability_statement": "I can verify jurisdiction, generate audit proof, and check delegation chains for your team. I would own audit-proof generation. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-oh-my-posh-validator-c96a521",
+    "display_name": "Oh My Posh Validator",
+    "sponsor": "ohmyposh.dev",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7bh9yqj3gxr8fs3y746f61x58bz2vg",
+    "ability_statement": "I can validate Oh My Posh configs and validate individual segments for a software team. I would own config and segment correctness checks before rollout. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-trust-check-4d146f7",
+    "display_name": "Trust Check",
+    "sponsor": "paladinfi.com",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7bh9yqj3gxr8fs3y746f61x58bz2vg",
+    "ability_statement": "I can preview trust checks, run OFAC-free trust checks, and check trust health. I would own previewing a case and summarizing findings. My tools change real account state, so I need an operator's go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-wallet-verifier-74472af",
+    "display_name": "Wallet Verifier",
+    "sponsor": "wallet-connectors.com",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7bh9yqj3gxr8fs3y746f61x58bz2vg",
+    "ability_statement": "I can create accounts for your team. I own the task of provisioning a new account when instructed. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-crypto-intelligence-dbe9d63",
+    "display_name": "Crypto Intelligence",
+    "sponsor": "carbon-cashmere",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7bh9yqj3gxr8fs3y746f61x58bz2vg",
+    "ability_statement": "I can monitor and analyze Kaspa, Bitcoin, and Bittensor network health, fees, blocks, flows, stake, and activity using those tools. I would own incident triage on fee spikes and throughput drops. My tools can change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "mcp-quantrisk-1e010d2",
+    "display_name": "QuantRisk",
+    "sponsor": "workers.dev",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7bh9yqj3gxr8fs3y746f61x58bz2vg",
+    "ability_statement": "I can analyze risk, run Monte Carlo and stress tests, optimize portfolios, build correlation matrices, attribute performance, inspect sector exposure, fetch price history, compare portfolios, and calculate Greeks. I would own risk analysis and stress testing. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
   }
 ]
