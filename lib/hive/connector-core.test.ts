@@ -240,3 +240,30 @@ assert.ok(withDevin.some((e) => e.agent_id === "devin-engineer"));
 assert.ok(CONNECTOR_ROSTER.length >= 5, "roster must field at least 5 agents");
 
 console.log("connector-core tests passed");
+
+// ── error-guided retry ──────────────────────────────────────────────────────
+
+import { suggestArgFromError } from "./connector-core";
+
+assert.equal(
+  suggestArgFromError("Invalid industry. Available: plumbing, hvac, electrical", "x"),
+  "plumbing",
+);
+assert.equal(
+  suggestArgFromError("Valid options are: alpha | beta", "x"),
+  "alpha",
+);
+assert.equal(
+  suggestArgFromError("Supported values: 'us-east', 'eu-west'", "x"),
+  "us-east",
+);
+// Caps shorten the ORIGINAL query rather than inventing a value.
+assert.equal(
+  suggestArgFromError("Too many search terms (55); use up to 3.", "one two three four five"),
+  "one two three",
+);
+// No actionable hint -> caller must report the failure, not guess.
+assert.equal(suggestArgFromError("Internal server error", "q"), null);
+assert.equal(suggestArgFromError("", "q"), null);
+
+console.log("error-guided retry tests passed");

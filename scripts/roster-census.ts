@@ -90,6 +90,28 @@ function withTimeout(ms: number): { signal: AbortSignal; done: () => void } {
   return { signal: controller.signal, done: () => clearTimeout(timer) };
 }
 
+/**
+ * Read a response body under its own deadline.
+ *
+ * The fetch AbortController only covers headers. An MCP server that answers
+ * 200 and then holds the SSE stream open with keepalive comments — several in
+ * this roster do — makes `res.text()` hang forever after the abort timer has
+ * already been cleared. That stalled the first full sweep at 1125/1166.
+ */
+async function readBodyWithTimeout(res: Response, ms: number): Promise<string> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      res.text(),
+      new Promise<string>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`body read timeout after ${ms}ms`)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /** 401/402/403 mean a live server gating on credentials — not a dead one. */
 function isAuthStatus(status: number): boolean {
   return status === 401 || status === 402 || status === 403;
@@ -137,10 +159,9 @@ async function probeMcp(
       detail: (err as Error).message.slice(0, 120),
     };
   }
-  init.done();
-
   const sessionId = res.headers.get("mcp-session-id");
-  const text = await res.text().catch(() => "");
+  const text = await readBodyWithTimeout(res, timeoutMs).catch(() => "");
+  init.done();
   if (!res.ok) {
     return { ok: false, status: res.status, abilities: [], detail: text.slice(0, 160) };
   }
@@ -164,8 +185,10 @@ async function probeMcp(
       detail: `tools/list: ${(err as Error).message.slice(0, 100)}`,
     };
   }
+  const listText = await readBodyWithTimeout(listRes, timeoutMs).catch(
+    () => "",
+  );
   listInit.done();
-  const listText = await listRes.text().catch(() => "");
   if (!listRes.ok) {
     return {
       ok: false,
@@ -215,8 +238,8 @@ async function probeA2a(
       headers: bearer ? { authorization: `Bearer ${bearer}` } : {},
       signal: init.signal,
     });
+    const text = await readBodyWithTimeout(res, timeoutMs).catch(() => "");
     init.done();
-    const text = await res.text().catch(() => "");
     if (!res.ok) {
       return { ok: false, status: res.status, abilities: [], detail: text.slice(0, 160) };
     }
@@ -471,7 +494,7 @@ async function deliverAll(): Promise<void> {
           }),
         });
         const sid = hs.headers.get("mcp-session-id");
-        await hs.text().catch(() => "");
+        await readBodyWithTimeout(hs, 15_000).catch(() => "");
         if (sid) headers["mcp-session-id"] = sid;
 
         const res = await fetch(row.endpoint!, {
@@ -485,8 +508,8 @@ async function deliverAll(): Promise<void> {
             params: { name: tool, arguments: { query: DELIVERY_QUERY } },
           }),
         });
+        const text = await readBodyWithTimeout(res, 30_000);
         init.done();
-        const text = await res.text();
         if (!res.ok) {
           return { agent_id: row.agent_id, tool, ok: false, error: `HTTP ${res.status}` };
         }

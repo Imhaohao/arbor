@@ -106,12 +106,18 @@ export function rosterEntryFromCensus(row: CensusLike): RosterEntry | null {
       endpoint: row.endpoint,
       bearerEnv: row.key_env,
       toolPreference: safe,
-      queryFor: (round, goal) =>
+      // SHORT queries on purpose. A census-derived entry does not know the
+      // tool's domain, and passing a full roundtable prompt as a search
+      // argument is what real servers reject: measured failures included
+      // "Too many search terms (55); use up to 20" and validation errors on
+      // enum-shaped arguments. Two or three neutral words survive nearly
+      // every schema while still returning that server's own real content.
+      queryFor: (round) =>
         round === 1
-          ? `What can you contribute to this objective: ${goal}`
+          ? "overview capabilities"
           : round === 2
-            ? `What risks or constraints matter for: ${goal}`
-            : `What is the minimal credible plan for: ${goal}`,
+            ? "limitations and requirements"
+            : "getting started",
     },
   };
 }

@@ -225,6 +225,48 @@ export function buildToolArgs(
   return out;
 }
 
+/**
+ * Recover a usable argument from a tool's own rejection message.
+ *
+ * Many domain MCP servers reject a generic query but say exactly what they
+ * wanted: "Invalid industry. Available: plumbing, hvac, electrical" or
+ * "Too many search terms (55); use up to 20". Measured across this roster,
+ * that shape was the single largest failure bucket, so one error-guided
+ * retry converts a dead call into the server's own real content.
+ *
+ * Returns null when the message carries no actionable hint — the caller must
+ * then report the failure rather than guess.
+ */
+export function suggestArgFromError(
+  message: string,
+  originalQuery: string,
+): string | null {
+  if (!message) return null;
+
+  // "Available: a, b, c" / "Valid options are: a, b" / "Supported values: a, b"
+  const listed =
+    /(?:available|valid(?: options)?(?: are)?|supported(?: values)?|choose from|expected one of)\s*[:=]\s*([^.\n]+)/i.exec(
+      message,
+    );
+  if (listed) {
+    const first = listed[1]
+      .split(/[,|]/)[0]
+      .replace(/[`'"\[\]]/g, "")
+      .trim();
+    if (first && first.length <= 60) return first;
+  }
+
+  // "use up to 20" / "maximum of 5 terms" -> shorten the original query.
+  const cap = /(?:use up to|maximum of|at most|no more than)\s+(\d+)/i.exec(message);
+  if (cap) {
+    const n = Math.max(1, Math.min(20, Number(cap[1])));
+    const words = originalQuery.split(/\s+/).filter(Boolean).slice(0, n);
+    if (words.length > 0) return words.join(" ");
+  }
+
+  return null;
+}
+
 // ── blackboard entry assembly ───────────────────────────────────────────────
 
 export const BOARD_MESSAGE_MAX_CHARS = 1600;

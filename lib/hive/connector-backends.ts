@@ -11,6 +11,7 @@ import {
   looksLikeErrorText,
   parseSseJson,
   pickTool,
+  suggestArgFromError,
   type McpToolInfo,
 } from "./connector-core";
 
@@ -125,16 +126,42 @@ export async function callMcpAgent(
   const tool = pickTool(tools, options.toolPreference);
   if (!tool) throw new Error(`MCP server at ${options.endpoint} lists no tools`);
 
-  const args = options.argsFor
-    ? options.argsFor(tool, options.query)
-    : buildToolArgs(tool.inputSchema, options.query);
-  const called = await mcpRpc(
+  const buildArgs = (query: string) =>
+    options.argsFor
+      ? options.argsFor(tool, query)
+      : buildToolArgs(tool.inputSchema, query);
+
+  let called = await mcpRpc(
     session,
     "tools/call",
-    { name: tool.name, arguments: args },
+    { name: tool.name, arguments: buildArgs(options.query) },
     timeoutMs,
   );
-  const text = extractMcpText(called);
+  let text = extractMcpText(called);
+
+  // Error-guided retry: when a server rejects the query but names what it
+  // wanted, ask again with its own suggestion. One retry only — a second
+  // rejection is a real failure, not something to keep guessing at.
+  const firstErrored =
+    Boolean((called as { result?: { isError?: boolean } })?.result?.isError) ||
+    (text ? looksLikeErrorText(text) : false);
+  if (firstErrored) {
+    const suggestion = suggestArgFromError(text, options.query);
+    if (suggestion) {
+      const retried = await mcpRpc(
+        session,
+        "tools/call",
+        { name: tool.name, arguments: buildArgs(suggestion) },
+        timeoutMs,
+      );
+      const retriedText = extractMcpText(retried);
+      if (retriedText && !looksLikeErrorText(retriedText)) {
+        called = retried;
+        text = retriedText;
+      }
+    }
+  }
+
   if (!text) {
     throw new Error(
       `MCP tool ${tool.name} on ${options.endpoint} returned no text content`,
