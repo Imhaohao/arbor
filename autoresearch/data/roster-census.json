@@ -23222,11 +23222,16 @@
     "tier": "mcp-forwarding",
     "transport": "mcp",
     "key_present": false,
-    "verdict": "dead",
-    "abilities": [],
-    "endpoint": "https://gitmcp.io/docs",
+    "verdict": "live_open",
+    "abilities": [
+      "fetch_mcp_documentation",
+      "search_mcp_documentation",
+      "search_mcp_code",
+      "fetch_generic_url_content"
+    ],
+    "endpoint": "https://gitmcp.io/docs/mcp",
     "http_status": 200,
-    "detail": "unparseable: empty MCP response body",
+    "detail": "recovered by URL repair from https://gitmcp.io/docs",
     "latency_ms": 20004
   },
   {
