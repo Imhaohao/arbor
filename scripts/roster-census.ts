@@ -637,10 +637,112 @@ async function repairDead(): Promise<void> {
   console.log(JSON.stringify(tally, null, 2));
 }
 
+/**
+ * Probe the agents that live in the `agents` table but NOT in
+ * discovered_specialists — the static registry and the MCP catalog.
+ *
+ * The first sweep only walked discovered_specialists and therefore missed 82
+ * registered agents entirely, including several already proven in earlier
+ * connector sessions. A census that silently omits rows is not a census, so
+ * this closes the roster to a complete accounting.
+ */
+async function probeStatic(): Promise<void> {
+  const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL ?? "");
+  const agents = (await client.query(api.agents.list, {})) as Array<{
+    agent_id: string;
+    display_name: string;
+    sponsor: string;
+  }>;
+  const existing = JSON.parse(readFileSync(CENSUS_PATH, "utf8")) as CensusRow[];
+  const known = new Set(existing.map((r) => r.agent_id));
+  const missing = agents.filter((a) => !known.has(a.agent_id));
+  console.log(`${missing.length} registered agents were never probed`);
+
+  // Endpoints come from the static registry and the MCP catalog.
+  const { getSpecialists } = await import("../lib/specialists/registry");
+  const { MCP_CATALOG } = await import("../lib/specialists/catalog");
+  const endpointById = new Map<
+    string,
+    { endpoint?: string; keyEnv?: string; tier?: string }
+  >();
+  for (const s of getSpecialists() as Array<Record<string, string>>) {
+    endpointById.set(s.agent_id, {
+      endpoint: s.mcp_endpoint ?? s.a2a_endpoint,
+      keyEnv: s.mcp_api_key_env ?? s.a2a_api_key_env,
+      tier: s.tier,
+    });
+  }
+  for (const c of (MCP_CATALOG ?? []) as Array<Record<string, string>>) {
+    if (!endpointById.has(c.agent_id)) {
+      endpointById.set(c.agent_id, {
+        endpoint: c.mcp_endpoint,
+        keyEnv: c.mcp_api_key_env,
+        tier: "mcp-forwarding",
+      });
+    }
+  }
+
+  const timeoutMs = Number(flag("timeout") ?? 10_000);
+  const rows = await mapWithConcurrency(
+    missing,
+    Number(flag("concurrency") ?? 16),
+    async (agent): Promise<CensusRow> => {
+      const meta = endpointById.get(agent.agent_id);
+      const base: CensusRow = {
+        agent_id: agent.agent_id,
+        display_name: agent.display_name,
+        sponsor: agent.sponsor,
+        tier: meta?.tier,
+        transport: "none",
+        key_present: false,
+        verdict: "no_transport",
+        abilities: [],
+      };
+      if (HOUSE_AGENTS.has(agent.agent_id)) {
+        return { ...base, verdict: "house", detail: "Arbor-owned model lane" };
+      }
+      if (!meta?.endpoint) {
+        return {
+          ...base,
+          detail: "registered agent with no endpoint in registry or catalog",
+        };
+      }
+      const key = meta.keyEnv ? process.env[meta.keyEnv]?.trim() : undefined;
+      const probe = await probeMcp(meta.endpoint, key, timeoutMs);
+      const verdict: Verdict = probe.ok
+        ? key
+          ? "live_keyed"
+          : "live_open"
+        : probe.status && isAuthStatus(probe.status)
+          ? "paywalled"
+          : "dead";
+      return {
+        ...base,
+        transport: "mcp",
+        endpoint: meta.endpoint,
+        key_env: meta.keyEnv,
+        key_present: Boolean(key),
+        verdict,
+        abilities: probe.abilities,
+        http_status: probe.status,
+        detail: probe.detail,
+      };
+    },
+    (done, total) => console.log(`  ${done}/${total}`),
+  );
+
+  writeFileSync(CENSUS_PATH, `${JSON.stringify([...existing, ...rows], null, 2)}\n`);
+  const tally: Record<string, number> = {};
+  for (const r of rows) tally[r.verdict] = (tally[r.verdict] ?? 0) + 1;
+  console.log(`\nadded ${rows.length} previously-unprobed agents`);
+  console.log(JSON.stringify(tally, null, 2));
+}
+
 async function main(): Promise<void> {
   loadEnvLocal();
   const command = process.argv[2];
   if (command === "probe") await probeAll();
+  else if (command === "static") await probeStatic();
   else if (command === "repair") await repairDead();
   else if (command === "deliver") await deliverAll();
   else {

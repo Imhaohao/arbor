@@ -5,7 +5,7 @@
     "sponsor": "agentdomainsearch.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
+    "dag_id": "qd7b6p5nqcs0ag5wxs1kacggjs8by14t",
     "failure": "MCP tool get_pricing on https://agentdomainsearch.com/mcp returned an error result: Error: get_price_domain API is not supported for 'limitations and requirements'"
   },
   {
@@ -14,7 +14,7 @@
     "sponsor": "cloud",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
+    "dag_id": "qd7b6p5nqcs0ag5wxs1kacggjs8by14t",
     "failure": "MCP tools/call failed 400: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32602,\"message\":\"Invalid industry. Available: plumbing, hvac, electrical, roofing, contractor, landscaping, handyman, painting, carp"
   },
   {
@@ -23,7 +23,7 @@
     "sponsor": "ganty.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
+    "dag_id": "qd7b6p5nqcs0ag5wxs1kacggjs8by14t",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"message\":\"Unauthorized: invalid or missing API token\"}}"
   },
   {
@@ -32,7 +32,7 @@
     "sponsor": "at",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
+    "dag_id": "qd7b6p5nqcs0ag5wxs1kacggjs8by14t",
     "failure": "MCP tool get_bundle on https://uurl.at/mcp returned an error result: {\"error\": \"Invalid short URL ID.\"}"
   },
   {
@@ -52,7 +52,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
+    "dag_id": "qd7b6p5nqcs0ag5wxs1kacggjs8by14t",
     "failure": "MCP tool get_county_business_patterns on https://mcp.olyport.com/census-cbp/mcp returned an error result: Error: ValueError: Invalid state code: limitations and requirements"
   },
   {
@@ -61,7 +61,7 @@
     "sponsor": "industry-lens.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
+    "dag_id": "qd7b6p5nqcs0ag5wxs1kacggjs8by14t",
     "failure": "MCP tool get_competitive_profile on https://api.industry-lens.com/mcp/public returned an error result: Provide a company domain or name."
   },
   {
@@ -70,7 +70,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
+    "dag_id": "qd7b6p5nqcs0ag5wxs1kacggjs8by14t",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -79,7 +79,7 @@
     "sponsor": "100hires.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
+    "dag_id": "qd7b6p5nqcs0ag5wxs1kacggjs8by14t",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Missing or invalid Authorization header\"},\"id\":null}"
   },
   {
@@ -88,7 +88,7 @@
     "sponsor": "example4.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esb88nc4dbm1bgq9k51b1f98by9m3",
+    "dag_id": "qd7b6p5nqcs0ag5wxs1kacggjs8by14t",
     "failure": "MCP tool xmp4_info on https://mcp.example4.ai/mcp returned an error result: Error: project_id_not_found: \"limitations and requirements\"\n\nAll xmp4 data tools require a valid project id in their `projec"
   },
   {
@@ -97,7 +97,7 @@
     "sponsor": "sats4ai.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
+    "dag_id": "qd7b6p5nqcs0ag5wxs1kacggjs8by14t",
     "failure": "MCP tool get_job_result on https://sats4ai.com/api/mcp returned no text content"
   },
   {
@@ -106,7 +106,7 @@
     "sponsor": "decibelshield.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
+    "dag_id": "qd76ppwpk1hf8ky4z4z8yfe3z18bycxb",
     "failure": "MCP tool get_city_noise on https://decibelshield.app/api/mcp returned an error result: No data for \"limitations and requirements\". Cities covered: Dhaka, Moradabad, Delhi, Cairo, Mumbai, Kolkata, Kara"
   },
   {
@@ -115,7 +115,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
+    "dag_id": "qd76ppwpk1hf8ky4z4z8yfe3z18bycxb",
     "failure": "MCP tool get_schools on https://mcp.olyport.com/nces-education/mcp returned an error result: Error: ValueError: Invalid state code: limitations and requirements"
   },
   {
@@ -124,8 +124,8 @@
     "sponsor": "catchintent.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
-    "failure": "MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T09:59:00.438Z\",\"message\":\"MCP authentication required\",\"code\":\"UNAUTHORIZED\",\"path\":\"/mcp\",\"method\":\"POST\"}"
+    "dag_id": "qd76ppwpk1hf8ky4z4z8yfe3z18bycxb",
+    "failure": "MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T10:09:03.904Z\",\"message\":\"MCP authentication required\",\"code\":\"UNAUTHORIZED\",\"path\":\"/mcp\",\"method\":\"POST\"}"
   },
   {
     "agent_id": "mcp-com-googleapis-bigtableadmin-3de122b",
@@ -133,7 +133,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
+    "dag_id": "qd76ppwpk1hf8ky4z4z8yfe3z18bycxb",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -142,7 +142,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
+    "dag_id": "qd76ppwpk1hf8ky4z4z8yfe3z18bycxb",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -151,7 +151,7 @@
     "sponsor": "saber",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
+    "dag_id": "qd76ppwpk1hf8ky4z4z8yfe3z18bycxb",
     "failure": "MCP tools/call failed 401: {\"error\":\"Missing Authorization header\"}"
   },
   {
@@ -160,7 +160,7 @@
     "sponsor": "eurorackref.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
+    "dag_id": "qd76ppwpk1hf8ky4z4z8yfe3z18bycxb",
     "failure": "MCP tool get_module on https://eurorackref.com/mcp returned an error result: Error: Module not found: limitations and requirements. Use search_modules or search_manual to find the correct id."
   },
   {
@@ -169,7 +169,7 @@
     "sponsor": "switchapp.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
+    "dag_id": "qd76ppwpk1hf8ky4z4z8yfe3z18bycxb",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Unauthorized — provide Authorization: Bearer <mcp_api_key> or complete OAuth via the resource_metadata URL.\"}}"
   },
   {
@@ -178,7 +178,7 @@
     "sponsor": "bot",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7d956x1htnv2xj27we6trme18bymyn",
+    "dag_id": "qd76ppwpk1hf8ky4z4z8yfe3z18bycxb",
     "failure": "MCP tool find_events on https://yeehaw.bot/mcp returned no text content"
   },
   {
@@ -187,7 +187,7 @@
     "sponsor": "co",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
+    "dag_id": "qd76ppwpk1hf8ky4z4z8yfe3z18bycxb",
     "failure": "MCP tool get_plan on https://mcp.tempguru.co/mcp returned an error result: Input validation error: Invalid arguments for tool get_plan: plan_id: Too big: expected string to have <=12 characters, plan_"
   },
   {
@@ -196,7 +196,7 @@
     "sponsor": "am",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
+    "dag_id": "qd76gfjstta9bp03d2ges1y9bh8bz4bp",
     "failure": "MCP tool search_community_apps on https://api.mana.am/mcp returned no text content"
   },
   {
@@ -205,7 +205,7 @@
     "sponsor": "freqblog.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
+    "dag_id": "qd76gfjstta9bp03d2ges1y9bh8bz4bp",
     "failure": "MCP tool get_audio_features on https://mcp.freqblog.com/mcp returned an error result: Error executing tool get_audio_features: Provide exactly one of: track (optionally with artist), isrc, mbid, or sp"
   },
   {
@@ -214,7 +214,7 @@
     "sponsor": "petabloom.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
+    "dag_id": "qd76gfjstta9bp03d2ges1y9bh8bz4bp",
     "failure": "MCP tool search_episodes on https://podcasts.petabloom.com/mcp returned an error result: You must provide at least one search parameter (query, podcast_name, published_within_hours, published_after, o"
   },
   {
@@ -223,7 +223,7 @@
     "sponsor": "aftership",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
+    "dag_id": "qd76gfjstta9bp03d2ges1y9bh8bz4bp",
     "failure": "MCP tool get_returns_demo on https://mcp.aftership.com/tracking/public returned an error result: store_url is not a valid URL"
   },
   {
@@ -232,7 +232,7 @@
     "sponsor": "aidoos.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
+    "dag_id": "qd76gfjstta9bp03d2ges1y9bh8bz4bp",
     "failure": "MCP tool get_plan_status on https://aidoos.com/mcp returned an error result: Error: Plan not found. The plan_id may be invalid, or the plan may have expired. Generate a fresh one with plan_vdc."
   },
   {
@@ -241,7 +241,7 @@
     "sponsor": "de",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
+    "dag_id": "qd76gfjstta9bp03d2ges1y9bh8bz4bp",
     "failure": "MCP tool list_data_slots on https://agentview.de/mcp returned an error result: Authentication required.\nThis tool requires the user to be authenticated. No token, session_request_id, or active session"
   },
   {
@@ -250,7 +250,7 @@
     "sponsor": "trydock.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
+    "dag_id": "qd76gfjstta9bp03d2ges1y9bh8bz4bp",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"message\":\"Unauthorized\"}}"
   },
   {
@@ -259,7 +259,7 @@
     "sponsor": "kernelcad.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
+    "dag_id": "qd76gfjstta9bp03d2ges1y9bh8bz4bp",
     "failure": "MCP tool get_project on https://mcp.kernelcad.com/mcp returned an error result: get_project: listing your projects requires authentication. Connect with OAuth, or pass `slug` to fetch a shared /p/<slu"
   },
   {
@@ -268,7 +268,7 @@
     "sponsor": "stayker.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
+    "dag_id": "qd76gfjstta9bp03d2ges1y9bh8bz4bp",
     "failure": "MCP tool search_hotels on https://mcp.stayker.com/mcp returned an error result: {\"error\":\"Provide either a location (city, address, or landmark), or both latitude and longitude.\"}"
   },
   {
@@ -277,7 +277,7 @@
     "sponsor": "health",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
+    "dag_id": "qd7cy0mg52jfmc85hwcq2hs51s8by20w",
     "failure": "MCP tool medications_list on https://mcp.chia.health/ returned an error result: Error executing tool medications_list: cannot import name 'Program' from 'protocols.models' (/app/platform/protocols/mod"
   },
   {
@@ -286,7 +286,7 @@
     "sponsor": "unulu.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
+    "dag_id": "qd7cy0mg52jfmc85hwcq2hs51s8by20w",
     "failure": "MCP tool unulu_get_state on https://mcp.unulu.ai/ returned no text content"
   },
   {
@@ -295,7 +295,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
+    "dag_id": "qd7cy0mg52jfmc85hwcq2hs51s8by20w",
     "failure": "MCP tools/call failed 402: {\"x402Version\":2,\"accepts\":[{\"scheme\":\"exact\",\"network\":\"eip155:8453\",\"amount\":\"1000\",\"asset\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"payTo\":\"0x6E8B64638b24C6D625b045d"
   },
   {
@@ -304,7 +304,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
+    "dag_id": "qd7cy0mg52jfmc85hwcq2hs51s8by20w",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -313,7 +313,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
+    "dag_id": "qd7cy0mg52jfmc85hwcq2hs51s8by20w",
     "failure": "MCP tools/call failed 402: {\"error\":\"Payment required. Provide a valid x402 payment header or API key.\",\"code\":\"CACHE_PAYMENT_REQUIRED\",\"retryable\":true,\"tool\":\"cache_query\",\"price\":0.001,\"currency\":\""
   },
   {
@@ -322,7 +322,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
+    "dag_id": "qd7cy0mg52jfmc85hwcq2hs51s8by20w",
     "failure": "MCP tools/call failed 402: {\"error\":\"Payment required\",\"code\":\"SEARCH_PAYMENT_REQUIRED\",\"retryable\":true,\"tool\":\"web_search_simple\",\"price\":0.003,\"currency\":\"USD\",\"pricing_url\":\"https://search.api.ain"
   },
   {
@@ -331,7 +331,7 @@
     "sponsor": "com.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
+    "dag_id": "qd7cy0mg52jfmc85hwcq2hs51s8by20w",
     "failure": "MCP tools/call failed 500: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":\"-32500\",\"message\":\"Error calling tool findPetsByStatus: 500 Internal Server Error\",\"data\":{\"error\":{\"code\":500,\"message\":\"There was "
   },
   {
@@ -340,7 +340,7 @@
     "sponsor": "dreamlit.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
+    "dag_id": "qd7cy0mg52jfmc85hwcq2hs51s8by20w",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Dreamlit authorization is required. Reconnect Dreamlit and try again.\",\"data\":{\"error\":\"invalid_token\",\"error_descr"
   },
   {
@@ -349,7 +349,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71sbaaqy4yf8wy6q45rb9zxd8byjw0",
+    "dag_id": "qd7cy0mg52jfmc85hwcq2hs51s8by20w",
     "failure": "MCP tool get_recalls on https://mcp.olyport.com/nhtsa/mcp returned an error result: {\"error\": \"Provide at least one of: make, model, or year\"}"
   },
   {
@@ -358,7 +358,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
+    "dag_id": "qd7cy0mg52jfmc85hwcq2hs51s8by20w",
     "failure": "MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Method doesn't allow unregistered callers (callers without established identity). Please use API Key or other form of A"
   },
   {
@@ -367,7 +367,7 @@
     "sponsor": "exploit-intel.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
+    "dag_id": "qd72ahdqq1d3hjxsg3ka9g6hms8byj4f",
     "failure": "MCP tool search_vulnerabilities on https://mcp.exploit-intel.com/mcp returned an error result: Validation error: Provide a search query or at least one filter."
   },
   {
@@ -376,7 +376,7 @@
     "sponsor": "ca",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
+    "dag_id": "qd72ahdqq1d3hjxsg3ka9g6hms8byj4f",
     "failure": "MCP tool swiftsign_list_envelopes on https://swiftsign.ca/mcp returned an error result: No SwiftSign API key available. Run swiftsign_signup to mint a sandbox key (sk_test_…), then set SWIFTSIGN_API_K"
   },
   {
@@ -396,7 +396,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
+    "dag_id": "qd72ahdqq1d3hjxsg3ka9g6hms8byj4f",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -405,7 +405,7 @@
     "sponsor": "eurocomply.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
+    "dag_id": "qd72ahdqq1d3hjxsg3ka9g6hms8byj4f",
     "failure": "MCP tool regulation_lookup on https://eurocomply.app/api/mcp returned an error result: No regulation found matching \"limitations and requirements\". Available slugs: ai-act, gdpr, nis2, dora, cra, data"
   },
   {
@@ -414,7 +414,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
+    "dag_id": "qd72ahdqq1d3hjxsg3ka9g6hms8byj4f",
     "failure": "MCP tool get_current_aqi on https://mcp.olyport.com/epa/mcp returned an error result: {\"error\": \"EPA AirNow API key not configured. Set the EPA_AIRNOW_KEY environment variable. Register at https://doc"
   },
   {
@@ -423,7 +423,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
+    "dag_id": "qd72ahdqq1d3hjxsg3ka9g6hms8byj4f",
     "failure": "MCP tool get_fair_market_rents on https://mcp.olyport.com/hud-housing/mcp returned an error result: Error: ValueError: Invalid state code: limitations and requirements"
   },
   {
@@ -432,7 +432,7 @@
     "sponsor": "civilquants.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
+    "dag_id": "qd72ahdqq1d3hjxsg3ka9g6hms8byj4f",
     "failure": "MCP tools/call failed 401: {\"data\":null,\"error\":{\"code\":\"TIER_INSUFFICIENT\",\"message\":\"Tool 'compute_reinforced_soil_wall' requires an authenticated paid CivilQuants account. Your MCP client should in"
   },
   {
@@ -441,7 +441,7 @@
     "sponsor": "fyi",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7b425zjytna5rmdkhd345htn8bz4nc",
+    "dag_id": "qd72ahdqq1d3hjxsg3ka9g6hms8byj4f",
     "failure": "MCP tool search on https://mcp.medrates.fyi/mcp returned an error result: Error executing tool search: MedRates API 400 for GET http://web:8000/api/search?q=limitations+and+requirements&page=1&page_si"
   },
   {
@@ -450,7 +450,7 @@
     "sponsor": "weftly.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
+    "dag_id": "qd72ahdqq1d3hjxsg3ka9g6hms8byj4f",
     "failure": "MCP tool summarize on https://api.weftly.ai/mcp returned an error result: filename is required when creating a new job. Include it with a recognized extension (e.g. \"podcast.mp3\")."
   },
   {
@@ -459,7 +459,7 @@
     "sponsor": "co",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
+    "dag_id": "qd72ahdqq1d3hjxsg3ka9g6hms8byj4f",
     "failure": "MCP tool get_asset on https://mcp.truemarkets.co/marketdata/mcp returned an error result: status 422: {\"error\":\"\",\"message\":\"invalid chain\",\"code\":422}"
   },
   {
@@ -468,7 +468,7 @@
     "sponsor": "cryptorefills.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
+    "dag_id": "qd7faywtw2j291nep0fhhzy4698bzph4",
     "failure": "MCP tool listBrands on https://api.cryptorefills.com/mcp/sse returned no text content"
   },
   {
@@ -488,7 +488,7 @@
     "sponsor": "depscope.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
+    "dag_id": "qd7faywtw2j291nep0fhhzy4698bzph4",
     "failure": "MCP tool get_latest_version on https://mcp.depscope.dev/mcp returned an error result: Error: HTTP 404: {\"detail\":\"Package 'limitations and requirements' not found in npm\"}"
   },
   {
@@ -497,7 +497,7 @@
     "sponsor": "co",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
+    "dag_id": "qd7faywtw2j291nep0fhhzy4698bzph4",
     "failure": "MCP tool get_responses on https://superforms.co/mcp returned no text content"
   },
   {
@@ -517,7 +517,7 @@
     "sponsor": "metricduck.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
+    "dag_id": "qd7faywtw2j291nep0fhhzy4698bzph4",
     "failure": "MCP tools/call failed 401: {\"error\":\"invalid_token\",\"error_description\":\"Missing or invalid access token\",\"auth_instructions\":\"Free tier available — no credit card needed. In Claude Code: run 'claude "
   },
   {
@@ -526,7 +526,7 @@
     "sponsor": "meetlark.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
+    "dag_id": "qd7faywtw2j291nep0fhhzy4698bzph4",
     "failure": "MCP tool meetlark_get_results on https://meetlark.ai/mcp returned an error result: Unexpected token 'I', \"Internal S\"... is not valid JSON"
   },
   {
@@ -535,7 +535,7 @@
     "sponsor": "cnvs.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75k3a0t227cpp9pdq92ytn8d8bzw7h",
+    "dag_id": "qd7faywtw2j291nep0fhhzy4698bzph4",
     "failure": "MCP tool get_board on https://cnvs.app/mcp returned no text content"
   },
   {
@@ -544,7 +544,7 @@
     "sponsor": "am-lich.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
+    "dag_id": "qd7faywtw2j291nep0fhhzy4698bzph4",
     "failure": "MCP tool get_canchi on https://am-lich.com/mcp returned an error result: invalid date"
   },
   {
@@ -553,7 +553,7 @@
     "sponsor": "myagentinbox.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
+    "dag_id": "qd7faywtw2j291nep0fhhzy4698bzph4",
     "failure": "MCP tool read_message on https://myagentinbox.com/mcp returned an error result: Inbox not found or expired."
   },
   {
@@ -562,7 +562,7 @@
     "sponsor": "chainflip-broker.io",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
+    "dag_id": "qd7faywtw2j291nep0fhhzy4698bzph4",
     "failure": "MCP tool get_quotes on https://chainflip-broker.io/mcp returned an error result: An error occurred invoking 'get_quotes': Unknown Source Asset."
   },
   {
@@ -571,7 +571,7 @@
     "sponsor": "wingmanprotocol",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
+    "dag_id": "qd7faywtw2j291nep0fhhzy4698bzph4",
     "failure": "MCP tool get_tool_schema on https://agent.wingmanprotocol.com/mcp returned no text content"
   },
   {
@@ -580,7 +580,7 @@
     "sponsor": "intuitek",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
+    "dag_id": "qd77z3c1atht6g4b4jtbjeb06n8bytzr",
     "failure": "MCP tool breadcrumb-extractor on https://the-stall.intuitek.ai/mcp returned an error result: {\"x402Version\":2,\"error\":\"Payment required to access this tool\",\"resource\":{\"url\":\"mcp://tool/breadcrumb-ex"
   },
   {
@@ -589,7 +589,7 @@
     "sponsor": "blackveilsecurity.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
+    "dag_id": "qd77z3c1atht6g4b4jtbjeb06n8bytzr",
     "failure": "MCP tools/call failed 429: id: 3\nevent: message\ndata: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32029,\"message\":\"Rate limit exceeded. get_domain_rank is limited to 10 requests per day for free tier use"
   },
   {
@@ -598,7 +598,7 @@
     "sponsor": "contrastcyber.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
+    "dag_id": "qd77z3c1atht6g4b4jtbjeb06n8bytzr",
     "failure": "MCP tool dns_lookup on https://api.contrastcyber.com/mcp/ returned an error result: Error executing tool dns_lookup: {\"error\":{\"code\":\"invalid_argument\",\"message\":\"Invalid domain format: 'limitations "
   },
   {
@@ -607,7 +607,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78yj9gatw5gd3qdrm61nq3js8byxpb",
+    "dag_id": "qd77z3c1atht6g4b4jtbjeb06n8bytzr",
     "failure": "MCP tool search_campervans on https://hittheroad.rentals/mcp returned an error result: {\"error\":\"Location not found: \\\"limitations and requirements\\\" in LIMITATIONS AND REQUIREMENTS.\",\"suggestion\":\"Ca"
   },
   {
@@ -638,7 +638,7 @@
     "sponsor": "villiers.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
+    "dag_id": "qd77z3c1atht6g4b4jtbjeb06n8bytzr",
     "failure": "MCP tool get_jet_estimate on https://mcp.villiers.ai/mcp returned an error result: 'limitations and requirements' isn't in Villiers' private jet network as a `origin` — this covers major and private-j"
   },
   {
@@ -647,7 +647,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
+    "dag_id": "qd77z3c1atht6g4b4jtbjeb06n8bytzr",
     "failure": "MCP tool get_state_crime_estimates on https://mcp.olyport.com/fbi-crime/mcp returned an error result: Error: ValueError: Invalid state code: limitations and requirements"
   },
   {
@@ -656,7 +656,7 @@
     "sponsor": "truevaluerankings.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
+    "dag_id": "qd77z3c1atht6g4b4jtbjeb06n8bytzr",
     "failure": "MCP tool get_tvr_score on https://truevaluerankings.com/mcp returned an error result: {\n  \"error\": \"TVR API returned 400: Bad Request\",\n  \"context\": \"True Value Rankings is a cryptocurrency research a"
   },
   {
@@ -665,7 +665,7 @@
     "sponsor": "lionx402.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
+    "dag_id": "qd77z3c1atht6g4b4jtbjeb06n8bytzr",
     "failure": "MCP tool lion_company_research on https://lionx402.com/api/mcp returned no text content"
   },
   {
@@ -674,7 +674,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
+    "dag_id": "qd77z3c1atht6g4b4jtbjeb06n8bytzr",
     "failure": "MCP tool get_unemployment_rate on https://mcp.olyport.com/bls/mcp returned an error result: Error: ValueError: Invalid state code: limitations and requirements"
   },
   {
@@ -683,7 +683,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
+    "dag_id": "qd77z3c1atht6g4b4jtbjeb06n8bytzr",
     "failure": "MCP tools/call failed 402: {\"x402Version\":2,\"accepts\":[{\"scheme\":\"exact\",\"network\":\"eip155:8453\",\"amount\":\"8000\",\"asset\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"payTo\":\"0x6E8B64638b24C6D625b045d"
   },
   {
@@ -692,7 +692,7 @@
     "sponsor": "1stdibs.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
+    "dag_id": "qd7fanq8bkz0vq3fxcxg4jrc5d8bz9w8",
     "failure": "MCP tool read_taxonomy on https://www.1stdibs.com/soa/mcp/ returned an error result: Error executing read_taxonomy"
   },
   {
@@ -701,7 +701,7 @@
     "sponsor": "babyblueviper.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7581d0khaxsv2ynbc5dzhpps8bztgc",
+    "dag_id": "qd7fanq8bkz0vq3fxcxg4jrc5d8bz9w8",
     "failure": "MCP tool audit_agent_readiness on https://api.babyblueviper.com/mcp returned no text content"
   },
   {
@@ -721,7 +721,7 @@
     "sponsor": "xpoz.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
+    "dag_id": "qd7fanq8bkz0vq3fxcxg4jrc5d8bz9w8",
     "failure": "MCP tools/call failed 401: {\"status\":\"error\",\"error\":\"Authentication failed\",\"category\":\"authentication\",\"message\":\"Authorization token is required\",\"suggestion\":\"Provide a valid Bearer token in the A"
   },
   {
@@ -730,7 +730,7 @@
     "sponsor": "zooza.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
+    "dag_id": "qd7fanq8bkz0vq3fxcxg4jrc5d8bz9w8",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Authorization header with a JWT (carrying a `region` claim) is required.\"},\"id\":null}"
   },
   {
@@ -739,7 +739,7 @@
     "sponsor": "flaim.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
+    "dag_id": "qd7fanq8bkz0vq3fxcxg4jrc5d8bz9w8",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Authentication required. Please provide a valid Bearer token.\"},\"id\":null}"
   },
   {
@@ -748,7 +748,7 @@
     "sponsor": "hu",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
+    "dag_id": "qd7fanq8bkz0vq3fxcxg4jrc5d8bz9w8",
     "failure": "MCP tool search_products on https://www.xfish.hu/app/mcpapi.php returned an error result: {\"error\":\"Legalább egy szűrőfeltétel megadása kötelező (query, brand, category_id, manufacturer_id, min_price,"
   },
   {
@@ -757,7 +757,7 @@
     "sponsor": "railway.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
+    "dag_id": "qd7fanq8bkz0vq3fxcxg4jrc5d8bz9w8",
     "failure": "MCP tool perception_fetch_tile on https://packagesmcp-perception-production.up.railway.app/mcp returned an error result: AUDIT: tool perception_fetch_tile blocked — Cell limitations and requirements n"
   },
   {
@@ -766,7 +766,7 @@
     "sponsor": "moltravel.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
+    "dag_id": "qd7fanq8bkz0vq3fxcxg4jrc5d8bz9w8",
     "failure": "MCP tool restcountries_country_info on https://mcp.moltravel.com/mcp returned an error result: Error executing tool restcountries_country_info: HTTP Error 403: Forbidden"
   },
   {
@@ -775,7 +775,7 @@
     "sponsor": "proflightsearch.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
+    "dag_id": "qd7fanq8bkz0vq3fxcxg4jrc5d8bz9w8",
     "failure": "MCP tool get_airport_delay_status on https://proflightsearch.com/mcp returned an error result: Could not resolve that to a tracked airport. Ask with one airport IATA code, city, or airport name, for e"
   },
   {
@@ -784,7 +784,7 @@
     "sponsor": "rowhint.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
+    "dag_id": "qd7fanq8bkz0vq3fxcxg4jrc5d8bz9w8",
     "failure": "MCP tool rowhint_get_seat_score on https://mcp.rowhint.com/mcp returned an error result: {\n  \"error\": \"INVALID_SEAT\",\n  \"message\": \"Invalid seat identifier \\\"LIMITATIONS AND REQUIREMENTS\\\". Expected f"
   },
   {
@@ -793,7 +793,7 @@
     "sponsor": "worldairfares.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "dag_id": "qd70gznqb618f4tkbb4t2mccv98by60j",
     "failure": "MCP tool get_itinerary_details on https://mcp.worldairfares.com/ returned an error result: No flights available. Itinerary not found or search results expired. Please search again.\n{\"error\":\"SearchExp"
   },
   {
@@ -802,7 +802,7 @@
     "sponsor": "coordinalo.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "dag_id": "qd70gznqb618f4tkbb4t2mccv98by60j",
     "failure": "MCP tools/call failed 404: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32602,\"message\":\"Organization 'limitations and requirements' not found\"},\"id\":null}"
   },
   {
@@ -811,7 +811,7 @@
     "sponsor": "skiplagged.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "dag_id": "qd70gznqb618f4tkbb4t2mccv98by60j",
     "failure": "MCP tool sk_flights_search on https://mcp.skiplagged.com/mcp returned no text content"
   },
   {
@@ -820,7 +820,7 @@
     "sponsor": "trip1.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "dag_id": "qd70gznqb618f4tkbb4t2mccv98by60j",
     "failure": "MCP tool search_hotels on https://trip1.com/api/mcp returned an error result: {\"error\":\"Check in can't be blank, Check out can't be blank, Check in must be an ISO 8601 date (YYYY-MM-DD), Check out mus"
   },
   {
@@ -829,7 +829,7 @@
     "sponsor": "vercel.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "dag_id": "qd70gznqb618f4tkbb4t2mccv98by60j",
     "failure": "MCP tool hemmabo_search_properties on https://hemmabo-mcp-server.vercel.app/mcp returned an error result: {\"error\":\"Invalid arguments for hemmabo_search_properties\",\"details\":[{\"path\":\"/checkIn\",\"mess"
   },
   {
@@ -838,7 +838,7 @@
     "sponsor": "de",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "dag_id": "qd70gznqb618f4tkbb4t2mccv98by60j",
     "failure": "MCP tool claimondo_finde_sachverstaendige on https://mcp.claimondo.de/mcp returned an error result: Fehler: plz (5-stellige PLZ) oder ort (Stadt/Adresse) erforderlich"
   },
   {
@@ -847,7 +847,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "dag_id": "qd70gznqb618f4tkbb4t2mccv98by60j",
     "failure": "MCP tool get_quote on https://hellosafe.com/api/mcp-travel returned an error result: MCP error -32602: Input validation error: Invalid arguments for tool get_quote: [\n  {\n    \"expected\": \"string\",\n   "
   },
   {
@@ -856,7 +856,7 @@
     "sponsor": "metricspot.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "dag_id": "qd70gznqb618f4tkbb4t2mccv98by60j",
     "failure": "MCP tool get_audit on https://mcp.metricspot.com/mcp returned an error result: {\"code\":\"UNAUTHORIZED\",\"message\":\"Missing or malformed Authorization header. Expected: Authorization: Bearer ms_live_xxx\""
   },
   {
@@ -865,7 +865,7 @@
     "sponsor": "usecarscout.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "dag_id": "qd70gznqb618f4tkbb4t2mccv98by60j",
     "failure": "MCP tool get_market_data on https://mcp.usecarscout.com/mcp returned an error result: Failed to get market data for 1990 limitations and requirements limitations and requirements: Model not found"
   },
   {
@@ -874,7 +874,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7esm6qqhszffn0j6vrfgjsrx8bzr1m",
+    "dag_id": "qd7d9d0hntbgzc0gt7yxqkvp6h8bzsw0",
     "failure": "MCP tool plan_file_info on https://mcp.planexe.org/mcp returned no text content"
   },
   {
@@ -894,7 +894,7 @@
     "sponsor": "runriva",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
+    "dag_id": "qd7d9d0hntbgzc0gt7yxqkvp6h8bzsw0",
     "failure": "MCP tools/call failed 401: {\"type\":\"https://quizbase.runriva.com/errors/missing_api_key\",\"title\":\"API key required\",\"status\":401,\"detail\":\"Include your API key in the X-API-Key header (or Authorizatio"
   },
   {
@@ -903,7 +903,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
+    "dag_id": "qd7d9d0hntbgzc0gt7yxqkvp6h8bzsw0",
     "failure": "MCP tools/call failed 401: {\"error\":\"Clé API MCP requise pour cet outil\",\"hint\":\"Utilisez: Authorization: Bearer anteos_mcp_<votre_clé>\"}"
   },
   {
@@ -912,7 +912,7 @@
     "sponsor": "phasefolio.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
+    "dag_id": "qd7d9d0hntbgzc0gt7yxqkvp6h8bzsw0",
     "failure": "MCP tool get_project on https://app.phasefolio.com/api/mcp returned no text content"
   },
   {
@@ -921,7 +921,7 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
+    "dag_id": "qd7d9d0hntbgzc0gt7yxqkvp6h8bzsw0",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Authentication required. Pass your Apify API token as a Bearer token.\"}}"
   },
   {
@@ -930,7 +930,7 @@
     "sponsor": "sprytools.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
+    "dag_id": "qd7d9d0hntbgzc0gt7yxqkvp6h8bzsw0",
     "failure": "MCP tools/call failed 401: {\"error\":\"API key required for tools/call. Pass via x-api-key header or Authorization: Bearer. Free signup: POST https://api.sprytools.com/v1/signup {\\\"email\\\"}.\"}"
   },
   {
@@ -939,7 +939,7 @@
     "sponsor": "ifrcoworker.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
+    "dag_id": "qd7d9d0hntbgzc0gt7yxqkvp6h8bzsw0",
     "failure": "MCP tools/call failed 401: {\"success\":false,\"error\":\"Missing Authorization header. Expected: Bearer <token> (or raw <token>)\",\"hint\":\"Purchase access at POST /api/ifrcoworker/access/purchase, or get a"
   },
   {
@@ -948,7 +948,7 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
+    "dag_id": "qd7d9d0hntbgzc0gt7yxqkvp6h8bzsw0",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Authentication required. Pass your Apify API token as a Bearer token.\"}}"
   },
   {
@@ -957,7 +957,7 @@
     "sponsor": "run.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
+    "dag_id": "qd7d9d0hntbgzc0gt7yxqkvp6h8bzsw0",
     "failure": "MCP tools/call failed 401: {\"error\":\"Missing x-api-key header\"}"
   },
   {
@@ -966,7 +966,7 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7evj9w1gna4yx3w6f9xdhm7x8byhpe",
+    "dag_id": "qd7d9d0hntbgzc0gt7yxqkvp6h8bzsw0",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Authentication required. Pass your Apify API token as a Bearer token.\"}}"
   },
   {
@@ -975,7 +975,7 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "dag_id": "qd7455wma1xx4kg8h7y3b28rkn8byw20",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"message\":\"Authentication required. Pass your Apify API token as a Bearer token.\"}}"
   },
   {
@@ -984,7 +984,7 @@
     "sponsor": "com.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "dag_id": "qd7455wma1xx4kg8h7y3b28rkn8byw20",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":\"-32401\",\"message\":\"Error calling tool listModels: 401 Unauthorized\",\"data\":{\"error\":{\"error\":{\"message\":\"Missing bearer authenticati"
   },
   {
@@ -993,7 +993,7 @@
     "sponsor": "vincario.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "dag_id": "qd7455wma1xx4kg8h7y3b28rkn8byw20",
     "failure": "MCP tool vin_decode_info on https://mcp.vincario.com/mcp returned an error result: Error executing tool vin_decode_info: Missing X-API-Key header"
   },
   {
@@ -1002,7 +1002,7 @@
     "sponsor": "cz-agents.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "dag_id": "qd7455wma1xx4kg8h7y3b28rkn8byw20",
     "failure": "MCP tool qr_read on https://payqr.cz-agents.dev/mcp returned an error result: image_data must be base64 or a data URI"
   },
   {
@@ -1011,7 +1011,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "dag_id": "qd7455wma1xx4kg8h7y3b28rkn8byw20",
     "failure": "MCP tool read_account_info on https://mcp.arcadia.finance/mcp returned an error result: Error: Invalid account_address: \"limitations and requirements\". Expected a 0x-prefixed 42-character hex string."
   },
   {
@@ -1020,7 +1020,7 @@
     "sponsor": "searchcode.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "dag_id": "qd7455wma1xx4kg8h7y3b28rkn8byw20",
     "failure": "MCP tool code_search on https://api.searchcode.com/v1/mcp returned an error result: {\"code\":\"invalid_params\",\"message\":\"invalid repository URL: limitations and requirements\",\"suggestion\":\"Use an https"
   },
   {
@@ -1029,7 +1029,7 @@
     "sponsor": "agentsim.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "dag_id": "qd7455wma1xx4kg8h7y3b28rkn8byw20",
     "failure": "MCP tool get_messages on https://mcp.agentsim.dev/mcp returned an error result: 1 validation error for call[get_messages]\ninput.session_id\n  Field required [type=missing, input_value={}, input_type=di"
   },
   {
@@ -1038,7 +1038,7 @@
     "sponsor": "cz-agents.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "dag_id": "qd7455wma1xx4kg8h7y3b28rkn8byw20",
     "failure": "MCP tool search_person_insolvency on https://isir.cz-agents.dev/mcp returned an error result: ISIR person search failed: CUZK upstream error: WS1 Kontrola na správnost vyplnění parametrů neproběhla v "
   },
   {
@@ -1047,7 +1047,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "dag_id": "qd7455wma1xx4kg8h7y3b28rkn8byw20",
     "failure": "MCP tool get_county_measures on https://mcp.olyport.com/cdc-places/mcp returned an error result: Error: ValueError: county_fips must be a 5-digit FIPS code (e.g. '53033'), got 'limitations and require"
   },
   {
@@ -1056,7 +1056,7 @@
     "sponsor": "memxus.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
+    "dag_id": "qd74rbn78zcqqnxxppf9qm4rdx8bybdv",
     "failure": "MCP tools/call failed 401: {\"error\":\"invalid_token\",\"error_description\":\"Missing bearer token\"}"
   },
   {
@@ -1065,7 +1065,7 @@
     "sponsor": "useorgx.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
+    "dag_id": "qd74rbn78zcqqnxxppf9qm4rdx8bybdv",
     "failure": "MCP tool get_agent_status on https://mcp.useorgx.com/ returned an error result: Authentication required: Please sign in to OrgX to use get agent status."
   },
   {
@@ -1074,7 +1074,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
+    "dag_id": "qd74rbn78zcqqnxxppf9qm4rdx8bybdv",
     "failure": "MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Permission denied on resource project limitations and requirements.\",\"type\":\"text\"}],\"isError\":true}}"
   },
   {
@@ -1083,7 +1083,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
+    "dag_id": "qd74rbn78zcqqnxxppf9qm4rdx8bybdv",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -1092,8 +1092,8 @@
     "sponsor": "simplecohortllc",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
-    "failure": "MCP tool bible_search on https://bible.simplecohortllc.com/mcp returned an error result: No verses found"
+    "dag_id": "qd74rbn78zcqqnxxppf9qm4rdx8bybdv",
+    "failure": "MCP initialize failed 429: {\"error\":\"Rate limit exceeded\",\"message\":\"You have exceeded the daily anonymous limit for MCP. Use an API key for higher limits.\",\"resetAt\":\"2026-08-07T00:00:00.000Z\"}"
   },
   {
     "agent_id": "mcp-dd-6a1e720",
@@ -1101,7 +1101,7 @@
     "sponsor": "cz-agents.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
+    "dag_id": "qd74rbn78zcqqnxxppf9qm4rdx8bybdv",
     "failure": "MCP tool get_owners on https://dd.cz-agents.dev/mcp returned an error result: {\n  \"error\": \"tier_required\",\n  \"dimension\": \"depth\",\n  \"required_tier\": \"ddplus\",\n  \"country\": \"CZ\",\n  \"upgrade_url\": \"ht"
   },
   {
@@ -1110,7 +1110,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
+    "dag_id": "qd74rbn78zcqqnxxppf9qm4rdx8bybdv",
     "failure": "MCP tools/call failed 402: {}"
   },
   {
@@ -1119,7 +1119,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
+    "dag_id": "qd74rbn78zcqqnxxppf9qm4rdx8bybdv",
     "failure": "MCP tools/call failed 500: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32603,\"message\":\"Failed to fetch https://jono.archangel.agency/.well-known/ai.json: 402\"}}"
   },
   {
@@ -1128,7 +1128,7 @@
     "sponsor": "varynforge.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
+    "dag_id": "qd74rbn78zcqqnxxppf9qm4rdx8bybdv",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Unauthorized: Authentication required\",\"www-authenticate\":\"Bearer resource_metadata=\\\"https://app.varynforge.com/api/auth/"
   },
   {
@@ -1137,7 +1137,7 @@
     "sponsor": "wingmanprotocol",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7a9ck3aypvagcnjjg59tkcmd8bzr83",
+    "dag_id": "qd74rbn78zcqqnxxppf9qm4rdx8bybdv",
     "failure": "MCP tool get_tool_schema on https://wingmanprotocol.com/mcp returned no text content"
   },
   {
@@ -1146,7 +1146,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "dag_id": "qd70tzztdsg2vsbchz9tp06vah8by9ga",
     "failure": "MCP tool youtube_summarize on https://api.captapi.com/mcp returned an error result: No API key provided. Configure this MCP server with your Captapi key via the 'Authorization: Bearer capt_live_...' h"
   },
   {
@@ -1155,7 +1155,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "dag_id": "qd70tzztdsg2vsbchz9tp06vah8by9ga",
     "failure": "MCP tool get_refinement_options on https://qasper.ai/mcp returned an error result: {\"error\":\"subCategory is required.\",\"suggestion\":\"Pass an exact ProfessionalProfileSubCategory enum value (e.g. \\u002"
   },
   {
@@ -1164,7 +1164,7 @@
     "sponsor": "catchdoms.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "dag_id": "qd70tzztdsg2vsbchz9tp06vah8by9ga",
     "failure": "MCP initialize failed 429: {\n    \"message\": \"Too Many Attempts.\"\n}"
   },
   {
@@ -1173,8 +1173,8 @@
     "sponsor": "datahyena.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
-    "failure": "MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T10:00:56.741Z\",\"message\":\"MCP authentication required\",\"code\":\"UNAUTHORIZED\",\"path\":\"/mcp\",\"method\":\"POST\"}"
+    "dag_id": "qd70tzztdsg2vsbchz9tp06vah8by9ga",
+    "failure": "MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T10:10:16.299Z\",\"message\":\"MCP authentication required\",\"code\":\"UNAUTHORIZED\",\"path\":\"/mcp\",\"method\":\"POST\"}"
   },
   {
     "agent_id": "mcp-com-googleapis-run-mcp-eb86618",
@@ -1182,7 +1182,7 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "dag_id": "qd70tzztdsg2vsbchz9tp06vah8by9ga",
     "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
   },
   {
@@ -1191,7 +1191,7 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "dag_id": "qd70tzztdsg2vsbchz9tp06vah8by9ga",
     "failure": "MCP tool get_county_demographics on https://mcp.olyport.com/census/mcp returned an error result: Error: ValueError: Unknown state 'limitations and requirements'. Use a 2-letter abbreviation (e.g. 'WA'"
   },
   {
@@ -1200,7 +1200,7 @@
     "sponsor": "lionmaster-operations",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "dag_id": "qd70tzztdsg2vsbchz9tp06vah8by9ga",
     "failure": "MCP tool lion_company_research on https://lion-x402.lionmaster-operations.workers.dev/api/mcp returned no text content"
   },
   {
@@ -1209,7 +1209,7 @@
     "sponsor": "info",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "dag_id": "qd70tzztdsg2vsbchz9tp06vah8by9ga",
     "failure": "MCP tool search_clinics on https://vetclinic.info/mcp returned no text content"
   },
   {
@@ -1218,7 +1218,7 @@
     "sponsor": "corpusiq.io",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "dag_id": "qd70tzztdsg2vsbchz9tp06vah8by9ga",
     "failure": "MCP tools/call failed 401: {\"jsonrpc\": \"2.0\", \"error\": {\"code\": -32001, \"message\": \"Authentication required\", \"data\": {\"session_handoff_url\": \"https://mcp2.corpusiq.io/session/handoff\", \"hint\": \"Send "
   },
   {
@@ -1227,7 +1227,7 @@
     "sponsor": "dealscanner.io",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
+    "dag_id": "qd73v9jrqrdy20kqpfa9g785m98bytb4",
     "failure": "MCP tool search_deals on https://mcp.dealscanner.io/mcp returned an error result: Error executing tool search_deals: Provide a valid API key (Authorization: Bearer dsk_...) or sign in."
   },
   {
@@ -1247,7 +1247,7 @@
     "sponsor": "emc2ai.io",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
+    "dag_id": "qd73v9jrqrdy20kqpfa9g785m98bytb4",
     "failure": "MCP tools/call failed 402: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32000,\"message\":\"Payment Required\",\"data\":{\"x402\":{\"version\":\"1\",\"accepts\":[{\"scheme\":\"exact\",\"network\":\"eip155:8453\",\"asset\":\"0x833"
   },
   {
@@ -1256,7 +1256,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
+    "dag_id": "qd73v9jrqrdy20kqpfa9g785m98bytb4",
     "failure": "MCP tool browser-task on https://arch-tools-mcp.onrender.com/sse returned an error result: {\n  \"error\": \"api_key_required\",\n  \"message\": \"This tool requires your own Arch Tools API key. Anonymous demo"
   },
   {
@@ -1265,7 +1265,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
+    "dag_id": "qd73v9jrqrdy20kqpfa9g785m98bytb4",
     "failure": "MCP tool browser-task on https://arch-tools-mcp.onrender.com/mcp returned an error result: {\n  \"error\": \"api_key_required\",\n  \"message\": \"This tool requires your own Arch Tools API key. Anonymous demo"
   },
   {
@@ -1274,7 +1274,7 @@
     "sponsor": "stocklake.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
+    "dag_id": "qd73v9jrqrdy20kqpfa9g785m98bytb4",
     "failure": "MCP tool get_stock on https://api.stocklake.dev/mcp returned an error result: {\"error\":{\"code\":\"symbol_invalid\",\"message\":\"Invalid symbol 'limitations and requirements' — must be 1-10 alphanumeric cha"
   },
   {
@@ -1283,7 +1283,7 @@
     "sponsor": "Google Maps Platform",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
+    "dag_id": "qd73v9jrqrdy20kqpfa9g785m98bytb4",
     "failure": "MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Method doesn't allow unregistered callers (callers without established identity). Please use API Key or other form of A"
   },
   {
@@ -1292,7 +1292,7 @@
     "sponsor": "Jina AI",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76rfrkr37nqgw3w8hgd8sk1x8bzxgn",
+    "dag_id": "qd73v9jrqrdy20kqpfa9g785m98bytb4",
     "failure": "MCP tool read_url on https://mcp.jina.ai/v1 returned an error result: MCP error -32602: Input validation error: Invalid arguments for tool read_url: [\n  {\n    \"validation\": \"url\",\n    \"code\": \"invalid"
   },
   {
@@ -4051,7 +4051,7 @@
     "sponsor": "music360",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7ehgkaasd5erfbv4atmprjf98bzzmh",
+    "dag_id": "qd76gfjstta9bp03d2ges1y9bh8bz4bp",
     "failure": "MCP tool music360_search on https://app.music360.com.br/mcp/ returned an error result: {\"success\":false,\"error_code\":\"AUTHENTICATION_REQUIRED\",\"message\":\"Token MCP ausente.\"}"
   },
   {
@@ -4082,7 +4082,7 @@
     "sponsor": "worldairfares.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd72xedy1tg0ff44zhcsxyaxv58bzn1c",
+    "dag_id": "qd70gznqb618f4tkbb4t2mccv98by60j",
     "failure": "MCP tool get_itinerary_details on https://mcp.worldairfares.com returned an error result: No flights available. Itinerary not found or search results expired. Please search again.\n{\"error\":\"SearchExpi"
   },
   {
@@ -4091,7 +4091,7 @@
     "sponsor": "feedoracle.io",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd73gh9fj5ftf31wthqn0a9hmd8bzcv5",
+    "dag_id": "qd7455wma1xx4kg8h7y3b28rkn8byw20",
     "failure": "MCP tool ai_explain on https://feedoracle.io/mcp returned an error result: {\n  \"status\": 402,\n  \"error\": \"payment_required\",\n  \"error_type\": \"no_wallet\",\n  \"protocol\": \"feedoracle-402\",\n  \"protocol_ve"
   },
   {
@@ -4100,7 +4100,7 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd714fjrsvnyvdaxaqzv1xhgvs8bz01e",
+    "dag_id": "qd70tzztdsg2vsbchz9tp06vah8by9ga",
     "failure": "MCP tool quantum_readiness_report on https://quantum-suitability-validator-mcp-production.up.railway.app/mcp returned an error result: {\"error\":\"Pro API key required\",\"likely_cause\":\"quantum_readiness"
   },
   {
@@ -4563,5 +4563,118 @@
     "dag_id": "qd7bh9yqj3gxr8fs3y746f61x58bz2vg",
     "ability_statement": "I can analyze risk, run Monte Carlo and stress tests, optimize portfolios, build correlation matrices, attribute performance, inspect sector exposure, fetch price history, compare portfolios, and calculate Greeks. I would own risk analysis and stress testing. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
     "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "openzeppelin-contracts",
+    "display_name": "openzeppelin-contracts",
+    "sponsor": "OpenZeppelin",
+    "messages": 1,
+    "error_messages": 0,
+    "dag_id": "qd7cd4s1sjcgn5j57k7rt5nh4x8byrhv",
+    "ability_statement": "I can help with ERC20, ERC721, ERC1155, stablecoin, RWA, account, governor, and custom Solidity contract work. I could own reviewing and drafting an ERC20 token contract. My tools change real account state, so I need an operator’s go-ahead before I run anything.",
+    "tool_used": "(declared only — no tool invoked)"
+  },
+  {
+    "agent_id": "aws-knowledge",
+    "display_name": "aws-knowledge",
+    "sponsor": "Amazon Web Services",
+    "messages": 2,
+    "error_messages": 0,
+    "dag_id": "qd73v9jrqrdy20kqpfa9g785m98bytb4",
+    "ability_statement": "I can use aws___search_documentation, aws___read_documentation, aws___list_regions, and aws___get_regional_availability to look up AWS documentation and regional availability. I would own AWS documentation lookup and region availability checks for the team.",
+    "tool_used": "aws___read_documentation",
+    "cooperation_excerpt": "I own AWS documentation retrieval and region/availability lookup using aws___read_documentation, aws___search_documentation, aws___list_regions, and aws___get_regional_availability. I will not cover anything beyond what those tools and their returned documentation support. I also will not infer capabilities from the error alone."
+  },
+  {
+    "agent_id": "nia-context",
+    "display_name": "nia-context",
+    "sponsor": "Nia (Nozomio)",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd73v9jrqrdy20kqpfa9g785m98bytb4",
+    "failure": "writeSigned: invalid_signature"
+  },
+  {
+    "agent_id": "airweave-context",
+    "display_name": "Airweave",
+    "sponsor": "Airweave",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd73v9jrqrdy20kqpfa9g785m98bytb4",
+    "failure": "writeSigned: invalid_signature"
+  },
+  {
+    "agent_id": "vellum-workflows",
+    "display_name": "Vellum",
+    "sponsor": "Vellum",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd79z1s9aq2tj7jcpjm93whp8x8bzw3q",
+    "failure": "writeSigned: invalid_signature"
+  },
+  {
+    "agent_id": "reacher-social",
+    "display_name": "reacher-social",
+    "sponsor": "Reacher",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd79z1s9aq2tj7jcpjm93whp8x8bzw3q",
+    "failure": "MCP tool list_shops_shops_get on https://api.reacherapp.com/mcp returned an error result: API error 401: {\"error\": {\"code\": \"UNAUTHORIZED\", \"message\": \"Invalid API key.\", \"status\": 401, \"request_id\": "
+  },
+  {
+    "agent_id": "huggingface-hub",
+    "display_name": "huggingface-hub",
+    "sponsor": "Hugging Face",
+    "messages": 2,
+    "error_messages": 0,
+    "dag_id": "qd79z1s9aq2tj7jcpjm93whp8x8bzw3q",
+    "ability_statement": "Found 40 repositories across models, datasets. ## Models (20) ### MiniMaxAI/MiniMax-H3 **Task:** image-text-to-video | **Library:** diffusers | **Downloads:** 12.1K | **Likes:** 2616 | **Trending Score:** 2494 **Tags:** diffusers, safetensors, text-to-video, image-to-video, image-text-to-video, video-to-video, text-to-audio-video, image-to-audio-video, image-text-to-audio-video, video-to-audio-vid",
+    "tool_used": "hub_repo_search",
+    "cooperation_excerpt": "Found 40 repositories across models, datasets. ## Models (20) ### MiniMaxAI/MiniMax-H3 **Task:** image-text-to-video | **Library:** diffusers | **Downloads:** 12.1K | **Likes:** 2616 | **Trending Score:** 2494 **Tags:** diffusers, safetensors, text-to-video, image-to-video, image-text-to-video, video-to-video, text-to-audio-video, image-to-audio-video, image-text-to-audio-video, video-to-audio-vid"
+  },
+  {
+    "agent_id": "google-kubernetes-engine",
+    "display_name": "google-kubernetes-engine",
+    "sponsor": "Google Cloud",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd79z1s9aq2tj7jcpjm93whp8x8bzw3q",
+    "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
+  },
+  {
+    "agent_id": "telnyx-comms",
+    "display_name": "telnyx-comms",
+    "sponsor": "Telnyx",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd79z1s9aq2tj7jcpjm93whp8x8bzw3q",
+    "failure": "MCP tools/call failed 401: {\"detail\":\"Authentication required for MCP method\"}"
+  },
+  {
+    "agent_id": "google-compute-engine",
+    "display_name": "google-compute-engine",
+    "sponsor": "Google Cloud",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd79z1s9aq2tj7jcpjm93whp8x8bzw3q",
+    "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
+  },
+  {
+    "agent_id": "bigquery-analytics",
+    "display_name": "bigquery-analytics",
+    "sponsor": "Google Cloud",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd79z1s9aq2tj7jcpjm93whp8x8bzw3q",
+    "failure": "MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\":\"Request is missing required authentication credential. Expected OAuth 2 access token, login cookie or other valid authe"
+  },
+  {
+    "agent_id": "devin-engineer",
+    "display_name": "devin-engineer",
+    "sponsor": "Devin",
+    "messages": 0,
+    "error_messages": 0,
+    "dag_id": "qd79z1s9aq2tj7jcpjm93whp8x8bzw3q",
+    "failure": "writeSigned: invalid_signature"
   }
 ]

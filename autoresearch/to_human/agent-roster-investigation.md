@@ -1,28 +1,47 @@
 # Agent roster investigation — can every registered agent actually work?
 
-Generated from a live probe of all 1166 registered specialists. Each verdict is a recorded HTTP outcome; each hive quote is a signed blackboard row written by that agent's own server.
+Generated from a live probe of all 1248 registered specialists. Each verdict is a recorded HTTP outcome; each hive quote is a signed blackboard row written by that agent's own server.
+
+## Complete accounting
+
+Every one of the **1248 registered agents** lands in exactly one bucket below (total 1248, balanced: yes). Participation is read from the hive boards themselves, so agents proven in earlier sessions are counted alongside the mass run.
+
+| Bucket | Agents | Meaning |
+|---|---:|---|
+| delivered | 271 | Responded without error, stated its ability, and returned real output from its own tools |
+| declared_only | 45 | Answered tools/list with real tools (non-error + ability) but every tool mutates a real account, so nothing was invoked |
+| live_no_delivery | 248 | Server is reachable but produced no usable output |
+| paywalled | 410 | Alive, refuses without credentials we do not have |
+| dead | 243 | Nothing answers at the endpoint |
+| no_transport | 28 | Registered with no endpoint to call |
+| house | 3 | Arbor-owned, served by our own model lane |
+| unprobed | 0 | Not yet probed |
+
+**270 agents spoke in two or more rounds**, reading the shared board between turns.
+
+Within `live_no_delivery`: 56 expose only account-mutating tools and were deliberately not called; 192 failed at call time or returned nothing usable after three retry strategies (short queries, schema enum/default values, and error-guided retry using the server's own rejection text).
 
 ## Headline
 
 | Outcome | Agents | What it means |
 |---|---:|---|
-| Live, callable free | 546 | Server answered and listed real tools with no credential |
-| Live with a key we hold | 1 | Answered using a credential already in the deployment |
-| **Needs money or an account** | **380** | Server is alive but refuses without credentials we do not have |
-| Dead endpoint | 238 | Nothing answers: DNS failure, timeout, 404, or 5xx |
-| No transport in the row | 1 | Catalog entry with no endpoint to call at all |
+| Live, callable free | 555 | Server answered and listed real tools with no credential |
+| Live with a key we hold | 4 | Answered using a credential already in the deployment |
+| **Needs money or an account** | **410** | Server is alive but refuses without credentials we do not have |
+| Dead endpoint | 243 | Nothing answers: DNS failure, timeout, 404, or 5xx |
+| No transport in the row | 33 | Catalog entry with no endpoint to call at all |
 
-Of the 547 live agents, 447 expose at least one read-only tool that is safe to call blind. The other 100 expose only account-mutating tools (create/delete/send/deploy), so their liveness and abilities are proven but calling them would change real state in someone's account.
+Of the 559 live agents, 458 expose at least one read-only tool that is safe to call blind. The other 101 expose only account-mutating tools (create/delete/send/deploy), so their liveness and abilities are proven but calling them would change real state in someone's account.
 
 ## Proven in the hive
 
-- **307 agents posted a non-error message to a real hive board** (signed, HMAC-verified, stored in `scratchpad_entries`).
-- **262 of those cleared all three bars**: they responded without an " +
+- **310 agents posted a non-error message to a real hive board** (signed, HMAC-verified, stored in `scratchpad_entries`).
+- **264 of those cleared all three bars**: they responded without an " +
       "error, stated their ability, and returned real output from their own server's tools.
-- **258 spoke in two or more rounds**, reading the shared board between turns — that is the cooperation bar.
-- **45 cleared two of the three bars**: they answered `tools/list` with real tool names (a non-error response, and their ability statement), but every tool they expose mutates real account state — creating, sending, deploying, or charging something. Those were seated with a capability declaration and **no tool was invoked**. Delivery for this group needs an operator's explicit go-ahead, and each board entry says so.
+- **260 spoke in two or more rounds**, reading the shared board between turns — that is the cooperation bar.
+- **46 cleared two of the three bars**: they answered `tools/list` with real tool names (a non-error response, and their ability statement), but every tool they expose mutates real account state — creating, sending, deploying, or charging something. Those were seated with a capability declaration and **no tool was invoked**. Delivery for this group needs an operator's explicit go-ahead, and each board entry says so.
 
-- **301 stated their abilities in readable prose.** Most MCP servers return raw JSON, which is real delivery but not a statement a teammate can act on, so those responses are narrated into first-person sentences by Arbor's model — grounded strictly in the tool names that server declared and the output it actually returned, and labeled as narrated on every board entry.
+- **304 stated their abilities in readable prose.** Most MCP servers return raw JSON, which is real delivery but not a statement a teammate can act on, so those responses are narrated into first-person sentences by Arbor's model — grounded strictly in the tool names that server declared and the output it actually returned, and labeled as narrated on every board entry.
 
 ### Sample of what they said, in their own words
 
@@ -88,12 +107,12 @@ Of the 547 live agents, 447 expose at least one read-only tool that is safe to c
 
 ## Reachable, but did not deliver
 
-137 agents listed their tools successfully but produced no usable output when called. The split matters, because only the first row is a money problem:
+146 agents listed their tools successfully but produced no usable output when called. The split matters, because only the first row is a money problem:
 
 | Reason | Agents |
 |---|---:|
-| Needs a domain-specific argument we cannot guess | 66 |
-| Credential demanded at call time (listing was free) | 44 |
+| Needs a domain-specific argument we cannot guess | 69 |
+| Credential demanded at call time (listing was free) | 50 |
 | Answered, but returned no text | 16 |
 | Other call-time error | 11 |
 
@@ -105,6 +124,7 @@ These servers are alive and answering — they simply refuse anonymous callers. 
 |---|---:|---|
 | github | 26 | 401, 403, 402 |
 | co | 12 | 401 |
+| Cloudflare | 10 | 401 |
 | waystation.ai | 7 | 401 |
 | dyndns-server | 6 | 401 |
 | mcpbundles.com | 5 | 401 |
@@ -121,14 +141,13 @@ These servers are alive and answering — they simply refuse anonymous callers. 
 | agentdm.ai | 2 | 401 |
 | adcrunch.dev | 2 | 401 |
 | traderwai.com | 2 | 401 |
-| Cloudflare | 2 | 401 |
 | mino.ai | 1 | 401 |
 | tinyfish | 1 | 401 |
 | vibecom.app | 1 | 401 |
 | unstoppabledomains.com | 1 | 401 |
 | fathom | 1 | 401 |
 | lucid | 1 | 401 |
-| _(+285 more vendors)_ | | |
+| _(+307 more vendors)_ | | |
 
 HTTP 402 (literal Payment Required) was returned by 3 agents; the rest return 401/403 (account or API key required).
 
@@ -136,9 +155,9 @@ HTTP 402 (literal Payment Required) was returned by 3 agents; the rest return 40
 
 | Failure | Agents |
 |---|---:|
-| HTTP 404 | 106 |
-| fetch failed | 61 |
-| HTTP 200 | 21 |
+| HTTP 404 | 107 |
+| fetch failed | 64 |
+| HTTP 200 | 22 |
 | This operation was aborted | 14 |
 | HTTP 503 | 8 |
 | HTTP 405 | 8 |
@@ -152,7 +171,7 @@ These are registry rows pointing at servers that no longer exist. They are not f
 
 ## The ceiling, stated plainly
 
-A goal of "all 1166 agents deliver real output" is not reachable from here. 238 endpoints are gone, and 380 require accounts I will not create on your behalf. The reachable universe is 547 agents, and that is the population this run works against.
+A goal of "all 1248 agents deliver real output" is not reachable from here. 243 endpoints are gone, and 410 require accounts I will not create on your behalf. The reachable universe is 559 agents, and that is the population this run works against.
 
 Files: `autoresearch/data/roster-census.json`, `autoresearch/data/hive-mass-proof.json`.
 

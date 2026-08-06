@@ -107,6 +107,63 @@ function main(): void {
       "blackboard row written by that agent's own server.",
   );
   lines.push("");
+  // Authoritative accounting, derived from the boards themselves rather than
+  // from any single run's proof file. Buckets sum to the registered roster.
+  const recon = readJson<{
+    summary?: {
+      registered_agents: number;
+      reconciled_total: number;
+      balanced: boolean;
+      cooperated_2plus_rounds: number;
+      buckets: Record<string, number>;
+      live_no_delivery_detail: Record<string, number>;
+    };
+  }>("roster-reconciliation.json", {});
+  if (recon.summary) {
+    const s = recon.summary;
+    lines.push("## Complete accounting");
+    lines.push("");
+    lines.push(
+      `Every one of the **${s.registered_agents} registered agents** lands in exactly one ` +
+        `bucket below (total ${s.reconciled_total}, balanced: ${s.balanced ? "yes" : "NO"}). ` +
+        "Participation is read from the hive boards themselves, so agents proven in earlier " +
+        "sessions are counted alongside the mass run.",
+    );
+    lines.push("");
+    lines.push("| Bucket | Agents | Meaning |");
+    lines.push("|---|---:|---|");
+    const meaning: Record<string, string> = {
+      delivered:
+        "Responded without error, stated its ability, and returned real output from its own tools",
+      declared_only:
+        "Answered tools/list with real tools (non-error + ability) but every tool mutates a real account, so nothing was invoked",
+      live_no_delivery: "Server is reachable but produced no usable output",
+      paywalled: "Alive, refuses without credentials we do not have",
+      dead: "Nothing answers at the endpoint",
+      no_transport: "Registered with no endpoint to call",
+      house: "Arbor-owned, served by our own model lane",
+      unprobed: "Not yet probed",
+    };
+    for (const [k, v] of Object.entries(s.buckets)) {
+      lines.push(`| ${k} | ${v} | ${meaning[k] ?? ""} |`);
+    }
+    lines.push("");
+    lines.push(
+      `**${s.cooperated_2plus_rounds} agents spoke in two or more rounds**, reading the shared ` +
+        "board between turns.",
+    );
+    lines.push("");
+    lines.push(
+      "Within `live_no_delivery`: " +
+        `${s.live_no_delivery_detail.mutating_tools_only_not_called} expose only account-mutating ` +
+        `tools and were deliberately not called; ${s.live_no_delivery_detail.call_failed_or_empty} ` +
+        "failed at call time or returned nothing usable after three retry strategies " +
+        "(short queries, schema enum/default values, and error-guided retry using the server's " +
+        "own rejection text).",
+    );
+    lines.push("");
+  }
+
   lines.push("## Headline");
   lines.push("");
   lines.push("| Outcome | Agents | What it means |");

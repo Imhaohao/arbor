@@ -57,7 +57,8 @@
     "demo:reliability": "tsx scripts/demo-reliability.ts",
     "roster:census": "tsx scripts/roster-census.ts",
     "hive:mass": "tsx scripts/hive-mass-session.ts",
-    "roster:report": "tsx scripts/roster-report.ts"
+    "roster:report": "tsx scripts/roster-report.ts",
+    "roster:reconcile": "tsx scripts/roster-reconcile.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
