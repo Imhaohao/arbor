@@ -486,8 +486,25 @@ async function main() {
   const perTaskTimeoutMs = Number(flag("timeout-ms") ?? 15 * 60 * 1000);
   const pollMs = Number(flag("poll-ms") ?? 5000);
 
+  // `--only a,b,c` restricts the batch to those labels. Targeted re-runs after
+  // a fix are the common case, and a 3-task batch also stays under the
+  // ~8-concurrent stall described above, so results are not confounded by it.
+  const onlyRaw = flag("only");
+  const only = onlyRaw
+    ? new Set(onlyRaw.split(",").map((s) => s.trim()).filter(Boolean))
+    : undefined;
+  const selected = only ? TASKS.filter((t) => only.has(t.label)) : TASKS;
+  if (only) {
+    const unknown = [...only].filter(
+      (l) => !TASKS.some((t) => t.label === l),
+    );
+    if (unknown.length > 0) {
+      throw new Error(`--only: no task with label(s): ${unknown.join(", ")}`);
+    }
+  }
+
   console.log(
-    `Arbor demo-reliability run. ${TASKS.length} tasks, stagger=${staggerMs}ms, per-task timeout=${perTaskTimeoutMs}ms, poll=${pollMs}ms.`,
+    `Arbor demo-reliability run. ${selected.length} tasks, stagger=${staggerMs}ms, per-task timeout=${perTaskTimeoutMs}ms, poll=${pollMs}ms.`,
   );
   console.log(
     `Posting via api.tasks.post as posted_by="${POSTED_BY}" (BID_WINDOW_SECONDS=${BID_WINDOW_SECONDS} at time of writing).`,
@@ -497,7 +514,7 @@ async function main() {
   );
 
   const runs: RunRecord[] = [];
-  for (const spec of TASKS) {
+  for (const spec of selected) {
     const posted_at = Date.now();
     let task_id: Id<"tasks">;
     try {
@@ -531,7 +548,7 @@ async function main() {
   }
 
   console.log(
-    `\nPosted ${runs.length}/${TASKS.length} tasks. Polling until terminal or timeout...\n`,
+    `\nPosted ${runs.length}/${selected.length} tasks. Polling until terminal or timeout...\n`,
   );
 
   while (runs.some((r) => !r.done)) {
