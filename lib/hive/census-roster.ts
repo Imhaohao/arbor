@@ -24,7 +24,13 @@ export interface CensusLike {
   abilities: string[];
 }
 
-/** Tools safe to call blind: read-only shapes that cannot mutate a vendor account. */
+/**
+ * Tools safe to call blind: read-only shapes that cannot mutate a vendor
+ * account. The second group is pure computation — validating, comparing, or
+ * converting an input and handing back a result. Measured on the roster,
+ * omitting those verbs stranded agents whose entire surface was analytical
+ * (a recall checker, a format converter) in the "cannot call" bucket.
+ */
 const READ_ONLY_HINTS = [
   "search",
   "query",
@@ -40,6 +46,29 @@ const READ_ONLY_HINTS = [
   "info",
   "explain",
   "summar",
+  // Pure/analytical verbs: they compute over an input, they do not persist.
+  "check",
+  "validate",
+  "verify",
+  "compare",
+  "analyze",
+  "analyse",
+  "detect",
+  "calculate",
+  "convert",
+  "estimate",
+  "resolve",
+  "status",
+  "health",
+  "ping",
+  "echo",
+  "hello",
+  "help",
+  "capabilit",
+  "count",
+  "inspect",
+  "parse",
+  "translate",
 ];
 
 /**
