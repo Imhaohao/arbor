@@ -243,6 +243,26 @@ async function smokeAgent(
             PROBE_TIMEOUT_MS,
             "probe",
           );
+          // Card-signature trust signal (A2A JWS): persist as structured data
+          // on the specialist row whenever the probe actually verified the
+          // card, regardless of probe pass/fail. Display/rank input at most —
+          // never a routing gate.
+          if (probe.card_signature) {
+            await ctx.runMutation(
+              internal.discoveredSpecialists._recordCardSignature,
+              {
+                agent_id: agent.agent_id,
+                status: probe.card_signature.status,
+                ...(probe.card_signature.kid
+                  ? { kid: probe.card_signature.kid }
+                  : {}),
+                ...(probe.card_signature.jwks_origin
+                  ? { jwks_origin: probe.card_signature.jwks_origin }
+                  : {}),
+                checked_at: Date.now(),
+              },
+            );
+          }
           probeStatus = probe.status === "pass" ? "pass" : "fail";
           evidence = probe.response_excerpt?.slice(0, 500) ?? evidence;
           if (probe.status !== "pass") {

@@ -7,12 +7,13 @@
 
 import { NextRequest } from "next/server";
 import { buildMarketAgentCard } from "@/lib/specialists/a2a-market-card";
+import { signCardFromEnv } from "@/lib/a2a-card-signing";
 import { jsonOk, corsPreflight } from "@/lib/http";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  return jsonOk(buildMarketAgentCard(req));
+  return jsonOk(signCardFromEnv(buildMarketAgentCard(req)));
 }
 
 export function OPTIONS() {

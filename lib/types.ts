@@ -326,11 +326,23 @@ export interface SpecialistExecuteResult {
   provenance: SpecialistProvenance;
 }
 
+/**
+ * A2A card JWS verification outcome, carried as structured probe data.
+ * Attests card integrity/origin only — never capability — and is never a
+ * routing gate: unsigned cards stay fully routable.
+ */
+export interface ProbeCardSignature {
+  status: "unsigned" | "valid" | "invalid";
+  kid?: string;
+  jwks_origin?: string;
+}
+
 export interface ProbeResult {
   status: "pass" | "fail" | "demo_lane";
   duration_ms: number;
   response_excerpt?: string;
   error_message?: string;
+  card_signature?: ProbeCardSignature;
 }
 
 export interface SpecialistRunner {

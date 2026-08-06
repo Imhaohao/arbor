@@ -30,6 +30,7 @@ const runValidator = v.object({
     v.literal("error"),
   ),
   arm: v.string(),
+  members: v.optional(v.array(v.string())),
   bid_price: v.optional(v.number()),
   confidence: v.optional(v.number()),
   estimated_seconds: v.optional(v.number()),

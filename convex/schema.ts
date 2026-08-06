@@ -497,6 +497,21 @@ export default defineSchema({
     // "none" = skip card auth entirely (server verified not to enforce the
     // scheme its card declares). Absent/"card" = resolve auth from the card.
     a2a_auth_mode: v.optional(v.union(v.literal("none"), v.literal("card"))),
+    // Latest A2A card JWS verification (trust signal, never a routing gate:
+    // a valid signature attests card integrity/origin only, not capability,
+    // and unsigned cards stay fully routable).
+    card_signature: v.optional(
+      v.object({
+        status: v.union(
+          v.literal("unsigned"),
+          v.literal("valid"),
+          v.literal("invalid"),
+        ),
+        kid: v.optional(v.string()),
+        jwks_origin: v.optional(v.string()),
+        checked_at: v.number(),
+      }),
+    ),
     owner_id: v.optional(v.string()),
     mcp_tool_schemas: v.optional(v.array(v.any())),
     avg_latency_ms: v.optional(v.number()),
@@ -617,6 +632,9 @@ export default defineSchema({
     /** Arm label, so a multi-agent DAG run and a single-agent pass over the
      * same task can be compared at matched token budgets. */
     arm: v.string(),
+    /** Hive arm only: every member of the team, in execution order. agent_id
+     * then carries a synthetic "hive:" id; this field is the real roster. */
+    members: v.optional(v.array(v.string())),
 
     // ── bid leg ──
     bid_price: v.optional(v.number()),
@@ -1108,6 +1126,17 @@ export default defineSchema({
     grader_used: v.optional(v.boolean()),
     posted_at: v.number(),
     audited_at: v.optional(v.number()),
+    /** Templating (settlement-audit-protocol.md section 3): the golden's
+     * prompt/reference/substrings are drawn fresh per post from a seeded PRNG
+     * (lib/golden-audit.ts) so repeated exposure of the same golden_id can't
+     * be memorized. `seed` plus `drawn_params_json` (a JSON snapshot of the
+     * template's `draw()` output: params, prompt, reference_answer,
+     * success_criteria, required_substrings) are recorded here — on the
+     * immutable per-run row, not the mutable golden_tasks definition — so
+     * this exact run can be re-graded or reviewed later even after the
+     * golden_id has since been posted again with different drawn values. */
+    seed: v.optional(v.number()),
+    drawn_params_json: v.optional(v.string()),
   })
     .index("by_task", ["task_id"])
     .index("by_golden", ["golden_task_id"])

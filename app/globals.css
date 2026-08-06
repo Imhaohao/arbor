@@ -301,6 +301,61 @@ textarea,
   animation-delay: 0.8s;
 }
 
+/* Ambient page background for inner pages: light base with soft brand glows
+ * so product surfaces feel continuous with the marketing hero instead of
+ * sitting on flat white. */
+.page-aurora {
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(60rem 32rem at 12% -8%, rgba(24, 119, 242, 0.1), transparent 60%),
+    radial-gradient(48rem 28rem at 88% -12%, rgba(90, 142, 247, 0.09), transparent 60%),
+    radial-gradient(80rem 48rem at 50% 120%, rgba(24, 119, 242, 0.05), transparent 55%);
+  background-attachment: fixed;
+}
+
+/* Staggered entrance for static lists/grids. Children fade up in sequence;
+ * only use on content whose DOM order is stable after first render (a child
+ * whose nth position changes would replay its animation). */
+@keyframes page-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.stagger-children > * {
+  animation: page-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 660ms;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 360ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 420ms; }
+.stagger-children > *:nth-child(9) { animation-delay: 480ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 540ms; }
+.stagger-children > *:nth-child(11) { animation-delay: 600ms; }
+.stagger-children > *:nth-child(12) { animation-delay: 660ms; }
+
+/* One honest global accessibility guard: collapse all motion when the user
+ * asks for it. Individual animations do not need their own checks. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Mini horizontal score bar used in lists. Solid brand fill, no gradient. */
 .score-bar {
   position: relative;

@@ -33,6 +33,17 @@ export interface HiveAgentCandidate {
   transport: "a2a" | "mcp" | "openrouter" | "none";
   mcp_endpoint?: string;
   a2a_endpoint?: string;
+  /**
+   * Latest A2A card JWS verification (trust signal). Attests card
+   * integrity/origin only, never capability — a display/rank input at most,
+   * and unsigned agents remain fully routable.
+   */
+  card_signature?: {
+    status: "unsigned" | "valid" | "invalid";
+    kid?: string;
+    jwks_origin?: string;
+    checked_at: number;
+  };
 }
 
 export interface CapabilityTextInput {

@@ -814,7 +814,7 @@ export const routeNode = internalAction({
       await ctx.scheduler.runAfter(
         BID_WINDOW_SECONDS * 1000,
         internal.auctions.resolve,
-        { task_id: childTaskId },
+        { task_id: childTaskId, wait_for_solicitation: true },
       );
     }
     // Settlement sweep backstop on both paths. The primary settlement trigger

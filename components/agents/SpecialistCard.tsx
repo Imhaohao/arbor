@@ -79,7 +79,7 @@ export function SpecialistCard({
   const mcpConnected = hasMcpEndpoint && !!spec.is_verified;
 
   return (
-    <Card className="animate-fade-up">
+    <Card>
       <CardHeader
         title={
           <span className="flex items-center gap-2">

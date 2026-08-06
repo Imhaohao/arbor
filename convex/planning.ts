@@ -70,7 +70,7 @@ export const decompose = internalAction({
       await ctx.scheduler.runAfter(
         BID_WINDOW_SECONDS * 1000,
         internal.auctions.resolve,
-        { task_id: args.task_id },
+        { task_id: args.task_id, wait_for_solicitation: true },
       );
       return;
     }

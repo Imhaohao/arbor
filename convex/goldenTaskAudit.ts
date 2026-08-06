@@ -4,7 +4,12 @@ import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { callOpenAIJSON, type ModelGateway } from "../lib/openai";
+import { deliveryTextForEvaluation } from "../lib/delivery-text";
+import {
+  callOpenAIJSON,
+  describeModelRuntime,
+  type ModelGateway,
+} from "../lib/openai";
 import {
   GOLDEN_AUDIT_SYSTEM_PROMPT,
   checkRequiredSubstrings,
@@ -15,15 +20,9 @@ import {
 import { clampConfidence, normalizeTaskClass } from "../lib/bid-calibration";
 import type { JudgeVerdict } from "../lib/types";
 
-function deliveryTextFromResult(result: unknown): string {
-  if (typeof result === "string") return result;
-  if (result && typeof result === "object") {
-    const text = (result as { text?: unknown }).text;
-    if (typeof text === "string" && text.trim().length > 0) return text;
-    return JSON.stringify(result, null, 2);
-  }
-  return JSON.stringify(result);
-}
+// Shared with the settlement judge so both evaluators read the same text: the
+// agent's answer, without Arbor's own provenance banner.
+const deliveryTextFromResult = deliveryTextForEvaluation;
 
 /**
  * Settle-time golden audit. Scheduled by auctions.settle when the settled
@@ -36,6 +35,7 @@ function deliveryTextFromResult(result: unknown): string {
  */
 export const audit = internalAction({
   args: { task_id: v.id("tasks") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const run = await ctx.runQuery(internal.goldenTasks._runForTask, {
       task_id: args.task_id,
@@ -66,6 +66,11 @@ export const audit = internalAction({
     const required = golden.required_substrings ?? [];
     const substring_misses = checkRequiredSubstrings(deliveryText, required);
 
+    // Protocol requires both model ids on every counted run so grader/judge
+    // independence is auditable after the fact rather than assumed.
+    const graderModel = describeModelRuntime("grader").model;
+    const judgeModel = describeModelRuntime("judge").model;
+
     let grader: GoldenGraderVerdict | null = null;
     try {
       grader = await callOpenAIJSON<GoldenGraderVerdict>({
@@ -79,7 +84,11 @@ export const audit = internalAction({
         maxTokens: 512,
         timeoutMs: 20_000,
         retries: 1,
-        purpose: "judge",
+        // "grader", never "judge": the settlement audit only means anything if
+        // the reference grader can fail independently of the settlement judge.
+        // Sharing a deployment would correlate their errors and bias FAR/FRR
+        // toward agreement.
+        purpose: "grader",
         gateway: task.model_gateway as ModelGateway | undefined,
       });
     } catch {
@@ -166,6 +175,9 @@ export const audit = internalAction({
         audit_reasoning: outcome.reasoning,
         substring_misses: outcome.substring_misses,
         grader_used: outcome.grader_used,
+        grader_model: graderModel,
+        judge_model: judgeModel,
+        grader_judge_independent: graderModel !== judgeModel,
         judge_accepted: judgeAccepted,
         judge_agreement: judgeAccepted === outcome.passed,
       },

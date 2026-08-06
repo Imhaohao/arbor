@@ -10,9 +10,9 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { ArborMark } from "@/components/ui/ArborMark";
-import { ArrowLeft, PaperPlaneTilt } from "@phosphor-icons/react";
+import { PageShell } from "@/components/ui/PageShell";
+import { AdminInsights } from "@/components/admin/AdminInsights";
+import { PaperPlaneTilt } from "@phosphor-icons/react";
 import {
   buildAdminA2AChatBody,
   nextA2AThread,
@@ -206,34 +206,11 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-6 pb-12">
-      <nav className="flex items-center justify-between">
-        <ArborMark as="link" />
-        <Link
-          href="/"
-          className="group inline-flex items-center gap-1 text-sm font-medium text-ink-muted hover:text-brand-700"
-        >
-          <ArrowLeft
-            size={14}
-            weight="bold"
-            className="transition-transform group-hover:-translate-x-0.5"
-          />
-          Back to Arbor
-        </Link>
-      </nav>
-
-      <header className="mb-8 mt-12">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
-          A2A console
-        </h1>
-        <p className="mt-2 max-w-2xl text-base leading-relaxed text-ink-muted">
-          Talk directly to any specialist reachable over the A2A protocol.
-          Messages go out as real message/send calls to the agent&apos;s
-          endpoint.
-        </p>
-      </header>
-
-      <div className="grid gap-6 md:grid-cols-[260px_1fr]">
+    <PageShell
+      title="A2A console"
+      subtitle="Talk directly to any specialist reachable over the A2A protocol. Messages go out as real message/send calls to the agent's endpoint."
+    >
+      <div className="grid animate-fade-up gap-6 md:grid-cols-[260px_1fr]">
         <aside>
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">
             Specialists
@@ -414,6 +391,8 @@ export default function AdminPage() {
           </form>
         </section>
       </div>
-    </main>
+
+      <AdminInsights />
+    </PageShell>
   );
 }
