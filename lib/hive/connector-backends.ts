@@ -311,27 +311,21 @@ export async function callA2aAgent(options: {
     ...(options.bearer ? { authorization: `Bearer ${options.bearer}` } : {}),
   };
 
-  const send = async (legacy: boolean): Promise<unknown> => {
-    const part = legacy
-      ? { type: "text", text: options.text }
-      : { kind: "text", text: options.text };
+  const rpc = async (
+    endpoint: string,
+    method: string,
+    params: unknown,
+  ): Promise<unknown> => {
     const response = await fetchWithTimeout(
-      options.endpoint,
+      endpoint,
       {
         method: "POST",
         headers,
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: `arbor-${Date.now()}`,
-          method: "message/send",
-          params: {
-            message: {
-              role: "user",
-              parts: [part],
-              messageId: `arbor-${Date.now()}`,
-              kind: "message",
-            },
-          },
+          method,
+          params,
         }),
       },
       timeoutMs,
@@ -342,25 +336,86 @@ export async function callA2aAgent(options: {
     }
     const parsed = JSON.parse(body) as {
       result?: unknown;
-      error?: { message?: string };
+      error?: { message?: string; code?: number };
     };
     if (parsed.error) {
-      throw new Error(`A2A error: ${parsed.error.message?.slice(0, 160)}`);
+      throw new Error(
+        `A2A error: ${parsed.error.code === -32601 ? "Method not found" : ""} ${parsed.error.message ?? ""}`.trim(),
+      );
     }
     return parsed.result;
   };
 
+  const messageParams = (legacy: boolean) => ({
+    message: {
+      role: "user",
+      parts: [
+        legacy
+          ? { type: "text", text: options.text }
+          : { kind: "text", text: options.text },
+      ],
+      messageId: `arbor-${Date.now()}`,
+      kind: "message",
+    },
+  });
+
+  // Endpoint path variants: several rows point at an origin whose A2A handler
+  // actually lives one segment deeper, which surfaces as 404/405 rather than
+  // as a protocol error.
+  const endpoints = [options.endpoint];
+  const trimmed = options.endpoint.replace(/\/+$/, "");
+  if (!/\/a2a$/i.test(trimmed)) endpoints.push(`${trimmed}/a2a`);
+
   let result: unknown;
-  try {
-    result = await send(false);
-  } catch (err) {
-    const message = (err as Error).message;
-    // Only retry the legacy dialect when the peer rejected the part shape.
-    if (!/part|kind|type|invalid/i.test(message)) throw err;
-    result = await send(true);
+  let lastError: Error | null = null;
+  outer: for (const endpoint of endpoints) {
+    // Dialects in order: v0.3 message/send, legacy text parts, legacy
+    // tasks/send. Each is tried only when the previous failure says so.
+    const attempts: Array<{ method: string; params: unknown }> = [
+      { method: "message/send", params: messageParams(false) },
+      { method: "message/send", params: messageParams(true) },
+      { method: "tasks/send", params: messageParams(false) },
+    ];
+    for (const attempt of attempts) {
+      try {
+        result = await rpc(endpoint, attempt.method, attempt.params);
+        lastError = null;
+        break outer;
+      } catch (err) {
+        lastError = err as Error;
+        const m = lastError.message;
+        // Keep trying only on shape/method rejections; a 401 or a timeout is
+        // terminal for this endpoint.
+        if (!/part|kind|type|invalid|method not found|-32601|404|405/i.test(m)) {
+          break;
+        }
+      }
+    }
+  }
+  if (lastError) throw lastError;
+
+  let text = extractA2aText(result);
+
+  // A2A tasks are asynchronous: a server may accept the message and return a
+  // Task in "submitted"/"working" with no text yet. Reading only the
+  // immediate reply scored those agents as silent when they were just busy.
+  const taskId = a2aTaskId(result);
+  const state = a2aTaskState(result);
+  if (!text && taskId && state && !["failed", "canceled", "rejected"].includes(state)) {
+    for (let poll = 0; poll < 5 && !text; poll += 1) {
+      await sleep(3_000);
+      const polled = await rpc(options.endpoint, "tasks/get", { id: taskId }).catch(
+        () => null,
+      );
+      if (!polled) break;
+      text = extractA2aText(polled);
+      const polledState = a2aTaskState(polled);
+      if (polledState && ["failed", "canceled", "rejected"].includes(polledState)) {
+        break;
+      }
+    }
   }
 
-  const text = extractA2aText(result);
   if (!text) throw new Error("A2A agent returned no text content");
   if (looksLikeErrorText(text)) {
     throw new Error(`A2A agent returned an error: ${text.slice(0, 160)}`);
@@ -750,4 +805,21 @@ export async function callOllamaPersona(options: {
     text,
     provenance: `local-llm persona (${options.model}) — NOT an external agent`,
   };
+}
+
+/** Task id from an A2A result, for polling an accepted-but-unfinished task. */
+function a2aTaskId(result: unknown): string | null {
+  if (!result || typeof result !== "object") return null;
+  const r = result as { id?: string; taskId?: string; task?: { id?: string } };
+  return r.id ?? r.taskId ?? r.task?.id ?? null;
+}
+
+/** Lifecycle state of an A2A task result, when it is a task at all. */
+function a2aTaskState(result: unknown): string | null {
+  if (!result || typeof result !== "object") return null;
+  const r = result as {
+    status?: { state?: string };
+    task?: { status?: { state?: string } };
+  };
+  return r.status?.state ?? r.task?.status?.state ?? null;
 }

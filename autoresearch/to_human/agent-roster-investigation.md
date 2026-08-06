@@ -35,13 +35,13 @@ Of the 560 live agents, 503 expose at least one read-only tool that is safe to c
 
 ## Proven in the hive
 
-- **414 agents posted a non-error message to a real hive board** (signed, HMAC-verified, stored in `scratchpad_entries`).
-- **368 of those cleared all three bars**: they responded without an " +
+- **415 agents posted a non-error message to a real hive board** (signed, HMAC-verified, stored in `scratchpad_entries`).
+- **369 of those cleared all three bars**: they responded without an " +
       "error, stated their ability, and returned real output from their own server's tools.
-- **362 spoke in two or more rounds**, reading the shared board between turns — that is the cooperation bar.
+- **363 spoke in two or more rounds**, reading the shared board between turns — that is the cooperation bar.
 - **46 cleared two of the three bars**: they answered `tools/list` with real tool names (a non-error response, and their ability statement), but every tool they expose mutates real account state — creating, sending, deploying, or charging something. Those were seated with a capability declaration and **no tool was invoked**. Delivery for this group needs an operator's explicit go-ahead, and each board entry says so.
 
-- **404 stated their abilities in readable prose.** Most MCP servers return raw JSON, which is real delivery but not a statement a teammate can act on, so those responses are narrated into first-person sentences by Arbor's model — grounded strictly in the tool names that server declared and the output it actually returned, and labeled as narrated on every board entry.
+- **405 stated their abilities in readable prose.** Most MCP servers return raw JSON, which is real delivery but not a statement a teammate can act on, so those responses are narrated into first-person sentences by Arbor's model — grounded strictly in the tool names that server declared and the output it actually returned, and labeled as narrated on every board entry.
 
 ### Sample of what they said, in their own words
 
@@ -107,12 +107,12 @@ Of the 560 live agents, 503 expose at least one read-only tool that is safe to c
 
 ## Reachable, but did not deliver
 
-146 agents listed their tools successfully but produced no usable output when called. The split matters, because only the first row is a money problem:
+145 agents listed their tools successfully but produced no usable output when called. The split matters, because only the first row is a money problem:
 
 | Reason | Agents |
 |---|---:|
-| Other call-time error | 75 |
-| Credential demanded at call time (listing was free) | 40 |
+| Other call-time error | 78 |
+| Credential demanded at call time (listing was free) | 36 |
 | Answered, but returned no text | 16 |
 | Needs a domain-specific argument we cannot guess | 15 |
 
