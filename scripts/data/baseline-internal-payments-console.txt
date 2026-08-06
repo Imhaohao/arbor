@@ -1,0 +1,60 @@
+
+-- Timing --
+Time to auction outcome (won-or-failed-outright), n=9: median=492.0s, p90=519.1s
+Time to judged delivery, n=9: median=492.0s, p90=519.1s
+
+-- Outcome breakdown (by category) --
+  timeout_incomplete: 12/22 (54.5%)
+      x3: stuck at status=planning after 601s
+      x2: stuck at status=planning after 606s
+      x2: stuck at status=planning after 600s
+      x2: stuck at status=planning after 603s
+      x1: stuck at status=planning after 604s
+      x1: stuck at status=planning after 605s
+      x1: stuck at status=awarded after 601s
+  delivered_accepted: 5/22 (22.7%)
+      x5: (no reason recorded)
+  delivered_rejected: 4/22 (18.2%)
+      x4: (no reason recorded)
+  blocked_on_failed_child: 1/22 (4.5%)
+      x1: parent stuck at "planning"; child step 0 failed (reason not captured)
+
+-- Per-task detail --
+  quickstart-stripe-connect [general, $2.00] -> timeout_incomplete (status=planning, 605.5s, bids=0, winner=-, price_paid=-)
+      step 0: status=complete winner=arbor-hive-backstop 
+      step 1: status=bidding winner=- 
+  quickstart-landing-page [general, $2.00] -> timeout_incomplete (status=planning, 604.3s, bids=0, winner=-, price_paid=-)
+      step 0: status=complete winner=arbor-hive-backstop 
+      step 1: status=bidding winner=- 
+  quickstart-backlog-triage [general, $2.00] -> delivered_rejected (status=disputed, 510.4s, bids=20, winner=arbor-hive-backstop, price_paid=0.82)
+  quickstart-tiktok-shop [general, $2.00] -> timeout_incomplete (status=planning, 601.1s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=arbor-hive-backstop 
+      step 1: status=bidding winner=- 
+  organic-stripe-codebase [general, $2.00] -> timeout_incomplete (status=planning, 605.9s, bids=0, winner=-, price_paid=-)
+      step 0: status=complete winner=arbor-baseline 
+  organic-youtube-short [general, $3.00] -> delivered_accepted (status=complete, 500.7s, bids=20, winner=arbor-hive-backstop, price_paid=0.35)
+  organic-trip-planning [general, $2.00] -> delivered_accepted (status=complete, 405.3s, bids=20, winner=arbor-hive-backstop, price_paid=0.82)
+  organic-rubric-compare [general, $2.00] -> delivered_accepted (status=complete, 492.0s, bids=20, winner=arbor-hive-backstop, price_paid=0.35)
+  organic-pr-review [general, $3.00] -> delivered_rejected (status=disputed, 519.1s, bids=20, winner=arbor-hive-backstop, price_paid=0.4)
+  organic-voice-narration [general, $3.00] -> blocked_on_failed_child (status=planning, 602.3s, bids=0, winner=-, price_paid=-)
+      step 0: status=failed winner=mcp-search-router-0bf4d05 
+  campaign-electrolyte-full [end-to-end-campaign, $3.00] -> timeout_incomplete (status=planning, 600.6s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=arbor-hive-backstop 
+  campaign-electrolyte-reacher [end-to-end-campaign, $2.50] -> timeout_incomplete (status=planning, 604.6s, bids=0, winner=-, price_paid=-)
+      step 0: status=bidding winner=- 
+  docs-convex-scheduled-fn [code-context-retrieval, $2.50] -> delivered_accepted (status=complete, 487.4s, bids=20, winner=arbor-hive-backstop, price_paid=0.35)
+  docs-nextjs-streaming [code-context-retrieval, $3.00] -> timeout_incomplete (status=planning, 600.0s, bids=1, winner=-, price_paid=-)
+  creator-scouting-reacher [creator-scouting, $3.00] -> timeout_incomplete (status=planning, 603.1s, bids=0, winner=-, price_paid=-)
+  fx-rate-usd-eur [currency-conversion, $5.00] -> timeout_incomplete (status=awarded, 600.6s, bids=20, winner=arbor-hive-backstop, price_paid=0.82)
+  fx-rate-usd-eur-plaintext [currency-conversion, $5.00] -> delivered_rejected (status=disputed, 455.5s, bids=20, winner=arbor-hive-backstop, price_paid=0.35)
+  copy-water-bottle [copywriting, $2.00] -> delivered_accepted (status=complete, 447.6s, bids=20, winner=arbor-hive-backstop, price_paid=0.82)
+  market-discovery-summary [market discovery, $2.00] -> delivered_rejected (status=disputed, 511.3s, bids=20, winner=arbor-hive-backstop, price_paid=0.82)
+  research-nextjs-brief [research, $4.00] -> timeout_incomplete (status=planning, 600.3s, bids=0, winner=-, price_paid=-)
+      step 0: status=bidding winner=- 
+  startup-launch-plan-electrolyte [startup-launch-plan, $3.00] -> timeout_incomplete (status=planning, 603.0s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=arbor-hive-backstop 
+  multistep-debate-curriculum [multi-step-engineering, $4.00] -> timeout_incomplete (status=planning, 600.7s, bids=0, winner=-, price_paid=-)
+Error: ENOENT: no such file or directory, open '/Users/yanzihao/Documents/miyohacks/scripts/data/scripts/data/baseline-internal-payments.json'
+    at writeFileSync (node:fs:2398:20)
+    at main (/Users/yanzihao/Documents/miyohacks/scripts/demo-reliability.ts:692:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)

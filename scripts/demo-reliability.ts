@@ -33,7 +33,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -683,12 +683,21 @@ async function main() {
     }
   }
 
-  const outDir = resolve(ROOT, "scripts/data");
+  // An explicit --out is resolved against the repo root, not scripts/data.
+  // Resolving it against outDir turned a repo-relative path the caller had
+  // already qualified ("scripts/data/foo.json") into
+  // "scripts/data/scripts/data/foo.json", whose parent does not exist — the
+  // whole run's JSON was lost to ENOENT after the console summary printed.
+  const outFlag = flag("out");
+  const outPath = outFlag
+    ? resolve(ROOT, outFlag)
+    : resolve(
+        ROOT,
+        "scripts/data",
+        `demo-reliability-${new Date().toISOString().replace(/[:.]/g, "-")}.json`,
+      );
+  const outDir = dirname(outPath);
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
-  const outPath = resolve(
-    outDir,
-    flag("out") ?? `demo-reliability-${new Date().toISOString().replace(/[:.]/g, "-")}.json`,
-  );
   writeFileSync(
     outPath,
     JSON.stringify(
