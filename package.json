@@ -54,7 +54,8 @@
     "hive:connector": "tsx scripts/hive-connector.ts",
     "payouts": "tsx scripts/payouts.ts",
     "detectability:gate": "tsx scripts/golden-detectability.ts",
-    "demo:reliability": "tsx scripts/demo-reliability.ts"
+    "demo:reliability": "tsx scripts/demo-reliability.ts",
+    "roster:census": "tsx scripts/roster-census.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",

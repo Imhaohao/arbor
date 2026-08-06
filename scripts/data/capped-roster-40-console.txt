@@ -1,0 +1,70 @@
+Auction failed outright (no valid bids under budget): 0/22 (0.0%)
+
+Of tasks that got a winning bid at all (14/22):
+  - won by an Arbor floor/backstop agent: 2/14 (14.3%)
+  - won by a genuine specialist:          12/14 (85.7%)
+
+-- Timing --
+Time to auction outcome (won-or-failed-outright), n=11: median=127.6s, p90=291.2s
+Time to judged delivery, n=11: median=127.6s, p90=291.2s
+
+-- Outcome breakdown (by category) --
+  blocked_on_failed_child: 6/22 (27.3%)
+      x3: parent stuck at "planning"; child step 1 failed (reason not captured)
+      x2: parent stuck at "planning"; child step 2 failed (reason not captured)
+      x1: parent stuck at "planning"; child step 0 failed (reason not captured)
+  delivered_rejected: 6/22 (27.3%)
+      x6: (no reason recorded)
+  delivered_accepted: 5/22 (22.7%)
+      x5: (no reason recorded)
+  failed: 4/22 (18.2%)
+      x2: execution_failed (after 3 attempt(s)): partial_receipt: missing external_session_id
+      x1: execution_failed (after 3 attempt(s)): partial_receipt: missing external_session_id, events_observed
+      x1: execution_failed (after 3 attempt(s)): No specialist runner registered for openzeppelin-contracts
+  timeout_incomplete: 1/22 (4.5%)
+      x1: stuck at status=planning after 600s
+
+-- Per-task detail --
+  quickstart-stripe-connect [general, $2.00] -> blocked_on_failed_child (status=planning, 603.4s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=reacher-social 
+      step 1: status=failed winner=aws-knowledge 
+  quickstart-landing-page [general, $2.00] -> delivered_rejected (status=disputed, 291.2s, bids=20, winner=vercel-v0, price_paid=0.82)
+  quickstart-backlog-triage [general, $2.00] -> delivered_rejected (status=disputed, 163.6s, bids=20, winner=arbor-hive-backstop, price_paid=0.4)
+  quickstart-tiktok-shop [general, $2.00] -> blocked_on_failed_child (status=planning, 601.9s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=arbor-hive-backstop 
+      step 1: status=complete winner=arbor-hive-backstop 
+      step 2: status=failed winner=nia-context 
+  organic-stripe-codebase [general, $2.00] -> timeout_incomplete (status=planning, 600.1s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=vercel-v0 
+      step 1: status=disputed winner=arbor-hive-backstop 
+      step 2: status=executing winner=vercel-v0 
+  organic-youtube-short [general, $3.00] -> delivered_accepted (status=complete, 365.9s, bids=0, winner=-, price_paid=-)
+      step 0: status=complete winner=codebase-explainer 
+      step 1: status=disputed winner=arbor-hive-backstop 
+      step 2: status=disputed winner=codebase-explainer 
+  organic-trip-planning [general, $2.00] -> delivered_accepted (status=complete, 131.6s, bids=20, winner=reacher-social, price_paid=0.4)
+  organic-rubric-compare [general, $2.00] -> failed (status=failed, 123.7s, bids=20, winner=nia-context, price_paid=0.4)
+  organic-pr-review [general, $3.00] -> delivered_accepted (status=complete, 115.7s, bids=20, winner=arbor-baseline, price_paid=0.4)
+  organic-voice-narration [general, $3.00] -> blocked_on_failed_child (status=planning, 603.6s, bids=0, winner=-, price_paid=-)
+      step 0: status=failed winner=nia-context 
+  campaign-electrolyte-full [end-to-end-campaign, $3.00] -> delivered_accepted (status=complete, 127.6s, bids=20, winner=reacher-social, price_paid=0.4)
+  campaign-electrolyte-reacher [end-to-end-campaign, $2.50] -> blocked_on_failed_child (status=planning, 603.9s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=reacher-social 
+      step 1: status=failed winner=aws-knowledge 
+  docs-convex-scheduled-fn [code-context-retrieval, $2.50] -> failed (status=failed, 145.5s, bids=20, winner=nia-context, price_paid=0.4)
+  docs-nextjs-streaming [code-context-retrieval, $3.00] -> failed (status=failed, 137.5s, bids=20, winner=twilio-docs, price_paid=0.4)
+  creator-scouting-reacher [creator-scouting, $3.00] -> delivered_rejected (status=disputed, 109.0s, bids=20, winner=reacher-social, price_paid=0.4)
+  fx-rate-usd-eur [currency-conversion, $5.00] -> delivered_rejected (status=disputed, 107.7s, bids=20, winner=reacher-social, price_paid=0.4)
+  fx-rate-usd-eur-plaintext [currency-conversion, $5.00] -> delivered_rejected (status=disputed, 241.1s, bids=20, winner=vercel-v0, price_paid=0.4)
+  copy-water-bottle [copywriting, $2.00] -> delivered_accepted (status=complete, 111.5s, bids=20, winner=reacher-social, price_paid=0.4)
+  market-discovery-summary [market discovery, $2.00] -> failed (status=failed, 109.9s, bids=20, winner=nia-context, price_paid=0.4)
+  research-nextjs-brief [research, $4.00] -> blocked_on_failed_child (status=planning, 601.7s, bids=0, winner=-, price_paid=-)
+      step 0: status=complete winner=vercel-v0 
+      step 1: status=failed winner=nia-context 
+  startup-launch-plan-electrolyte [startup-launch-plan, $3.00] -> blocked_on_failed_child (status=planning, 604.5s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=arbor-hive-backstop 
+      step 1: status=disputed winner=vercel-v0 
+      step 2: status=failed winner=mcp-stocklake-ai-stock-intellige-a7dda06 
+  multistep-debate-curriculum [multi-step-engineering, $4.00] -> delivered_rejected (status=disputed, 116.5s, bids=20, winner=codebase-explainer, price_paid=0.35)
+
+Full results written to /Users/yanzihao/Documents/miyohacks/scripts/data/capped-roster-40.json
