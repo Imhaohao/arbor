@@ -196,11 +196,34 @@ export function pickTool(
   tools: McpToolInfo[],
   preference: string[],
 ): McpToolInfo | null {
+  return pickTools(tools, preference)[0] ?? null;
+}
+
+/**
+ * Every preferred tool present on the server, in preference order, with the
+ * server's own first tool as a last resort.
+ *
+ * A single pick is why reachable agents were scored as failures: if the top
+ * tool demanded arguments we could not synthesize, we gave up while the same
+ * server still exposed a plain search. 379 live agents in this roster carry
+ * more than one callable tool, so the caller should be able to fall through.
+ */
+export function pickTools(
+  tools: McpToolInfo[],
+  preference: string[],
+  max = 4,
+): McpToolInfo[] {
+  const out: McpToolInfo[] = [];
+  const seen = new Set<string>();
   for (const want of preference) {
     const hit = tools.find((t) => t.name === want);
-    if (hit) return hit;
+    if (hit && !seen.has(hit.name)) {
+      seen.add(hit.name);
+      out.push(hit);
+    }
   }
-  return tools[0] ?? null;
+  if (out.length === 0 && tools[0]) out.push(tools[0]);
+  return out.slice(0, max);
 }
 
 /**

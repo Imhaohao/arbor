@@ -10,7 +10,7 @@ import {
   extractMcpText,
   looksLikeErrorText,
   parseSseJson,
-  pickTool,
+  pickTools,
   suggestArgFromError,
   type McpToolInfo,
 } from "./connector-core";
@@ -123,65 +123,74 @@ export async function callMcpAgent(
     result?: { tools?: McpToolInfo[] };
   };
   const tools = listed?.result?.tools ?? [];
-  const tool = pickTool(tools, options.toolPreference);
-  if (!tool) throw new Error(`MCP server at ${options.endpoint} lists no tools`);
+  const candidates = pickTools(tools, options.toolPreference);
+  if (candidates.length === 0) {
+    throw new Error(`MCP server at ${options.endpoint} lists no tools`);
+  }
 
-  const buildArgs = (query: string) =>
-    options.argsFor
-      ? options.argsFor(tool, query)
-      : buildToolArgs(tool.inputSchema, query);
+  // Fall through the server's callable tools: one tool demanding arguments we
+  // cannot synthesize does not mean the agent is unreachable, and most of
+  // these servers publish several.
+  const failures: string[] = [];
+  for (const tool of candidates) {
+    const buildArgs = (query: string) =>
+      options.argsFor
+        ? options.argsFor(tool, query)
+        : buildToolArgs(tool.inputSchema, query);
 
-  let called = await mcpRpc(
-    session,
-    "tools/call",
-    { name: tool.name, arguments: buildArgs(options.query) },
-    timeoutMs,
-  );
-  let text = extractMcpText(called);
+    let called = await mcpRpc(
+      session,
+      "tools/call",
+      { name: tool.name, arguments: buildArgs(options.query) },
+      timeoutMs,
+    ).catch((err: Error) => {
+      failures.push(`${tool.name}: ${err.message.slice(0, 80)}`);
+      return null;
+    });
+    if (called === null) continue;
+    let text = extractMcpText(called);
 
-  // Error-guided retry: when a server rejects the query but names what it
-  // wanted, ask again with its own suggestion. One retry only — a second
-  // rejection is a real failure, not something to keep guessing at.
-  const firstErrored =
-    Boolean((called as { result?: { isError?: boolean } })?.result?.isError) ||
-    (text ? looksLikeErrorText(text) : false);
-  if (firstErrored) {
-    const suggestion = suggestArgFromError(text, options.query);
-    if (suggestion) {
-      const retried = await mcpRpc(
-        session,
-        "tools/call",
-        { name: tool.name, arguments: buildArgs(suggestion) },
-        timeoutMs,
-      );
-      const retriedText = extractMcpText(retried);
-      if (retriedText && !looksLikeErrorText(retriedText)) {
-        called = retried;
-        text = retriedText;
+    // Error-guided retry: when a server rejects the query but names what it
+    // wanted, ask again with its own suggestion. One retry per tool — a
+    // second rejection means move on rather than keep guessing.
+    const errored =
+      Boolean((called as { result?: { isError?: boolean } })?.result?.isError) ||
+      (text ? looksLikeErrorText(text) : false);
+    if (errored) {
+      const suggestion = suggestArgFromError(text, options.query);
+      if (suggestion) {
+        const retried = await mcpRpc(
+          session,
+          "tools/call",
+          { name: tool.name, arguments: buildArgs(suggestion) },
+          timeoutMs,
+        ).catch(() => null);
+        const retriedText = retried ? extractMcpText(retried) : "";
+        if (retriedText && !looksLikeErrorText(retriedText)) {
+          called = retried;
+          text = retriedText;
+        }
       }
     }
+
+    const stillError =
+      Boolean((called as { result?: { isError?: boolean } })?.result?.isError) ||
+      (text ? looksLikeErrorText(text) : false);
+    if (!text || stillError) {
+      failures.push(
+        `${tool.name}: ${text ? text.slice(0, 60) : "no text content"}`,
+      );
+      continue;
+    }
+    return {
+      text,
+      provenance: `real tool-backed: MCP tools/call ${tool.name} @ ${options.endpoint}`,
+    };
   }
 
-  if (!text) {
-    throw new Error(
-      `MCP tool ${tool.name} on ${options.endpoint} returned no text content`,
-    );
-  }
-  // Tool errors arrive as SUCCESSFUL results carrying isError/error text.
-  // They are failures, never agent utterances — posting one to the board
-  // would count an error log as communication.
-  const isError = Boolean(
-    ((called as { result?: { isError?: boolean } })?.result ?? {}).isError,
+  throw new Error(
+    `MCP server ${options.endpoint} returned no usable output from ${candidates.length} tool(s): ${failures.join(" | ").slice(0, 200)}`,
   );
-  if (isError || looksLikeErrorText(text)) {
-    throw new Error(
-      `MCP tool ${tool.name} on ${options.endpoint} returned an error result: ${text.slice(0, 160)}`,
-    );
-  }
-  return {
-    text,
-    provenance: `real tool-backed: MCP tools/call ${tool.name} @ ${options.endpoint}`,
-  };
 }
 
 // ── Devin (Cognition) sessions API ──────────────────────────────────────────

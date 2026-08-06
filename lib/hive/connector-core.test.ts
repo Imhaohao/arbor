@@ -318,3 +318,37 @@ assert.deepEqual(
 );
 
 console.log("schema-aware arg tests passed");
+
+// ── multi-tool fallback ─────────────────────────────────────────────────────
+
+import { pickTools } from "./connector-core";
+
+// Preference order is preserved, and every present preferred tool is offered.
+assert.deepEqual(
+  pickTools(
+    [{ name: "create_x" }, { name: "search_x" }, { name: "list_x" }],
+    ["search_x", "list_x", "missing"],
+  ).map((t) => t.name),
+  ["search_x", "list_x"],
+);
+// No preferred tool present -> the server's own first tool, as a last resort.
+assert.deepEqual(
+  pickTools([{ name: "only_tool" }], ["nope"]).map((t) => t.name),
+  ["only_tool"],
+);
+// Duplicates in the preference list must not produce duplicate attempts.
+assert.deepEqual(
+  pickTools([{ name: "a" }], ["a", "a"]).map((t) => t.name),
+  ["a"],
+);
+assert.deepEqual(pickTools([], ["x"]), []);
+// Bounded so a 40-tool server does not turn into 40 sequential calls.
+assert.equal(
+  pickTools(
+    Array.from({ length: 10 }, (_, i) => ({ name: `search_${i}` })),
+    Array.from({ length: 10 }, (_, i) => `search_${i}`),
+  ).length,
+  4,
+);
+
+console.log("multi-tool fallback tests passed");
