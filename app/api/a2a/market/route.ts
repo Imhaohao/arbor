@@ -23,6 +23,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import { corsPreflight, jsonOk } from "@/lib/http";
+import { signCardFromEnv } from "@/lib/a2a-card-signing";
 import { dispatchTool } from "@/lib/mcp-tools";
 import {
   buildMarketAgentCard,
@@ -909,7 +910,7 @@ async function handleTasksCancel(args: {
 // ─── route entry points ──────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  return jsonOk(buildMarketAgentCard(req));
+  return jsonOk(signCardFromEnv(buildMarketAgentCard(req)));
 }
 
 export async function POST(req: NextRequest) {

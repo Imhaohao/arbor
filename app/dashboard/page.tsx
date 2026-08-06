@@ -71,15 +71,19 @@ export default function DashboardPage() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="bg-surface-subtle">
-        {/* Topbar */}
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-line bg-white/80 px-4 backdrop-blur">
-          <SidebarTrigger />
-          <span className="text-sm font-semibold tracking-tight text-ink">
+      <SidebarInset className="page-aurora min-w-0">
+        {/* Topbar — same dark glass chrome as the rest of the product. */}
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-white/10 bg-slate-950/85 px-4 shadow-lg shadow-slate-950/10 backdrop-blur-xl">
+          <SidebarTrigger className="text-white/70 hover:bg-white/10 hover:text-white" />
+          <span className="text-sm font-semibold tracking-tight text-white">
             Dashboard
           </span>
           <div className="ml-auto">
-            <NeonButton variant="solid" size="sm" onClick={() => router.push("/")}>
+            <NeonButton
+              variant="solid"
+              size="sm"
+              onClick={() => router.push("/#post-task")}
+            >
               Post a task
             </NeonButton>
           </div>
@@ -97,11 +101,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Stat cards */}
-          <div className="mt-6 grid grid-cols-1 gap-4 animate-fade-up [animation-delay:60ms] sm:grid-cols-2 lg:grid-cols-4">
+          <div className="stagger-children mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((s) => {
               const Icon = s.icon;
               return (
-                <Card key={s.label} className="bg-white shadow-card">
+                <Card
+                  key={s.label}
+                  className="bg-white shadow-card transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-card-hover"
+                >
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-ink-muted">
@@ -134,7 +141,7 @@ export default function DashboardPage() {
                 </CardTitle>
                 <Badge variant="outline">Illustrative</Badge>
                 <button
-                  onClick={() => router.push("/")}
+                  onClick={() => router.push("/tasks")}
                   className="text-xs font-medium text-brand-700 hover:text-brand-800"
                 >
                   View all

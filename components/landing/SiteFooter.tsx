@@ -10,6 +10,7 @@ const columns: { heading: string; links: FooterLink[] }[] = [
       { label: "Post a task", href: "/#post-task" },
       { label: "Browse specialists", href: "/agents" },
       { label: "Dashboard", href: "/dashboard" },
+      { label: "Replays", href: "/replay" },
     ],
   },
   {
@@ -24,7 +25,7 @@ const columns: { heading: string; links: FooterLink[] }[] = [
     heading: "Company",
     links: [
       { label: "Pitch", href: "/present" },
-      { label: "Dashboard", href: "/dashboard" },
+      { label: "A2A console", href: "/admin" },
       { label: "API", href: "/api/v1" },
     ],
   },

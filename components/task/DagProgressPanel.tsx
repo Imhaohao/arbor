@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useQuery } from "convex/react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { api } from "@/convex/_generated/api";
@@ -106,16 +107,24 @@ export function DagProgressPanel({ taskId }: Props) {
       <CardHeader
         title="Agent pipeline"
         meta={
-          <span
-            className={
-              progress.hasFailure
-                ? "text-rose-700"
-                : progress.settled
-                  ? "text-emerald-700"
-                  : "text-brand-700"
-            }
-          >
-            {progress.complete}/{progress.total} steps
+          <span className="inline-flex items-center gap-3">
+            <span
+              className={
+                progress.hasFailure
+                  ? "text-rose-700"
+                  : progress.settled
+                    ? "text-emerald-700"
+                    : "text-brand-700"
+              }
+            >
+              {progress.complete}/{progress.total} steps
+            </span>
+            <Link
+              href={`/replay/${dag._id}`}
+              className="font-medium text-brand-700 hover:underline"
+            >
+              View replay
+            </Link>
           </span>
         }
       />

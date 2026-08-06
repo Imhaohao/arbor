@@ -177,5 +177,6 @@ async function scheduleAuction(ctx: ActionCtx, task_id: Id<"tasks">) {
   await ctx.scheduler.runAfter(0, internal.auctions.solicitBids, { task_id });
   await ctx.scheduler.runAfter(BID_WINDOW_MS, internal.auctions.resolve, {
     task_id,
+    wait_for_solicitation: true,
   });
 }

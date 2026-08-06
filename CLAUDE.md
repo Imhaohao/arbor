@@ -2,6 +2,13 @@ Guidance for AI agents working in `/Users/yanzihao/Documents/miyohacks`.
 
 Model routing, parallel subagents, and local-model delegation live in `.claude/setting.json` — not duplicated here. See `AGENTS.md` for the full delegation reference if that file is unavailable.
 
+## Open Todos
+
+- `todo.md` at the repo root tracks known non-functional buttons and features
+  still missing UI (from the 2026-08-03 site-wide audit). Remind the user of
+  these items when working on related surfaces, and remove entries as they are
+  fixed.
+
 ## Project Orientation
 
 - This repository is the Arbor agent marketplace/protocol app.

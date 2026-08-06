@@ -449,6 +449,9 @@ export const searchAgents = action({
       if (specialist.a2a_endpoint) {
         candidate.a2a_endpoint = specialist.a2a_endpoint;
       }
+      if (specialist.card_signature) {
+        candidate.card_signature = specialist.card_signature;
+      }
       candidates.push(candidate);
       // Non-4D mode keeps its original early-exit at topK similarity hits.
       // 4D mode must first rank the full filtered set, so it truncates below

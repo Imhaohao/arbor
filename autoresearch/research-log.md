@@ -147,3 +147,19 @@
   must-cites 2607.04382 + 2601.20299 added to main.tex (bibtex fetched
   programmatically); JUDGe 2026 workshop = venue candidate. Project
   ARCHIVED; loop stopped.
+
+## 2026-08-05 (auction bridge + payout rail)
+
+- 01:4x mcp-forwarding rerouted through new chatCompletionsTransport (Azure
+  lane); airweave/vellum added to auction catalog; typecheck green.
+- 01:52 Live auction E2E ($4 research task): 20 real bids, backstop bid its
+  $0.40 cost baseline (budget seal confirmed in prod), winner reacher-social
+  $0.82. Stripe leg: authorize (manual capture) -> execution failed ->
+  system auto-canceled the authorization (no charge on failure) -> failover.
+- 01:58 FOUND: failover ping-pongs between two keyless demo-lane agents that
+  outrank the cheaper real backstop; spawned fix task (task_af3a1f40). Both
+  test tasks cancelled.
+- 02:00 Payout rail proven in Stripe TEST mode: pendingCapturesMasked queue,
+  approve refused without judge accept, --force captured with logged
+  override, Stripe reports succeeded/60c received. Connect destination
+  transfers pending user enabling Connect in dashboard. Commit c1d19a1.

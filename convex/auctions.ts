@@ -29,6 +29,7 @@ import type {
   ToolCallRecorder,
 } from "../lib/types";
 import { callOpenAIJSON, type ModelGateway } from "../lib/openai";
+import { stripProvenanceBanner } from "../lib/delivery-text";
 import {
   NEUTRAL_INCENTIVE_STATS,
   belowClusterAcceptFloor,
@@ -226,7 +227,9 @@ function normalizeSpecialistOutput(output: SpecialistOutput): {
 }
 
 function formatResultForJudge(result: unknown): string {
-  if (typeof result === "string") return result;
+  // Strip Arbor's own provenance banner: it is not the agent's answer, and
+  // counting it against format constraints rejects correct deliveries.
+  if (typeof result === "string") return stripProvenanceBanner(result);
   if (result && typeof result === "object") {
     return JSON.stringify(result, null, 2);
   }
@@ -970,14 +973,66 @@ export const solicitBids = internalAction({
       task,
       invitedSpecialists,
     );
+
+    // Completion signal for resolve's wait-gate below: solicitation for this
+    // task has genuinely finished (every invited specialist was probed/bid on
+    // and the minimum-bid-responses backfill ran), independent of the fixed
+    // BID_WINDOW_SECONDS timer. See the resolve() comment for why this
+    // matters under scheduler backpressure.
+    await ctx.runMutation(internal.lifecycle.log, {
+      task_id: args.task_id,
+      event_type: "solicitation_complete",
+      payload: { at: Date.now() },
+    });
   },
 });
 
 // ─── Phase 3: auction resolution (Vickrey second-price) ──────────────────
 
 export const resolve = internalAction({
-  args: { task_id: v.id("tasks") },
+  args: {
+    task_id: v.id("tasks"),
+    // Set only by callers that also scheduled solicitBids for this same task
+    // (the open-auction path via contextEnrichment/userContext/planning/
+    // hiveRouter). Direct hive assignments and the golden-audit lane never
+    // set this and resolve immediately on the timer exactly as before.
+    wait_for_solicitation: v.optional(v.boolean()),
+    wait_attempts: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
+    // Defect: resolve used to fire purely on a fixed wall-clock timer
+    // (BID_WINDOW_SECONDS after solicitBids was scheduled — not after it
+    // actually ran). Under scheduler backpressure solicitBids can still be
+    // mid-flight when that timer goes off, so a bid — even the guaranteed
+    // floor agent's — can land after resolve already declared "no valid bids
+    // under budget" (observed on the dev deployment 2026-08-06: all 20 bids
+    // on task js799resc6v4srsqqkq74p5ex98bzjh8, floor agent included, arrived
+    // 2.6+ minutes after auction_failed had already fired). Wait for
+    // solicitBids' own "solicitation_complete" event instead of trusting the
+    // timer alone; the timer is now the first check-in, not the trigger.
+    // Bounded, not indefinite: give up after MAX_RESOLVE_WAIT_ATTEMPTS so a
+    // solicitBids that throws before logging completion can never strand a
+    // task in "bidding" forever — past the cap, resolve proceeds with
+    // whatever bids exist, identical to pre-fix behavior.
+    const MAX_RESOLVE_WAIT_ATTEMPTS = 20; // 20 * 15s = 5 extra minutes
+    const attempt = args.wait_attempts ?? 0;
+    if (args.wait_for_solicitation && attempt < MAX_RESOLVE_WAIT_ATTEMPTS) {
+      const lifecycle = (await ctx.runQuery(internal.lifecycle._forTask, {
+        task_id: args.task_id,
+      })) as Array<Doc<"lifecycle_events">>;
+      const solicited = lifecycle.some(
+        (e) => e.event_type === "solicitation_complete",
+      );
+      if (!solicited) {
+        await ctx.scheduler.runAfter(15_000, internal.auctions.resolve, {
+          task_id: args.task_id,
+          wait_for_solicitation: true,
+          wait_attempts: attempt + 1,
+        });
+        return;
+      }
+    }
+
     const task = await ctx.runQuery(internal.tasks._get, {
       task_id: args.task_id,
     });
@@ -1052,7 +1107,17 @@ export const resolve = internalAction({
       },
     });
 
-    if (stripeCheckoutMode()) {
+    // Golden audit tasks are posted by Arbor itself, not by a real buyer, so
+    // there is no human to complete a checkout for them. Gating is on actual
+    // golden linkage rather than posted_by: GOLDEN_BUYER_ID is the shared
+    // default buyer, so a posted_by check would silently exempt ordinary
+    // traffic from payment too. Invisible to bidders and to the judge — this
+    // runs after the auction resolves, so it cannot leak golden status into
+    // anything the audit measures.
+    const goldenRun = await ctx.runQuery(internal.goldenTasks._runForTask, {
+      task_id: args.task_id,
+    });
+    if (stripeCheckoutMode() && !goldenRun) {
       const currency = stripeCurrency();
       await ctx.runMutation(internal.escrow._markPaymentRequired, {
         task_id: args.task_id,
@@ -1075,6 +1140,17 @@ export const resolve = internalAction({
         },
       });
       return;
+    }
+    if (stripeCheckoutMode() && goldenRun) {
+      await ctx.runMutation(internal.lifecycle.log, {
+        task_id: args.task_id,
+        event_type: "golden_payment_bypassed",
+        payload: {
+          seller_id: winner.agent_id,
+          amount: price_paid,
+          reason: "internal golden audit task — no external buyer to charge",
+        },
+      });
     }
 
     // Phase 4 — execution.
@@ -1343,7 +1419,14 @@ export const execute = internalAction({
               price_paid,
             },
           });
-          if (stripeCheckoutMode()) {
+          // Same internal-buyer exemption as the resolve path: a golden audit
+          // task has no human buyer, so a failover must not park it on a
+          // checkout nobody will ever complete.
+          const failoverGoldenRun = await ctx.runQuery(
+            internal.goldenTasks._runForTask,
+            { task_id: args.task_id },
+          );
+          if (stripeCheckoutMode() && !failoverGoldenRun) {
             const currency = stripeCurrency();
             await ctx.runMutation(internal.escrow._markPaymentRequired, {
               task_id: args.task_id,

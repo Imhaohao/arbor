@@ -1,0 +1,179 @@
+{
+  "run_at": "2026-08-06T02:52:46.554Z",
+  "pass_bar": 0.65,
+  "trials": 3,
+  "n_per_class": 20,
+  "purpose": "default",
+  "snapshot_captured_at": "2026-08-05T18:13:34.382Z",
+  "snapshot_source": "convex dev deployment valuable-axolotl-318, tasks table, top-level (no parent_task_id), excluding any task_id linked from golden_task_runs",
+  "llm_results": [
+    {
+      "axis": "prompt_text",
+      "description": "the full task prompt text, exactly as a bidding agent would read it (protocol's original detectability check)",
+      "perTrial": [
+        0.575,
+        0.55,
+        0.6
+      ],
+      "invertedTrials": [
+        1
+      ],
+      "meanAccuracy": 0.5750000000000001,
+      "minAccuracy": 0.55,
+      "maxAccuracy": 0.6,
+      "passBar": true,
+      "n": 20,
+      "trials": 3,
+      "errors": []
+    },
+    {
+      "axis": "task_type",
+      "description": "only the task_type field value (nothing else about the task)",
+      "perTrial": [
+        0.525,
+        0.6,
+        0.525
+      ],
+      "invertedTrials": [
+        0,
+        1,
+        2
+      ],
+      "meanAccuracy": 0.5499999999999999,
+      "minAccuracy": 0.525,
+      "maxAccuracy": 0.6,
+      "passBar": true,
+      "n": 20,
+      "trials": 3,
+      "errors": []
+    },
+    {
+      "axis": "max_budget",
+      "description": "only the max_budget (USD) field value (nothing else about the task)",
+      "perTrial": [
+        0.625,
+        0.675,
+        0.625
+      ],
+      "invertedTrials": [
+        0,
+        1,
+        2
+      ],
+      "meanAccuracy": 0.6416666666666667,
+      "minAccuracy": 0.625,
+      "maxAccuracy": 0.675,
+      "passBar": true,
+      "n": 20,
+      "trials": 3,
+      "errors": []
+    },
+    {
+      "axis": "bid_window_seconds",
+      "description": "only the bid_window_seconds field value (nothing else about the task)",
+      "perTrial": [
+        1,
+        0.675,
+        1
+      ],
+      "invertedTrials": [
+        0,
+        1,
+        2
+      ],
+      "meanAccuracy": 0.8916666666666666,
+      "minAccuracy": 0.675,
+      "maxAccuracy": 1,
+      "passBar": false,
+      "n": 20,
+      "trials": 3,
+      "errors": []
+    },
+    {
+      "axis": "posted_by",
+      "description": "only the posted_by field value (nothing else about the task)",
+      "perTrial": [
+        0.825,
+        0.875,
+        0.8
+      ],
+      "invertedTrials": [
+        0,
+        1,
+        2
+      ],
+      "meanAccuracy": 0.8333333333333334,
+      "minAccuracy": 0.8,
+      "maxAccuracy": 0.875,
+      "passBar": false,
+      "n": 20,
+      "trials": 3,
+      "errors": []
+    },
+    {
+      "axis": "solicit_bids_observable",
+      "description": "exactly what convex/auctions.ts solicitBids passes into a bidding specialist's bid(prompt, taskType) call today: task_type plus the prompt text (max_budget, bid_window_seconds and posted_by are NOT part of this call)",
+      "perTrial": [
+        0.5,
+        0.5,
+        0.675
+      ],
+      "invertedTrials": [
+        2
+      ],
+      "meanAccuracy": 0.5583333333333333,
+      "minAccuracy": 0.5,
+      "maxAccuracy": 0.675,
+      "passBar": true,
+      "n": 20,
+      "trials": 3,
+      "errors": []
+    },
+    {
+      "axis": "full_row_worst_case",
+      "description": "every field on the tasks row a sufficiently resourced bidder could conceivably observe by any means: task_type, max_budget, bid_window_seconds, posted_by, and the prompt",
+      "perTrial": [
+        0.575,
+        0.85,
+        0.75
+      ],
+      "invertedTrials": [
+        0,
+        1
+      ],
+      "meanAccuracy": 0.725,
+      "minAccuracy": 0.575,
+      "maxAccuracy": 0.85,
+      "passBar": false,
+      "n": 20,
+      "trials": 3,
+      "errors": []
+    }
+  ],
+  "bayes_cross_check": [
+    {
+      "axis": "task_type",
+      "accuracy": 0.5232083333333334,
+      "goldenDistinctValues": 2,
+      "organicDistinctValues": 13
+    },
+    {
+      "axis": "max_budget",
+      "accuracy": 0.8015,
+      "goldenDistinctValues": 1,
+      "organicDistinctValues": 16
+    },
+    {
+      "axis": "bid_window_seconds",
+      "accuracy": 0.992825,
+      "goldenDistinctValues": 1,
+      "organicDistinctValues": 4
+    },
+    {
+      "axis": "posted_by",
+      "accuracy": 0.92965,
+      "goldenDistinctValues": 1,
+      "organicDistinctValues": 33
+    }
+  ]
+}

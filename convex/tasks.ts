@@ -9,11 +9,26 @@ import { internal } from "./_generated/api";
 import { buildOrchestrationContext } from "../lib/orchestration-context";
 import { isConversionDropPrompt } from "../lib/conversion-drop-demo";
 
-// 30s: the auctioneer now runs the liveness probe and the bid request
-// concurrently per agent (see auctions.solicitBids), so the slowest leg
-// (~12s A2A bid + ~6s plan screen) fits with headroom even for tunneled
-// remote agents. Was 45s when the two JSON-RPC legs ran serially.
-export const BID_WINDOW_SECONDS = 30;
+// 90s. Was 30s on the reasoning that the slowest single leg (~12s A2A bid +
+// ~6s plan screen) fit with headroom once the probe and bid request ran
+// concurrently per agent. That per-agent math is right but the window is not
+// per-agent: solicitation now fans out across a 1000+ agent roster, and an
+// agent's bid is only counted if it lands before the window closes.
+//
+// Measured on the dev deployment 2026-08-05 (task js7bzyqaedfmjkr9xrza0z33tx8bx2ne):
+// arbor-hive-backstop — the floor agent whose entire purpose is to guarantee
+// every task gets a bid — returned 44.3s AFTER the window shut, so the auction
+// had already failed with "no valid bids under budget" despite the backstop
+// later landing a valid $0.40 bid on a $2 budget. That failure mode is
+// intermittent and load-dependent, which makes it worse than a consistent one:
+// it silently drops tasks based on how busy the roster is.
+//
+// The deeper fix is to solicit the guaranteed floor agent first (or
+// synchronously) rather than letting it queue behind 1000 external probes, so
+// the terminating bid never depends on fan-out latency. This constant is the
+// safe interim: it costs every auction ~60s of extra wall clock, which is
+// strictly better than losing the auction outright.
+export const BID_WINDOW_SECONDS = 90;
 
 const taskStatusValidator = v.union(
   v.literal("open"),

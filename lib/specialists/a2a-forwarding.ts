@@ -21,6 +21,10 @@
 import { buildTaskContext } from "../campaign-context";
 import { callOpenAI } from "../openai";
 import { getAuthForEndpoint, fetchAgentCard } from "./a2a-agent-card";
+import {
+  cardSignatureNote,
+  verifyAgentCardSignatures,
+} from "../a2a-card-signing";
 import type {
   SpecialistConfig,
   SpecialistDecision,
@@ -1000,6 +1004,29 @@ export function makeA2aForwardingSpecialist(
         };
       }
 
+      // Step 1b: Card signature check (A2A v1.0 JWS; most cards are unsigned
+      // today, which short-circuits with zero network cost). This is a trust
+      // SIGNAL recorded in the probe excerpt, never a gate: an unsigned card
+      // stays exactly as routable as before, and a valid signature attests
+      // card integrity/origin only — capability evidence remains the smoke
+      // probe below.
+      let cardSigNote = "card_sig:unsigned";
+      let cardSignature: ProbeResult["card_signature"];
+      try {
+        const sigResult = await verifyAgentCardSignatures(card, {
+          cardOrigin: new URL(endpoint).origin,
+        });
+        cardSigNote = cardSignatureNote(sigResult);
+        cardSignature = { status: sigResult.status };
+        if (sigResult.kid) cardSignature.kid = sigResult.kid;
+        if (sigResult.jwksOrigin) cardSignature.jwks_origin = sigResult.jwksOrigin;
+      } catch {
+        // verification infrastructure failure ≠ invalid signature; keep the
+        // note neutral and make no structured claim at all
+        cardSigNote = "card_sig:unsigned";
+        cardSignature = undefined;
+      }
+
       // Step 2: Skill overlap check (deterministic, no LLM)
       const STOPWORDS = new Set(["general", "task", "the", "a", "for", "with", "to", "of"]);
       const lowerType = taskType.toLowerCase();
@@ -1032,6 +1059,7 @@ export function makeA2aForwardingSpecialist(
             duration_ms: Date.now() - t0,
             error_message: `skill mismatch: ${taskType} not declared by agent`,
             response_excerpt: JSON.stringify(skills).slice(0, 300),
+            card_signature: cardSignature,
           };
         }
       }
@@ -1066,13 +1094,22 @@ export function makeA2aForwardingSpecialist(
           12_000,
           authHeaders,
         );
-        const response_excerpt = JSON.stringify(rpc).slice(0, 300);
-        return { status: "pass", duration_ms: Date.now() - t0, response_excerpt };
+        const response_excerpt = `[${cardSigNote}] ${JSON.stringify(rpc)}`.slice(
+          0,
+          300,
+        );
+        return {
+          status: "pass",
+          duration_ms: Date.now() - t0,
+          response_excerpt,
+          card_signature: cardSignature,
+        };
       } catch (err) {
         return {
           status: "fail",
           duration_ms: Date.now() - t0,
           error_message: String((err as Error)?.message ?? err),
+          card_signature: cardSignature,
         };
       }
     },

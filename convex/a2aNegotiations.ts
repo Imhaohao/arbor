@@ -34,6 +34,67 @@ export const append = mutation({
   },
 });
 
+/**
+ * Most recent negotiation contexts for the admin console: one row per
+ * contextId with turn count and the latest turn's text as a preview. Reads a
+ * bounded window of recent turns rather than the whole table.
+ */
+export const recentContexts = query({
+  args: { limit: v.optional(v.number()) },
+  returns: v.array(
+    v.object({
+      context_id: v.string(),
+      turn_count: v.number(),
+      last_role: v.union(v.literal("counterparty"), v.literal("agent")),
+      last_text: v.string(),
+      last_intent: v.optional(v.string()),
+      requester_agent_id: v.optional(v.string()),
+      last_created_at: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const limit = Math.min(Math.max(args.limit ?? 12, 1), 50);
+    const rows = await ctx.db
+      .query("a2a_negotiation_turns")
+      .order("desc")
+      .take(500);
+    const byContext = new Map<
+      string,
+      {
+        context_id: string;
+        turn_count: number;
+        last_role: "counterparty" | "agent";
+        last_text: string;
+        last_intent?: string;
+        requester_agent_id?: string;
+        last_created_at: number;
+      }
+    >();
+    for (const row of rows) {
+      const existing = byContext.get(row.context_id);
+      if (existing) {
+        existing.turn_count += 1;
+        if (!existing.requester_agent_id && row.requester_agent_id) {
+          existing.requester_agent_id = row.requester_agent_id;
+        }
+      } else {
+        byContext.set(row.context_id, {
+          context_id: row.context_id,
+          turn_count: 1,
+          last_role: row.role,
+          last_text: row.text.slice(0, 280),
+          last_intent: row.intent,
+          requester_agent_id: row.requester_agent_id,
+          last_created_at: row.created_at,
+        });
+      }
+    }
+    return [...byContext.values()]
+      .sort((a, b) => b.last_created_at - a.last_created_at)
+      .slice(0, limit);
+  },
+});
+
 /** Most recent turns for a context, returned oldest-first for prompt order. */
 export const listByContext = query({
   args: { context_id: v.string() },

@@ -96,6 +96,43 @@ export const _markA2aAuthNone = internalMutation({
   },
 });
 
+/**
+ * Persist the latest A2A card JWS verification as structured data on the
+ * specialist row. Trust signal only — this never gates routing: a valid
+ * signature attests card integrity/origin, not capability, and unsigned
+ * cards stay fully routable.
+ */
+export const _recordCardSignature = internalMutation({
+  args: {
+    agent_id: v.string(),
+    status: v.union(
+      v.literal("unsigned"),
+      v.literal("valid"),
+      v.literal("invalid"),
+    ),
+    kid: v.optional(v.string()),
+    jwks_origin: v.optional(v.string()),
+    checked_at: v.number(),
+  },
+  returns: v.object({ updated: v.boolean() }),
+  handler: async (ctx, args) => {
+    const specialist = await ctx.db
+      .query("discovered_specialists")
+      .withIndex("by_agent_id", (q) => q.eq("agent_id", args.agent_id))
+      .first();
+    if (!specialist) return { updated: false };
+    await ctx.db.patch(specialist._id, {
+      card_signature: {
+        status: args.status,
+        ...(args.kid ? { kid: args.kid } : {}),
+        ...(args.jwks_origin ? { jwks_origin: args.jwks_origin } : {}),
+        checked_at: args.checked_at,
+      },
+    });
+    return { updated: true };
+  },
+});
+
 const SPECIALIST_FIELDS = {
   agent_id: v.string(),
   display_name: v.string(),

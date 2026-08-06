@@ -91,6 +91,7 @@ export const provide = action({
     });
     await ctx.scheduler.runAfter(BID_WINDOW_MS, internal.auctions.resolve, {
       task_id: args.task_id,
+      wait_for_solicitation: true,
     });
   },
 });

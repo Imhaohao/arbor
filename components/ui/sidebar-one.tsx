@@ -4,12 +4,8 @@ import {
   LayoutGridIcon,
   ListChecksIcon,
   UsersIcon,
-  GavelIcon,
-  CoinsIcon,
-  BarChart3Icon,
-  SettingsIcon,
-  SendIcon,
-  HelpCircleIcon,
+  HistoryIcon,
+  MessagesSquareIcon,
   BookOpenIcon,
 } from "lucide-react";
 import { ArborMark } from "@/components/ui/ArborMark";
@@ -38,36 +34,39 @@ type SidebarNavGroup = {
   items: SidebarNavItem[];
 };
 
+// Auctions/Credits/Analytics/Settings had no dedicated destinations (they
+// all pointed back at /dashboard as placeholder nav) and were removed rather
+// than left as dead-looking-live links — see todo.md's 2026-08-03 audit.
 const navGroups: SidebarNavGroup[] = [
   {
     label: "Marketplace",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: <LayoutGridIcon />, isActive: true },
-      { title: "Tasks", url: "/", icon: <ListChecksIcon /> },
+      { title: "Tasks", url: "/tasks", icon: <ListChecksIcon /> },
       { title: "Specialists", url: "/agents", icon: <UsersIcon /> },
-      { title: "Auctions", url: "/dashboard", icon: <GavelIcon /> },
-      { title: "Credits", url: "/dashboard", icon: <CoinsIcon /> },
-      { title: "Analytics", url: "/dashboard", icon: <BarChart3Icon /> },
+      { title: "Replays", url: "/replay", icon: <HistoryIcon /> },
     ],
   },
   {
     label: "Administration",
-    items: [{ title: "Settings", url: "/dashboard", icon: <SettingsIcon /> }],
+    items: [
+      { title: "A2A console", url: "/admin", icon: <MessagesSquareIcon /> },
+    ],
   },
 ];
 
+// Feedback/Help Center were bare `href="#"` with no real destination and
+// were removed for the same reason (see comment above).
 const footerNavLinks: SidebarNavItem[] = [
-  { title: "Feedback", url: "#", icon: <SendIcon /> },
-  { title: "Help Center", url: "#", icon: <HelpCircleIcon /> },
-  { title: "Documentation", url: "#", icon: <BookOpenIcon /> },
+  { title: "Documentation", url: "/api/openapi.json", icon: <BookOpenIcon /> },
 ];
 
 export function AppSidebar() {
   return (
-    <Sidebar collapsible="icon" variant="sidebar">
+    <Sidebar collapsible="icon" variant="sidebar" className="dark">
       <SidebarHeader className="relative h-14 justify-center px-2 py-0">
         <div className="flex h-10 items-center rounded-lg px-2 group-data-[state=collapsed]/sidebar:[&_.font-display]:hidden">
-          <ArborMark as="link" />
+          <ArborMark as="link" tone="light" />
         </div>
       </SidebarHeader>
       <SidebarContent>
