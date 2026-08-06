@@ -36,6 +36,14 @@ export interface ToolsListResult {
 export interface ToolCallResult {
   content: Array<{ type: string; text?: string; [k: string]: unknown }>;
   isError?: boolean;
+  /**
+   * The `Mcp-Session-Id` the server issued or echoed for this call, when it
+   * uses one. Streamable-HTTP servers may be stateless, so this is absent far
+   * more often than not — it is provenance, never a success condition. Callers
+   * that need proof a tool actually ran should use the audited tool-call
+   * record instead (see convex/auctions.ts's receipt rule).
+   */
+  sessionId?: string;
 }
 
 export interface McpRequestOptions {
@@ -237,7 +245,7 @@ export async function callRemoteTool(
     );
     sessionId = init.sessionId;
   }
-  const { result } = await rpcSession<ToolCallResult>(
+  const { result, sessionId: callSession } = await rpcSession<ToolCallResult>(
     url,
     "tools/call",
     { name, arguments: args },
@@ -246,7 +254,10 @@ export async function callRemoteTool(
     options,
     sessionId,
   );
-  return result;
+  // Surface the session id rather than dropping it. A stateless server returns
+  // none, which is normal and not an error; see ToolCallResult.sessionId.
+  const observedSession = callSession ?? sessionId;
+  return observedSession ? { ...result, sessionId: observedSession } : result;
 }
 
 /** Compact tool-call result text from MCP `content` blocks. */

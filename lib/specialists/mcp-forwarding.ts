@@ -302,6 +302,9 @@ export function makeMcpForwardingSpecialist(
     ): Promise<SpecialistExecuteResult> {
       const tools = await getTools();
       const successfulToolCallIds: string[] = [];
+      // First `Mcp-Session-Id` this run observed, if the server issues one.
+      // Stateless servers (Nia among them) never do — provenance only.
+      let observedSessionId: string | undefined;
       const callInputBase = {
         agent_id: context?.agent_id ?? config.agent_id,
         phase: "execute" as const,
@@ -330,7 +333,12 @@ export function makeMcpForwardingSpecialist(
             700,
             { redactUrls: true },
           );
-          return mcpToolOutcome({ result, preview });
+          if (result.sessionId) observedSessionId ??= result.sessionId;
+          return mcpToolOutcome({
+            result,
+            preview,
+            external_session_id: result.sessionId,
+          });
         });
       }
 
@@ -536,6 +544,7 @@ export function makeMcpForwardingSpecialist(
         proof_level: attributableToolCallIds.length > 0 ? "tool_call" : "none",
         successful_tool_call_count: attributableToolCallIds.length,
         tool_call_ids: attributableToolCallIds,
+        external_session_id: observedSessionId,
         endpoint,
       };
       return { output: harness.output.trim(), provenance };

@@ -14,6 +14,7 @@ import {
   ARBOR_FLOOR_AGENT_IDS,
 } from "../lib/specialists/registry";
 import { capOpenRoster } from "../lib/auction-roster";
+import { receiptShortfall } from "../lib/receipt-rule";
 import { makeMockSpecialist } from "../lib/specialists/base";
 import { MCP_CATALOG } from "../lib/specialists/catalog";
 import type {
@@ -1367,10 +1368,33 @@ export const execute = internalAction({
         (normalized.text?.trim().length ?? 0) > 0;
       const events_observed_total = receipt.events_observed_total;
 
-      const missing: string[] = [];
-      if (!external_session_id) missing.push("external_session_id");
-      if (events_observed_total <= 0) missing.push("events_observed");
-      if (!artifact_present) missing.push("artifact_present");
+      // The guarantee is unchanged — a task is fulfilled only when we can
+      // PROVE the winner did the work — but the proof differs by transport,
+      // exactly as finalizeProvenance already models with proof_level.
+      //
+      // Session-based transports (A2A) issue an external session/task id, so
+      // demand it. MCP has no session concept: Streamable-HTTP servers are
+      // commonly stateless and never issue Mcp-Session-Id — Nia is one.
+      // Demanding one there failed EVERY mcp-forwarding specialist
+      // permanently, no matter how much real work it did: on the 2026-08-06
+      // run nia-context made 138 live tool calls (nia_research x71, index
+      // x26, search x22) with 124 recorded artifacts and lost all 4 of its
+      // auctions on "missing external_session_id" alone. That is ~1,000
+      // catalog + discovered agents that could win but never complete.
+      //
+      // For MCP the proof is the audited tool-call record itself: persisted
+      // agent_tool_calls rows with ok=true against the real remote endpoint.
+      // That is strictly stronger evidence than an echoed header string, and
+      // fallback text still cannot settle here — the specialist_fallback
+      // check above throws before this point whenever the remote leg didn't
+      // actually run.
+      const missing = receiptShortfall({
+        transport: provenance.transport,
+        successful_tool_call_count: provenance.successful_tool_call_count,
+        external_session_id,
+        events_observed_total,
+        artifact_present,
+      });
 
       if (missing.length > 0) {
         // Throw to fall into the catch block below, which refunds escrow,
