@@ -75,15 +75,25 @@ Prompts are in `scripts/demo-reliability.ts`. Re-measure any time with:
 Do NOT demo a compound/multi-step task. Child auctions run sequentially at
 ~2 min each, and 6/22 parents ended `blocked_on_failed_child`.
 
-## Known-bad agents (block the remaining deliveries)
+## Known-bad agents
 
-- `nia-context` won 4 auctions and failed all 4 —
-  `execution_failed: partial_receipt: missing external_session_id`. This is
-  the single largest remaining source of failed tasks.
-- `aws-knowledge` failed 2 child steps, `twilio-docs` 1, same receipt error.
+- ~~`nia-context` / `aws-knowledge` / `twilio-docs` fail on
+  `partial_receipt: missing external_session_id`~~ FIXED 2026-08-06. Not an
+  agent bug: the receipt rule demanded a session id that MCP has no concept
+  of, so *every* `mcp-forwarding` specialist (~1,000 catalog + discovered)
+  could win an auction but never complete one. The rule is now
+  transport-aware — MCP proves fulfilment with audited tool calls, A2A still
+  requires a session id. See `lib/receipt-rule.ts`. Verified by reposting the
+  three failed tasks: 3/3 judged, 0 receipt failures, and the MCP agent
+  `twilio-docs` ran `execution_started -> execution_complete ->
+  judge_verdict -> settled`.
 - `openzeppelin-contracts` won an auction with no registered runner at all
   ("No specialist runner registered"). A discovered specialist can bid
-  without being executable — worth a registry-level guard.
+  without being executable — still open, worth a registry-level guard.
+
+Note the 11/22 figure in the run-sheet above predates the receipt fix and is
+now a floor, not a current measurement — MCP winners that previously failed
+outright can now settle. Re-run the harness for a current number.
 
 ## Verification caveats
 

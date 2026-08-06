@@ -16,20 +16,25 @@
  * Read-only against everything except: posting new rows via the public
  * `tasks.post` mutation — i.e. exactly what submitting the real form does.
  *
- * IMPORTANT FINDING BAKED INTO THIS SCRIPT'S DESIGN: as of 2026-08-05 the
- * dev deployment has ARBOR_PAYMENTS_MODE=stripe_checkout (verified via the
- * Convex env, NOT "internal" as briefed). convex/auctions.ts `resolve()`
- * puts every non-golden task into `requires_payment` immediately after
- * auction resolution and does NOT schedule execution until a real Stripe
- * Checkout session is completed (app/api/stripe/webhook/route.ts). This
- * script will NEVER attempt to complete that checkout — entering payment
- * card data into any form is out of policy regardless of Stripe test mode —
- * so `requires_payment` is treated as an effectively-terminal, clearly
- * labeled outcome ("blocked_on_payment_gate"), not a bug in this script.
+ * PAYMENT GATE: when the deployment has ARBOR_PAYMENTS_MODE=stripe_checkout,
+ * convex/auctions.ts `resolve()` puts every non-golden task into
+ * `requires_payment` immediately after auction resolution and does NOT
+ * schedule execution until a real Stripe Checkout session completes
+ * (app/api/stripe/webhook/route.ts). This script will NEVER attempt that
+ * checkout — entering payment card data into any form is out of policy
+ * regardless of Stripe test mode — so `requires_payment` is treated as an
+ * effectively-terminal, clearly labeled outcome ("blocked_on_payment_gate"),
+ * not a bug in this script.
+ *
+ * As of 2026-08-06 the dev deployment is ARBOR_PAYMENTS_MODE=internal, so
+ * that gate is inactive and tasks run through to execution. (An earlier
+ * version of this comment asserted stripe_checkout as a standing fact; it
+ * was true on 2026-08-05 and blocked 8/22 tasks in that run. Re-check the
+ * Convex env rather than trusting either value here.)
  *
  * Usage:
- *   npx tsx scripts/demo-reliability.ts [--stagger-ms 8000] [--timeout-ms 300000]
- *     [--poll-ms 5000] [--out scripts/data/demo-reliability-<ts>.json]
+ *   npx tsx scripts/demo-reliability.ts [--stagger-ms 8000] [--timeout-ms 900000]
+ *     [--poll-ms 5000] [--only label1,label2] [--out scripts/data/<name>.json]
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
