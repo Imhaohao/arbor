@@ -3,11 +3,11 @@
     "registered_agents": 1248,
     "reconciled_total": 1248,
     "balanced": true,
-    "cooperated_2plus_rounds": 336,
+    "cooperated_2plus_rounds": 339,
     "buckets": {
-      "delivered": 339,
+      "delivered": 342,
       "declared_only": 46,
-      "live_no_delivery": 179,
+      "live_no_delivery": 176,
       "paywalled": 410,
       "dead": 243,
       "no_transport": 28,
@@ -16,7 +16,7 @@
     },
     "live_no_delivery_detail": {
       "mutating_tools_only_not_called": 36,
-      "call_failed_or_empty": 143
+      "call_failed_or_empty": 140
     }
   },
   "buckets": {
@@ -175,6 +175,7 @@
       "mcp-server-a814867",
       "mcp-hypathesis-aaaeaf8",
       "mcp-agentic-shelf-1a67b69",
+      "mcp-chia-health-mcp-server-3abc848",
       "mcp-california-justice-watch-e7df9fc",
       "mcp-law-ai-lawyer-search-6a96a46",
       "mcp-immoswipe-ai-e8a3cc3",
@@ -270,6 +271,7 @@
       "mcp-agentgrade-88ca36d",
       "mcp-booking-77f7510",
       "mcp-atars-mcp-27a4941",
+      "mcp-myagentinbox-c7c6fd7",
       "mcp-sipflow-fd613b4",
       "mcp-stratalize-crypto-and-defi-i-e703068",
       "mcp-svelte-llm-211bf6a",
@@ -296,6 +298,7 @@
       "mcp-token-of-esteem-7f352df",
       "mcp-zipexplore-812c1a2",
       "mcp-openai-tools-mcp-server-2b58208",
+      "mcp-planexe-1a50107",
       "mcp-getexperience-f6f83b6",
       "mcp-compeller-c75baa5",
       "mcp-trellistate-b4c3eac",
@@ -485,7 +488,6 @@
       "mcp-catchdoms-expired-domains-ap-fa25812",
       "mcp-com-googleapis-monitoring-mc-857f9b9",
       "mcp-lion-x402-9b42a35",
-      "mcp-chia-health-mcp-server-3abc848",
       "mcp-com-googleapis-run-mcp-eb86618",
       "mcp-xpoz-social-insights-6523a2b",
       "mcp-perpetual-funding-rates-api-d2efc20",
@@ -503,7 +505,6 @@
       "mcp-claimondo-kfz-sachverstandig-b226156",
       "mcp-seat-intelligence-285abaf",
       "mcp-agent-einstein-autonomous-cr-f82b870",
-      "mcp-myagentinbox-c7c6fd7",
       "mcp-searchcode-d44897d",
       "mcp-com-trip1-mcp-7dc0f23",
       "mcp-web-search-api-855fbbf",
@@ -521,7 +522,6 @@
       "mcp-real-estate-server-550902f",
       "mcp-seo-36c9ca9",
       "mcp-ifrcoworker-02b97b4",
-      "mcp-planexe-1a50107",
       "mcp-sprytools-api-mcp-server-81b6591",
       "jina-reader",
       "google-kubernetes-engine",

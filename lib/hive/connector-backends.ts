@@ -202,9 +202,57 @@ export async function callMcpAgent(
     };
   }
 
+  // Third and final MCP primitive. A prompt template is server-authored text
+  // describing what that server is for, so rendering one is still the agent's
+  // own content — and like resources it takes no arguments we must invent.
+  const promptText = await readFirstPrompt(session, timeoutMs).catch(() => null);
+  if (promptText) {
+    return {
+      text: promptText,
+      provenance: `real tool-backed: MCP prompts/get @ ${options.endpoint}`,
+    };
+  }
+
   throw new Error(
-    `MCP server ${options.endpoint} returned no usable output from ${candidates.length} tool(s) or its resources: ${failures.join(" | ").slice(0, 200)}`,
+    `MCP server ${options.endpoint} returned no usable output from ${candidates.length} tool(s), its resources, or its prompts: ${failures.join(" | ").slice(0, 200)}`,
   );
+}
+
+/** Render the first argument-free prompt template a server advertises. */
+async function readFirstPrompt(
+  session: McpSession,
+  timeoutMs: number,
+): Promise<string | null> {
+  const listed = (await mcpRpc(session, "prompts/list", {}, timeoutMs).catch(
+    () => null,
+  )) as {
+    result?: { prompts?: Array<{ name?: string; arguments?: Array<{ required?: boolean }> }> };
+  } | null;
+  const prompts = listed?.result?.prompts ?? [];
+  // Only argument-free prompts: anything with required arguments puts us back
+  // in the guessing game that already failed at the tool layer.
+  const callable = prompts.filter(
+    (p) => p.name && !(p.arguments ?? []).some((a) => a.required),
+  );
+  for (const prompt of callable.slice(0, 3)) {
+    const got = (await mcpRpc(
+      session,
+      "prompts/get",
+      { name: prompt.name, arguments: {} },
+      timeoutMs,
+    ).catch(() => null)) as {
+      result?: { messages?: Array<{ content?: { text?: string } | string }> };
+    } | null;
+    const text = (got?.result?.messages ?? [])
+      .map((m) =>
+        typeof m.content === "string" ? m.content : (m.content?.text ?? ""),
+      )
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+    if (text && !looksLikeErrorText(text)) return text.slice(0, 4000);
+  }
+  return null;
 }
 
 /** Read the first readable resource a server advertises, if any. */
