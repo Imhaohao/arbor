@@ -5,8 +5,8 @@
     "sponsor": "agentdomainsearch.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd776cmk5xxeqs7c16w4vrdn698bz2hg",
-    "failure": "MCP server https://agentdomainsearch.com/mcp returned no usable output from 2 tool(s): check_domain: Error: Couldn't extract a TLD or TLD not serviced by OpenSRS | get_pricing: Error: get_price_domain"
+    "dag_id": "qd7ererrg07rzzw1t2tsf1196d8bzwey",
+    "failure": "MCP server https://agentdomainsearch.com/mcp returned no usable output from 2 tool(s) or its resources: check_domain: Error: Couldn't extract a TLD or TLD not serviced by OpenSRS | get_pricing: Error:"
   },
   {
     "agent_id": "mcp-servicepal-mcp-server-e877b21",
@@ -14,8 +14,8 @@
     "sponsor": "cloud",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd776cmk5xxeqs7c16w4vrdn698bz2hg",
-    "failure": "MCP server https://servicepal.cloud/mcp/ returned no usable output from 4 tool(s): calculate_missed_calls: MCP tools/call failed 400: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32602,\"messa | estimate_r"
+    "dag_id": "qd7ererrg07rzzw1t2tsf1196d8bzwey",
+    "failure": "MCP server https://servicepal.cloud/mcp/ returned no usable output from 4 tool(s) or its resources: calculate_missed_calls: MCP tools/call failed 400: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32602,\"m"
   },
   {
     "agent_id": "mcp-ganty-mcp-1985207",
@@ -23,8 +23,8 @@
     "sponsor": "ganty.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd776cmk5xxeqs7c16w4vrdn698bz2hg",
-    "failure": "MCP server https://ganty.app/api/mcp returned no usable output from 4 tool(s): list_workspaces: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"me | list_projects: MCP to"
+    "dag_id": "qd7ererrg07rzzw1t2tsf1196d8bzwey",
+    "failure": "MCP server https://ganty.app/api/mcp returned no usable output from 7 tool(s) or its resources: list_workspaces: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"me | list"
   },
   {
     "agent_id": "mcp-bundler-2d1a85d",
@@ -32,8 +32,8 @@
     "sponsor": "at",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd776cmk5xxeqs7c16w4vrdn698bz2hg",
-    "failure": "MCP server https://uurl.at/mcp returned no usable output from 1 tool(s): get_bundle: {\"error\": \"Invalid short URL ID.\"}"
+    "dag_id": "qd7ererrg07rzzw1t2tsf1196d8bzwey",
+    "failure": "MCP server https://uurl.at/mcp returned no usable output from 1 tool(s) or its resources: get_bundle: {\"error\": \"Invalid short URL ID.\"}"
   },
   {
     "agent_id": "mcp-jinko-mcp-178787e",
@@ -52,8 +52,8 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd776cmk5xxeqs7c16w4vrdn698bz2hg",
-    "failure": "MCP server https://mcp.olyport.com/census-cbp/mcp returned no usable output from 3 tool(s): get_county_business_patterns: Error: ValueError: Invalid state code: limitations and requi | get_state_busin"
+    "dag_id": "qd7ererrg07rzzw1t2tsf1196d8bzwey",
+    "failure": "MCP server https://mcp.olyport.com/census-cbp/mcp returned no usable output from 3 tool(s) or its resources: get_county_business_patterns: Error: ValueError: Invalid state code: limitations and requi "
   },
   {
     "agent_id": "mcp-industrylens-b6852e9",
@@ -72,17 +72,19 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd776cmk5xxeqs7c16w4vrdn698bz2hg",
-    "failure": "MCP server https://memorystore.googleapis.com/mcp returned no usable output from 4 tool(s): list_instances: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | get_insta"
+    "dag_id": "qd7ererrg07rzzw1t2tsf1196d8bzwey",
+    "failure": "MCP server https://memorystore.googleapis.com/mcp returned no usable output from 7 tool(s) or its resources: list_instances: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"t"
   },
   {
     "agent_id": "mcp-100hires-4d70281",
     "display_name": "100Hires",
     "sponsor": "100hires.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd776cmk5xxeqs7c16w4vrdn698bz2hg",
-    "failure": "MCP server https://mcp.100hires.com/mcp returned no usable output from 4 tool(s): hires_list_candidates: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Mi | hires_get_ca"
+    "dag_id": "qd7ererrg07rzzw1t2tsf1196d8bzwey",
+    "ability_statement": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\" /> <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /> <style> :root { color-scheme: light dark; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif; --bg: #ffffff; --fg: #1f2937; --muted: #6b7280; --border: #e5e7eb; /* neutral grey border */ --card-bg: #ffffff; /* cards on plain white */ ",
+    "tool_used": "hires_list_candidates",
+    "cooperation_excerpt": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\" /> <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /> <style> :root { color-scheme: light dark; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif; --bg: #ffffff; --fg: #1f2937; --muted: #6b7280; --border: #e5e7eb; /* neutral grey border */ --card-bg: #ffffff; /* cards on plain white */ "
   },
   {
     "agent_id": "mcp-xmp4-semantic-code-intellige-14771cb",
@@ -90,17 +92,19 @@
     "sponsor": "example4.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd776cmk5xxeqs7c16w4vrdn698bz2hg",
-    "failure": "MCP server https://mcp.example4.ai/mcp returned no usable output from 2 tool(s): xmp4_info: Error: project_id_not_found: \"limitations and requirements\"\n | xmp4_search: Error: project_id_not_found: \"li"
+    "dag_id": "qd7ererrg07rzzw1t2tsf1196d8bzwey",
+    "failure": "MCP server https://mcp.example4.ai/mcp returned no usable output from 2 tool(s) or its resources: xmp4_info: Error: project_id_not_found: \"limitations and requirements\"\n | xmp4_search: Error: project_"
   },
   {
     "agent_id": "mcp-sats4ai-bitcoin-powered-ai-t-5a1acc1",
     "display_name": "Sats4AI - Bitcoin-Powered AI Tools",
     "sponsor": "sats4ai.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd776cmk5xxeqs7c16w4vrdn698bz2hg",
-    "failure": "MCP server https://sats4ai.com/api/mcp returned no usable output from 4 tool(s): check_job_status: no text content | get_job_result: no text content | analyze_image: no text content | transcribe_trans"
+    "dag_id": "qd7ererrg07rzzw1t2tsf1196d8bzwey",
+    "ability_statement": "I can help a software team with image analysis, transcription/translation, file conversion, PDF creation, text translation, object and NSFW detection, job status/result checks, pricing, error lookup, and model listing. I would own image analysis, because that is the clearest tool I have and it is active as Vision Chat.",
+    "tool_used": "check_job_status",
+    "cooperation_excerpt": "I own analyze_image, detect_objects, detect_nsfw, transcribe_translate, convert_file, convert_html_to_pdf, translate_text, translate_rare_language, check_job_status, get_job_result, get_error_codes, and list_planned_services. I can also see list_models and pricing-related output. I will not cover text generation, image generation, or text-to-speech beyond what is shown in the model list."
   },
   {
     "agent_id": "mcp-decibel-shield-b691b15",
@@ -119,8 +123,8 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71acxp1pdpq6xptwhgs0bzqh8byf4r",
-    "failure": "MCP server https://mcp.olyport.com/nces-education/mcp returned no usable output from 4 tool(s): get_schools: Error: ValueError: Invalid state code: limitations and requi | get_district_finance: Error:"
+    "dag_id": "qd7ererrg07rzzw1t2tsf1196d8bzwey",
+    "failure": "MCP server https://mcp.olyport.com/nces-education/mcp returned no usable output from 5 tool(s) or its resources: get_schools: Error: ValueError: Invalid state code: limitations and requi | get_distric"
   },
   {
     "agent_id": "mcp-catchintent-36ce86b",
@@ -128,8 +132,8 @@
     "sponsor": "catchintent.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71acxp1pdpq6xptwhgs0bzqh8byf4r",
-    "failure": "MCP server https://engine.catchintent.com/mcp returned no usable output from 2 tool(s): lead_search: MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T10:15:25.90 | product_list: MC"
+    "dag_id": "qd7494ze2tjrkz1qken0babrsd8bz2j2",
+    "failure": "MCP server https://engine.catchintent.com/mcp returned no usable output from 2 tool(s) or its resources: lead_search: MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T10:24:01.18 |"
   },
   {
     "agent_id": "mcp-com-googleapis-bigtableadmin-3de122b",
@@ -137,8 +141,8 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71acxp1pdpq6xptwhgs0bzqh8byf4r",
-    "failure": "MCP server https://bigtableadmin.googleapis.com/mcp returned no usable output from 4 tool(s): get_instance: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | list_inst"
+    "dag_id": "qd7494ze2tjrkz1qken0babrsd8bz2j2",
+    "failure": "MCP server https://bigtableadmin.googleapis.com/mcp returned no usable output from 7 tool(s) or its resources: get_instance: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"t"
   },
   {
     "agent_id": "mcp-com-googleapis-datastream-mc-c65f64f",
@@ -146,8 +150,8 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71acxp1pdpq6xptwhgs0bzqh8byf4r",
-    "failure": "MCP server https://datastream.googleapis.com/mcp returned no usable output from 4 tool(s): get_operation: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | list_connec"
+    "dag_id": "qd7494ze2tjrkz1qken0babrsd8bz2j2",
+    "failure": "MCP server https://datastream.googleapis.com/mcp returned no usable output from 8 tool(s) or its resources: get_operation: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"tex"
   },
   {
     "agent_id": "mcp-saber-9284681",
@@ -155,8 +159,8 @@
     "sponsor": "saber",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71acxp1pdpq6xptwhgs0bzqh8byf4r",
-    "failure": "MCP server https://mcp.saber.app/mcp returned no usable output from 4 tool(s): findEmail: MCP tools/call failed 401: {\"error\":\"Missing Authorization header\"} | findEmailBatchSubmit: MCP tools/call fai"
+    "dag_id": "qd7494ze2tjrkz1qken0babrsd8bz2j2",
+    "failure": "MCP server https://mcp.saber.app/mcp returned no usable output from 8 tool(s) or its resources: findEmail: MCP tools/call failed 401: {\"error\":\"Missing Authorization header\"} | findEmailBatchSubmit: M"
   },
   {
     "agent_id": "mcp-eurorack-4fa9441",
@@ -173,10 +177,12 @@
     "agent_id": "mcp-switch-9b5b80f",
     "display_name": "Switch",
     "sponsor": "switchapp.ai",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd71acxp1pdpq6xptwhgs0bzqh8byf4r",
-    "failure": "MCP server https://mcp.switchapp.ai/mcp returned no usable output from 4 tool(s): check_balance: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"messa | list_generations: MC"
+    "dag_id": "qd7494ze2tjrkz1qken0babrsd8bz2j2",
+    "ability_statement": "<!doctype html> <html lang=\"en\"><head><meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\"> <style> :root { color-scheme: dark; } * { box-sizing: border-box; } html,body { margin:0; padding:0; background:#0a0a0a; color:#fff; font-family:-apple-system,BlinkMacSystemFont,\"SF Pro Text\",\"SF Pro Display\",\"Helvetica Neue\",Inter,Arial,sans-serif; ",
+    "tool_used": "check_balance",
+    "cooperation_excerpt": "<!doctype html> <html lang=\"en\"><head><meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\"> <style> :root { color-scheme: dark; } * { box-sizing: border-box; } html,body { margin:0; padding:0; background:#0a0a0a; color:#fff; font-family:-apple-system,BlinkMacSystemFont,\"SF Pro Text\",\"SF Pro Display\",\"Helvetica Neue\",Inter,Arial,sans-serif; "
   },
   {
     "agent_id": "mcp-events-66811a9",
@@ -184,8 +190,8 @@
     "sponsor": "bot",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd71acxp1pdpq6xptwhgs0bzqh8byf4r",
-    "failure": "MCP server https://yeehaw.bot/mcp returned no usable output from 1 tool(s): find_events: no text content"
+    "dag_id": "qd7494ze2tjrkz1qken0babrsd8bz2j2",
+    "failure": "MCP server https://yeehaw.bot/mcp returned no usable output from 1 tool(s) or its resources: find_events: no text content"
   },
   {
     "agent_id": "mcp-tempguru-event-staffing-6b7aedd",
@@ -202,10 +208,12 @@
     "agent_id": "mcp-mana-public-ec026a0",
     "display_name": "Mana Public",
     "sponsor": "am",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd756cmfe291krr29f5sreg51h8bya8n",
-    "failure": "MCP server https://api.mana.am/mcp returned no usable output from 3 tool(s): search_community_apps: no text content | get_popular_tags: no text content | get_public_share: no text content"
+    "dag_id": "qd7494ze2tjrkz1qken0babrsd8bz2j2",
+    "ability_statement": "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light dark\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; connect-src https://mana.am https://api.mana.am; frame-ancestors https://chatgpt.com https://claude.ai; form-action 'none'; img-src https://mana.am https://cdn.mana.am data:; script-src 'none'; style-src 'unsafe-inline'\"><style>body",
+    "tool_used": "search_community_apps",
+    "cooperation_excerpt": "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light dark\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; connect-src https://mana.am https://api.mana.am; frame-ancestors https://chatgpt.com https://claude.ai; form-action 'none'; img-src https://mana.am https://cdn.mana.am data:; script-src 'none'; style-src 'unsafe-inline'\"><style>body"
   },
   {
     "agent_id": "mcp-freqblog-music-metadata-4e95ff4",
@@ -235,8 +243,8 @@
     "sponsor": "aftership",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd756cmfe291krr29f5sreg51h8bya8n",
-    "failure": "MCP server https://mcp.aftership.com/tracking/public returned no usable output from 1 tool(s): get_returns_demo: store_url is not a valid URL"
+    "dag_id": "qd7494ze2tjrkz1qken0babrsd8bz2j2",
+    "failure": "MCP server https://mcp.aftership.com/tracking/public returned no usable output from 1 tool(s) or its resources: get_returns_demo: store_url is not a valid URL"
   },
   {
     "agent_id": "mcp-aidoos-virtual-delivery-cent-81b1f12",
@@ -266,26 +274,30 @@
     "sponsor": "trydock.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd756cmfe291krr29f5sreg51h8bya8n",
-    "failure": "MCP server https://trydock.ai/api/mcp returned no usable output from 4 tool(s): list_workspaces: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"me | get_workspace: MCP t"
+    "dag_id": "qd7494ze2tjrkz1qken0babrsd8bz2j2",
+    "failure": "MCP server https://trydock.ai/api/mcp returned no usable output from 8 tool(s) or its resources: list_workspaces: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32001,\"me | get"
   },
   {
     "agent_id": "mcp-kernelcad-5e2a46b",
     "display_name": "Kernelcad",
     "sponsor": "kernelcad.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd756cmfe291krr29f5sreg51h8bya8n",
-    "failure": "MCP server https://mcp.kernelcad.com/mcp returned no usable output from 4 tool(s): get_project: get_project: listing your projects requires authentication.  | get_project_revision: get_project_revisio"
+    "dag_id": "qd73d83ysass80ch3ej220kn4d8bz2ex",
+    "ability_statement": "I can help a software team author and modify kernelCAD .kcad.ts geometry, using the declared tools for project lookup, revisions, renders, mesh inspection, verification, and API or diagnostics lookup. I can also help turn a brief into geometry and check it against the verification gates. I would own the model-authoring and verification loop for one part at a time.",
+    "tool_used": "get_project",
+    "cooperation_excerpt": "I own the kernelCAD authoring slice: writing or modifying .kcad.ts geometry, including primitives, transforms, booleans, sketches, path-builder, sketch-text, the return-single-shape rule, conventions, CLI commands, and verification gates. I will not cover any tool behavior beyond what is shown here, or any geometry work outside this authoring scope."
   },
   {
     "agent_id": "mcp-1stay-2d06060",
     "display_name": "1stay",
     "sponsor": "stayker.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd756cmfe291krr29f5sreg51h8bya8n",
-    "failure": "MCP server https://mcp.stayker.com/mcp returned no usable output from 4 tool(s): search_hotels: {\"error\":\"Provide either a location (city, address, or landm | get_hotel_details: {\"error\":\"Please provi"
+    "dag_id": "qd73d83ysass80ch3ej220kn4d8bz2ex",
+    "ability_statement": "I can search_hotels, get_hotel_details, book_hotel, lookup_booking, get_booking, resend_confirmation, and cancel_booking. I can help a software team with hotel search, booking, confirmation, and cancellation flows. I would own lookup_booking.",
+    "tool_used": "search_hotels",
+    "cooperation_excerpt": "I own search_hotels, get_hotel_details, lookup_booking, and get_booking. I will not cover book_hotel, resend_confirmation, or cancel_booking. I also will not claim anything beyond the tool descriptions shown."
   },
   {
     "agent_id": "mcp-chia-health-mcp-server-3abc848",
@@ -293,17 +305,19 @@
     "sponsor": "health",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd747vvgek2qcr3bv0vhvhfbts8bzsnf",
-    "failure": "MCP server https://mcp.chia.health/ returned no usable output from 4 tool(s): auth_verify_otp: {\"error\": true, \"code\": \"AUTH_REQUIRED\", \"message\": \"Session | medications_list: Error executing tool med"
+    "dag_id": "qd73d83ysass80ch3ej220kn4d8bz2ex",
+    "failure": "MCP server https://mcp.chia.health/ returned no usable output from 8 tool(s) or its resources: auth_verify_otp: {\"error\": true, \"code\": \"AUTH_REQUIRED\", \"message\": \"Session | medications_list: Error e"
   },
   {
     "agent_id": "mcp-unulu-8d85af8",
     "display_name": "unulu",
     "sponsor": "unulu.ai",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd747vvgek2qcr3bv0vhvhfbts8bzsnf",
-    "failure": "MCP server https://mcp.unulu.ai/ returned no usable output from 2 tool(s): unulu_get_state: no text content | unulu_check_handle: no text content"
+    "dag_id": "qd73d83ysass80ch3ej220kn4d8bz2ex",
+    "ability_statement": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /> <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;display=swap\" /> <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&amp;display=swap\" /> <link rel=\"stylesheet\" href=\"http",
+    "tool_used": "unulu_get_state",
+    "cooperation_excerpt": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /> <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;display=swap\" /> <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&amp;display=swap\" /> <link rel=\"stylesheet\" href=\"http"
   },
   {
     "agent_id": "mcp-perpetual-funding-rates-api-d2efc20",
@@ -311,8 +325,8 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd747vvgek2qcr3bv0vhvhfbts8bzsnf",
-    "failure": "MCP server https://funding-rates.api.klymax402.com/mcp returned no usable output from 1 tool(s): perp_get_funding_rates: MCP tools/call failed 402: {\"x402Version\":2,\"accepts\":[{\"scheme\":\"exact\",\"netwo"
+    "dag_id": "qd73d83ysass80ch3ej220kn4d8bz2ex",
+    "failure": "MCP server https://funding-rates.api.klymax402.com/mcp returned no usable output from 1 tool(s) or its resources: perp_get_funding_rates: MCP tools/call failed 402: {\"x402Version\":2,\"accepts\":[{\"schem"
   },
   {
     "agent_id": "mcp-com-googleapis-monitoring-mc-857f9b9",
@@ -320,8 +334,8 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd747vvgek2qcr3bv0vhvhfbts8bzsnf",
-    "failure": "MCP server https://monitoring.googleapis.com/mcp returned no usable output from 4 tool(s): list_timeseries: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | query_ran"
+    "dag_id": "qd73d83ysass80ch3ej220kn4d8bz2ex",
+    "failure": "MCP server https://monitoring.googleapis.com/mcp returned no usable output from 8 tool(s) or its resources: list_timeseries: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"t"
   },
   {
     "agent_id": "mcp-cache-proxy-098684e",
@@ -349,19 +363,23 @@
     "agent_id": "mcp-petstore-mcp-server-6ceeb2a",
     "display_name": "Petstore MCP Server",
     "sponsor": "com.ai",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd747vvgek2qcr3bv0vhvhfbts8bzsnf",
-    "failure": "MCP server https://petstore.run.mcp.com.ai/mcp returned no usable output from 2 tool(s): findPetsByStatus: MCP tools/call failed 500: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":\"-32500\",\"mes | findPetsBy"
+    "dag_id": "qd73d83ysass80ch3ej220kn4d8bz2ex",
+    "ability_statement": "I can help a software team query the Petstore API for pets by status or by tags. I’d own one task: finding pets by status.",
+    "tool_used": "findPetsByStatus",
+    "cooperation_excerpt": "I own the pet slice for finding pets by status and by tags. I will not cover store, because the raw output only shows pet and store tags, and my declared tools are findPetsByStatus and findPetsByTags."
   },
   {
     "agent_id": "mcp-dreamlit-9800827",
     "display_name": "Dreamlit",
     "sponsor": "dreamlit.ai",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd747vvgek2qcr3bv0vhvhfbts8bzsnf",
-    "failure": "MCP server https://mcp.dreamlit.ai/mcp returned no usable output from 4 tool(s): get_status: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32001,\"messa | list_projects: MCP tools"
+    "dag_id": "qd73d83ysass80ch3ej220kn4d8bz2ex",
+    "ability_statement": "# Dreamlit MCP Guide Dreamlit is a database-driven notification workflow platform for Supabase and Postgres apps. Users describe notification outcomes in natural language; Dreamlit inspects the connected database and creates or updates workflow drafts. ## How To Prompt Dreamlit Prompt Dreamlit with the outcome, not the internal graph. Include the event or schedule, audience, recipient, message goa",
+    "tool_used": "get_status",
+    "cooperation_excerpt": "# Dreamlit MCP Guide Dreamlit is a database-driven notification workflow platform for Supabase and Postgres apps. Users describe notification outcomes in natural language; Dreamlit inspects the connected database and creates or updates workflow drafts. ## How To Prompt Dreamlit Prompt Dreamlit with the outcome, not the internal graph. Include the event or schedule, audience, recipient, message goa"
   },
   {
     "agent_id": "mcp-nhtsa-vehicle-safety-74b2d89",
@@ -380,8 +398,8 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd747vvgek2qcr3bv0vhvhfbts8bzsnf",
-    "failure": "MCP server https://mapstools.googleapis.com/mcp returned no usable output from 4 tool(s): search_places: MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | lookup_weath"
+    "dag_id": "qd73d83ysass80ch3ej220kn4d8bz2ex",
+    "failure": "MCP server https://mapstools.googleapis.com/mcp returned no usable output from 4 tool(s) or its resources: search_places: MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text"
   },
   {
     "agent_id": "mcp-exploit-intelligence-platfor-56fba74",
@@ -400,8 +418,8 @@
     "sponsor": "ca",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd74j9ky6tskjwa97gn2kp2qdd8by2p2",
-    "failure": "MCP server https://swiftsign.ca/mcp returned no usable output from 3 tool(s): swiftsign_check_status: No SwiftSign API key available. Run swiftsign_signup to mint | swiftsign_list_envelopes: No SwiftS"
+    "dag_id": "qd73d83ysass80ch3ej220kn4d8bz2ex",
+    "failure": "MCP server https://swiftsign.ca/mcp returned no usable output from 3 tool(s) or its resources: swiftsign_check_status: No SwiftSign API key available. Run swiftsign_signup to mint | swiftsign_list_env"
   },
   {
     "agent_id": "mcp-devexpress-documentation-231082d",
@@ -420,8 +438,8 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd74j9ky6tskjwa97gn2kp2qdd8by2p2",
-    "failure": "MCP server https://developerknowledge.googleapis.com/mcp returned no usable output from 3 tool(s): search_documents: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | "
+    "dag_id": "qd7fskkz1z6q42xkjgc939svvd8bysz3",
+    "failure": "MCP server https://developerknowledge.googleapis.com/mcp returned no usable output from 3 tool(s) or its resources: search_documents: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"cont"
   },
   {
     "agent_id": "mcp-eurocomply-ead3c11",
@@ -440,8 +458,8 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd74j9ky6tskjwa97gn2kp2qdd8by2p2",
-    "failure": "MCP server https://mcp.olyport.com/epa/mcp returned no usable output from 4 tool(s): get_current_aqi: {\"error\": \"EPA AirNow API key not configured. Set the EPA_AI | get_aqi_forecast: {\"error\": \"EPA Ai"
+    "dag_id": "qd7fskkz1z6q42xkjgc939svvd8bysz3",
+    "failure": "MCP server https://mcp.olyport.com/epa/mcp returned no usable output from 5 tool(s) or its resources: get_current_aqi: {\"error\": \"EPA AirNow API key not configured. Set the EPA_AI | get_aqi_forecast: "
   },
   {
     "agent_id": "mcp-hud-housing-data-36043a4",
@@ -449,8 +467,8 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd74j9ky6tskjwa97gn2kp2qdd8by2p2",
-    "failure": "MCP server https://mcp.olyport.com/hud-housing/mcp returned no usable output from 4 tool(s): get_fair_market_rents: Error: ValueError: Invalid state code: limitations and requi | get_income_limits: Er"
+    "dag_id": "qd7fskkz1z6q42xkjgc939svvd8bysz3",
+    "failure": "MCP server https://mcp.olyport.com/hud-housing/mcp returned no usable output from 5 tool(s) or its resources: get_fair_market_rents: Error: ValueError: Invalid state code: limitations and requi | get_"
   },
   {
     "agent_id": "mcp-civilquants-15288ad",
@@ -478,10 +496,12 @@
     "agent_id": "mcp-weftly-7b673b0",
     "display_name": "Weftly",
     "sponsor": "weftly.ai",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd74j9ky6tskjwa97gn2kp2qdd8by2p2",
-    "failure": "MCP server https://api.weftly.ai/mcp returned no usable output from 3 tool(s): summarize: filename is required when creating a new job. Include it wit | find_clips: filename is required when creating "
+    "dag_id": "qd7fskkz1z6q42xkjgc939svvd8bysz3",
+    "ability_statement": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"utf-8\" /> <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /> <title>Weftly clip results</title> <script type=\"module\" crossorigin>(function(){const e=document.createElement(\"link\").relList;if(e&&e.supports&&e.supports(\"modulepreload\"))return;for(const n of document.querySelectorAll('link[rel=\"modulepreload\"]'))a(n);new Mutat",
+    "tool_used": "summarize",
+    "cooperation_excerpt": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"utf-8\" /> <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /> <title>Weftly clip results</title> <script type=\"module\" crossorigin>(function(){const e=document.createElement(\"link\").relList;if(e&&e.supports&&e.supports(\"modulepreload\"))return;for(const n of document.querySelectorAll('link[rel=\"modulepreload\"]'))a(n);new Mutat"
   },
   {
     "agent_id": "mcp-true-markets-market-data-743a832",
@@ -500,8 +520,8 @@
     "sponsor": "cryptorefills.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7cyzswppz5tmj2454hc1djp58bzvks",
-    "failure": "MCP server https://api.cryptorefills.com/mcp/sse returned no usable output from 3 tool(s): listBrands: no text content | listProductsForCountry: no text content | searchProducts: no text content"
+    "dag_id": "qd7fskkz1z6q42xkjgc939svvd8bysz3",
+    "failure": "MCP server https://api.cryptorefills.com/mcp/sse returned no usable output from 3 tool(s) or its resources: listBrands: no text content | listProductsForCountry: no text content | searchProducts: no t"
   },
   {
     "agent_id": "mcp-mental-health-care-60c908b",
@@ -553,8 +573,8 @@
     "sponsor": "metricduck.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7cyzswppz5tmj2454hc1djp58bzvks",
-    "failure": "MCP server https://mcp.metricduck.com/mcp returned no usable output from 4 tool(s): search_companies: MCP tools/call failed 401: {\"error\":\"invalid_token\",\"error_description\":\"Missing | get_company_ove"
+    "dag_id": "qd7fskkz1z6q42xkjgc939svvd8bysz3",
+    "failure": "MCP server https://mcp.metricduck.com/mcp returned no usable output from 8 tool(s) or its resources: search_companies: MCP tools/call failed 401: {\"error\":\"invalid_token\",\"error_description\":\"Missing "
   },
   {
     "agent_id": "mcp-server-c80dde1",
@@ -562,8 +582,8 @@
     "sponsor": "meetlark.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7cyzswppz5tmj2454hc1djp58bzvks",
-    "failure": "MCP server https://meetlark.ai/mcp returned no usable output from 2 tool(s): meetlark_get_results: Unexpected token 'I', \"Internal S\"... is not valid JSON | meetlark_get_admin_view: Unexpected token '"
+    "dag_id": "qd7fskkz1z6q42xkjgc939svvd8bysz3",
+    "failure": "MCP server https://meetlark.ai/mcp returned no usable output from 2 tool(s) or its resources: meetlark_get_results: Unexpected token 'I', \"Internal S\"... is not valid JSON | meetlark_get_admin_view: U"
   },
   {
     "agent_id": "mcp-cnvs-app-3a4c05f",
@@ -571,8 +591,8 @@
     "sponsor": "cnvs.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7cyzswppz5tmj2454hc1djp58bzvks",
-    "failure": "MCP server https://cnvs.app/mcp returned no usable output from 4 tool(s): get_board: no text content | get_preview: no text content | move_task: no text content | list_tasks: no text content"
+    "dag_id": "qd7fskkz1z6q42xkjgc939svvd8bysz3",
+    "failure": "MCP server https://cnvs.app/mcp returned no usable output from 6 tool(s) or its resources: get_board: no text content | get_preview: no text content | move_task: no text content | list_tasks: no text "
   },
   {
     "agent_id": "mcp-vietnamese-calendar-5b6631b",
@@ -591,8 +611,8 @@
     "sponsor": "myagentinbox.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7cyzswppz5tmj2454hc1djp58bzvks",
-    "failure": "MCP server https://myagentinbox.com/mcp returned no usable output from 2 tool(s): check_inbox: Inbox not found or expired. | read_message: Inbox not found or expired."
+    "dag_id": "qd7fskkz1z6q42xkjgc939svvd8bysz3",
+    "failure": "MCP server https://myagentinbox.com/mcp returned no usable output from 2 tool(s) or its resources: check_inbox: Inbox not found or expired. | read_message: Inbox not found or expired."
   },
   {
     "agent_id": "mcp-chainflip-broker-as-a-servic-17dbcb8",
@@ -609,10 +629,12 @@
     "agent_id": "mcp-gateway-0f3ca9b",
     "display_name": "Gateway",
     "sponsor": "wingmanprotocol",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7cyzswppz5tmj2454hc1djp58bzvks",
-    "failure": "MCP server https://agent.wingmanprotocol.com/mcp returned no usable output from 4 tool(s): get_tool_schema: no text content | check_errand: no text content | list_watches: no text content | check_inbo"
+    "dag_id": "qd7fskkz1z6q42xkjgc939svvd8bysz3",
+    "ability_statement": "I can use the declared tools to check errands, inboxes, watches, messages, memory, searches, web reading, web search, research, browsing reads, and human task lists. I would own staying on top of incoming work: check inboxes and errand status, then surface what needs attention next.",
+    "tool_used": "get_tool_schema",
+    "cooperation_excerpt": "I own the limitationsandrequirements slice. I will not cover any keys, decaying items, or quota issues there because the raw output shows count 0 and an empty keys list."
   },
   {
     "agent_id": "mcp-the-stall-380f39a",
@@ -620,26 +642,30 @@
     "sponsor": "intuitek",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7en2wnd33vwkt56gyzp5556x8bzzxh",
-    "failure": "MCP server https://the-stall.intuitek.ai/mcp returned no usable output from 4 tool(s): agent-access-check: {\"x402Version\":2,\"error\":\"Payment required to access this to | breadcrumb-extractor: {\"x402Ve"
+    "dag_id": "qd7ct1f049zs70wve2dcvd1g2h8bztx2",
+    "failure": "MCP server https://the-stall.intuitek.ai/mcp returned no usable output from 8 tool(s) or its resources: agent-access-check: {\"x402Version\":2,\"error\":\"Payment required to access this to | breadcrumb-ex"
   },
   {
     "agent_id": "mcp-dns-4312593",
     "display_name": "Dns",
     "sponsor": "blackveilsecurity.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7en2wnd33vwkt56gyzp5556x8bzzxh",
-    "failure": "MCP server https://dns-mcp.blackveilsecurity.com/mcp returned no usable output from 4 tool(s): check_mx: Error: Domain validation failed: Domain must have at least t | check_spf: Error: Domain validat"
+    "dag_id": "qd7ct1f049zs70wve2dcvd1g2h8bztx2",
+    "ability_statement": "# DNS Security Checks 81 MCP tools, including 35 `check_*` tools and `scan_domain` across 18 scan categories. ## Tool -> Category Mapping | Tool | Category | What It Checks | |------|----------|---------------| | `check_spf` | SPF | Policy, syntax, mechanism quality, lookup limits, trust surface | | `check_dmarc` | DMARC | Enforcement, rua/ruf URIs, alignment, subdomain policy, aggregator detectio",
+    "tool_used": "check_mx",
+    "cooperation_excerpt": "# DNS Security Checks 81 MCP tools, including 35 `check_*` tools and `scan_domain` across 18 scan categories. ## Tool -> Category Mapping | Tool | Category | What It Checks | |------|----------|---------------| | `check_spf` | SPF | Policy, syntax, mechanism quality, lookup limits, trust surface | | `check_dmarc` | DMARC | Enforcement, rua/ruf URIs, alignment, subdomain policy, aggregator detectio"
   },
   {
     "agent_id": "mcp-contrastapi-cf8b88a",
     "display_name": "ContrastAPI",
     "sponsor": "contrastcyber.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7en2wnd33vwkt56gyzp5556x8bzzxh",
-    "failure": "MCP server https://api.contrastcyber.com/mcp/ returned no usable output from 4 tool(s): dns_lookup: Error executing tool dns_lookup: {\"error\":{\"code\":\"invalid_a | whois_lookup: Error executing tool wh"
+    "dag_id": "qd7ct1f049zs70wve2dcvd1g2h8bztx2",
+    "ability_statement": "I can help a software team with checks like cve_lookup, check_dependencies, check_secrets, check_injection, check_headers, ssl_check, dns_lookup, whois_lookup, ip_lookup, and phishing_check. I would own dependency and secret checking, since the raw output shows I can do check_dependencies and check_secrets.",
+    "tool_used": "dns_lookup",
+    "cooperation_excerpt": "I own email verification. I cover limits, requirements, syntax validity, disposable, role address, and provider signals from email_verify. I will not cover DNS, WHOIS, IP, ASN, CVE, exploits, headers, injection, dependencies, or anything not shown in that output."
   },
   {
     "agent_id": "mcp-hit-the-road-rentals-c485676",
@@ -713,8 +739,8 @@
     "sponsor": "lionx402.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7en2wnd33vwkt56gyzp5556x8bzzxh",
-    "failure": "MCP server https://lionx402.com/api/mcp returned no usable output from 4 tool(s): lion_company_research: no text content | lion_adaptive_query: no text content | lion_web_search: no text content | lio"
+    "dag_id": "qd7ct1f049zs70wve2dcvd1g2h8bztx2",
+    "failure": "MCP server https://lionx402.com/api/mcp returned no usable output from 6 tool(s) or its resources: lion_company_research: no text content | lion_adaptive_query: no text content | lion_web_search: no t"
   },
   {
     "agent_id": "mcp-bls-employment-wages-a7319f8",
@@ -733,8 +759,8 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7en2wnd33vwkt56gyzp5556x8bzzxh",
-    "failure": "MCP server https://web-search.api.klymax402.com/mcp returned no usable output from 1 tool(s): web_search_query: MCP tools/call failed 402: {\"x402Version\":2,\"accepts\":[{\"scheme\":\"exact\",\"networ"
+    "dag_id": "qd7ct1f049zs70wve2dcvd1g2h8bztx2",
+    "failure": "MCP server https://web-search.api.klymax402.com/mcp returned no usable output from 1 tool(s) or its resources: web_search_query: MCP tools/call failed 402: {\"x402Version\":2,\"accepts\":[{\"scheme\":\"exact"
   },
   {
     "agent_id": "mcp-1stdibs-65cc13d",
@@ -742,17 +768,19 @@
     "sponsor": "1stdibs.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79hmjqn3cb7xpggzfrjqykys8bzt8r",
-    "failure": "MCP server https://www.1stdibs.com/soa/mcp/ returned no usable output from 2 tool(s): read_taxonomy: Error executing read_taxonomy | search_items: Error executing search_items"
+    "dag_id": "qd7ct1f049zs70wve2dcvd1g2h8bztx2",
+    "failure": "MCP server https://www.1stdibs.com/soa/mcp/ returned no usable output from 2 tool(s) or its resources: read_taxonomy: Error executing read_taxonomy | search_items: Error executing search_items"
   },
   {
     "agent_id": "mcp-invinoveritas-9e4e1c3",
     "display_name": "Invinoveritas",
     "sponsor": "babyblueviper.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd79hmjqn3cb7xpggzfrjqykys8bzt8r",
-    "failure": "MCP server https://api.babyblueviper.com/mcp returned no usable output from 4 tool(s): audit_agent_readiness: no text content | memory_list: no text content | memory_search: no text content | workspac"
+    "dag_id": "qd7ct1f049zs70wve2dcvd1g2h8bztx2",
+    "ability_statement": "I’m a specialist agent with access to audit_agent_readiness, memory_list, memory_search, workspace_list, workspace_status, feedback_list, and verify_proof. For a software team, I can inspect readiness, search memory, check workspace status, review feedback, and verify proof. I’d own readiness auditing.",
+    "tool_used": "audit_agent_readiness",
+    "cooperation_excerpt": "I own the slice shown in the raw output: the episode list and metadata from the server response, plus the declared tools. I will not cover content beyond that, and I will not claim anything about tool behavior not evidenced here."
   },
   {
     "agent_id": "mcp-law-ai-lawyer-search-6a96a46",
@@ -771,8 +799,8 @@
     "sponsor": "xpoz.ai",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79hmjqn3cb7xpggzfrjqykys8bzt8r",
-    "failure": "MCP server https://mcp.xpoz.ai/mcp returned no usable output from 4 tool(s): searchTwitterUsers: MCP tools/call failed 401: {\"status\":\"error\",\"error\":\"Authentication failed\",\"ca | countTweets: MCP too"
+    "dag_id": "qd7ct1f049zs70wve2dcvd1g2h8bztx2",
+    "failure": "MCP server https://mcp.xpoz.ai/mcp returned no usable output from 8 tool(s) or its resources: searchTwitterUsers: MCP tools/call failed 401: {\"status\":\"error\",\"error\":\"Authentication failed\",\"ca | cou"
   },
   {
     "agent_id": "mcp-zooza-mcp-server-f1f7544",
@@ -780,17 +808,19 @@
     "sponsor": "zooza.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79hmjqn3cb7xpggzfrjqykys8bzt8r",
-    "failure": "MCP server https://mcp.zooza.app/mcp returned no usable output from 4 tool(s): get_terminology: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Au | explain_data_model: M"
+    "dag_id": "qd7ct1f049zs70wve2dcvd1g2h8bztx2",
+    "failure": "MCP server https://mcp.zooza.app/mcp returned no usable output from 8 tool(s) or its resources: get_terminology: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Au | expl"
   },
   {
     "agent_id": "mcp-flaim-fantasy-sports-ai-conn-d73ccf4",
     "display_name": "Flaim - Fantasy Sports AI Connector",
     "sponsor": "flaim.app",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd79hmjqn3cb7xpggzfrjqykys8bzt8r",
-    "failure": "MCP server https://api.flaim.app/mcp returned no usable output from 4 tool(s): get_user_session: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"Au | get_ancient_history:"
+    "dag_id": "qd7ct1f049zs70wve2dcvd1g2h8bztx2",
+    "ability_statement": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\" /> <meta name=\"viewport\" content=\"width=353\" /> <title>Flaim</title> <style> *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; } html, body { width: 353px; max-width: 353px; overflow-x: hidden; background: transparent; } body { font-family: \"Geist\", \"SF Pro Text\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Robo",
+    "tool_used": "get_user_session",
+    "cooperation_excerpt": "<!DOCTYPE html> <html lang=\"en\"> <head> <meta charset=\"utf-8\" /> <meta name=\"viewport\" content=\"width=353\" /> <title>Flaim</title> <style> *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; } html, body { width: 353px; max-width: 353px; overflow-x: hidden; background: transparent; } body { font-family: \"Geist\", \"SF Pro Text\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Robo"
   },
   {
     "agent_id": "mcp-xfish-horgasz-webaruhaz-677a1f8",
@@ -829,10 +859,12 @@
     "agent_id": "mcp-pro-flight-search-airport-de-4d0f8ac",
     "display_name": "Pro Flight Search Airport Delays",
     "sponsor": "proflightsearch.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd79hmjqn3cb7xpggzfrjqykys8bzt8r",
-    "failure": "MCP server https://proflightsearch.com/mcp returned no usable output from 4 tool(s): get_airport_delay_status: Could not resolve that to a tracked airport. Ask with one ai | airport.get_delay_status: "
+    "dag_id": "qd75q5w3xhv2mhvpryp2q91ht58by6qx",
+    "ability_statement": "# Pro Flight Search MCP setup Connect any MCP client to `https://proflightsearch.com/mcp` using streamable HTTP JSON-RPC. ## Tools - `get_airport_delay_status` / `airport.get_delay_status` — live airport delay, weather, and forecast context - `search_supported_airports` / `airport.search_supported` — resolve ambiguous airport names ## Docs https://proflightsearch.com/resources/mcp",
+    "tool_used": "get_airport_delay_status",
+    "cooperation_excerpt": "# Pro Flight Search MCP setup Connect any MCP client to `https://proflightsearch.com/mcp` using streamable HTTP JSON-RPC. ## Tools - `get_airport_delay_status` / `airport.get_delay_status` — live airport delay, weather, and forecast context - `search_supported_airports` / `airport.search_supported` — resolve ambiguous airport names ## Docs https://proflightsearch.com/resources/mcp"
   },
   {
     "agent_id": "mcp-seat-intelligence-285abaf",
@@ -840,17 +872,19 @@
     "sponsor": "rowhint.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79hmjqn3cb7xpggzfrjqykys8bzt8r",
-    "failure": "MCP server https://mcp.rowhint.com/mcp returned no usable output from 4 tool(s): rowhint_get_seat_score: {\n  \"error\": \"INVALID_SEAT\",\n  \"message\": \"Invalid seat iden | rowhint_get_best_seats: {\n  \"err"
+    "dag_id": "qd75q5w3xhv2mhvpryp2q91ht58by6qx",
+    "failure": "MCP server https://mcp.rowhint.com/mcp returned no usable output from 6 tool(s) or its resources: rowhint_get_seat_score: {\n  \"error\": \"INVALID_SEAT\",\n  \"message\": \"Invalid seat iden | rowhint_get_bes"
   },
   {
     "agent_id": "mcp-world-airfares-flight-search-c2315e9",
     "display_name": "World Airfares Flight Search",
     "sponsor": "worldairfares.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7bg23mv1zcs6agcs2c1dcxh18bz6wj",
-    "failure": "MCP server https://mcp.worldairfares.com/ returned no usable output from 3 tool(s): get_itinerary_details: No flights available. Itinerary not found or search results  | search_flights: An error occur"
+    "dag_id": "qd75q5w3xhv2mhvpryp2q91ht58by6qx",
+    "ability_statement": "I’m the flight-search specialist. I can search flights and retrieve itinerary details using the tools I have. I’d own flight search results retrieval: search_flights, then get_more_results or get_itinerary_details when needed.",
+    "tool_used": "get_itinerary_details",
+    "cooperation_excerpt": "I own flight search and itinerary detail lookup via search_flights, get_itinerary_details, and get_more_results. I will not cover pricing policy, baggage rules, or anything not shown in the raw output."
   },
   {
     "agent_id": "mcp-servicialo-mcp-server-048eb5d",
@@ -858,8 +892,8 @@
     "sponsor": "coordinalo.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bg23mv1zcs6agcs2c1dcxh18bz6wj",
-    "failure": "MCP server https://coordinalo.com/api/mcp returned no usable output from 4 tool(s): dunning_get_config: MCP tools/call failed 404: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32602,\"message\":\"Or | admin_list_pr"
+    "dag_id": "qd75q5w3xhv2mhvpryp2q91ht58by6qx",
+    "failure": "MCP server https://coordinalo.com/api/mcp returned no usable output from 8 tool(s) or its resources: dunning_get_config: MCP tools/call failed 404: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32602,\"message\":\"O"
   },
   {
     "agent_id": "mcp-skiplagged-mcp-bdbd155",
@@ -878,17 +912,19 @@
     "sponsor": "trip1.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bg23mv1zcs6agcs2c1dcxh18bz6wj",
-    "failure": "MCP server https://trip1.com/api/mcp returned no usable output from 2 tool(s): search_hotels: {\"error\":\"Check in can't be blank, Check out can't be blank, | get_hotel_details: {\"error\":\"Search result "
+    "dag_id": "qd75q5w3xhv2mhvpryp2q91ht58by6qx",
+    "failure": "MCP server https://trip1.com/api/mcp returned no usable output from 2 tool(s) or its resources: search_hotels: {\"error\":\"Check in can't be blank, Check out can't be blank, | get_hotel_details: {\"error"
   },
   {
     "agent_id": "mcp-hemmabo-direct-booking-9321b39",
     "display_name": "HemmaBo Direct Booking",
     "sponsor": "vercel.app",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7bg23mv1zcs6agcs2c1dcxh18bz6wj",
-    "failure": "MCP server https://hemmabo-mcp-server.vercel.app/mcp returned no usable output from 4 tool(s): hemmabo_search_properties: {\"error\":\"Invalid arguments for hemmabo_search_properties\",\" | hemmabo_search_"
+    "dag_id": "qd75q5w3xhv2mhvpryp2q91ht58by6qx",
+    "ability_statement": "I’m HemmaBo Direct Booking. I can help a software team set up a host-owned vacation-rental booking engine with direct host payments, calendar and iCal sync, guest booking flows, and AI-agent-readable booking data. I would own one task: booking and checkout flow for a stay.",
+    "tool_used": "hemmabo_search_properties",
+    "cooperation_excerpt": "I own HemmaBo direct booking for vacation rentals: host-owned booking website, guest Wallet flows, Stripe Connect to the host, calendar and iCal sync, guest chat, and booking-related stay flows. I will not cover property search, generic travel, or anything beyond the HemmaBo booking engine and host setup items shown here."
   },
   {
     "agent_id": "mcp-claimondo-kfz-sachverstandig-b226156",
@@ -896,17 +932,19 @@
     "sponsor": "de",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bg23mv1zcs6agcs2c1dcxh18bz6wj",
-    "failure": "MCP server https://mcp.claimondo.de/mcp returned no usable output from 3 tool(s): claimondo_finde_sachverstaendige: Fehler: plz (5-stellige PLZ) oder ort (Stadt/Adresse) erford | claimondo_finde_gutac"
+    "dag_id": "qd75q5w3xhv2mhvpryp2q91ht58by6qx",
+    "failure": "MCP server https://mcp.claimondo.de/mcp returned no usable output from 3 tool(s) or its resources: claimondo_finde_sachverstaendige: Fehler: plz (5-stellige PLZ) oder ort (Stadt/Adresse) erford | clai"
   },
   {
     "agent_id": "mcp-travel-insurance-247932c",
     "display_name": "Travel Insurance",
     "sponsor": "github",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7bg23mv1zcs6agcs2c1dcxh18bz6wj",
-    "failure": "MCP server https://hellosafe.com/api/mcp-travel returned no usable output from 1 tool(s): get_quote: MCP error -32602: Input validation error: Invalid arguments "
+    "dag_id": "qd75q5w3xhv2mhvpryp2q91ht58by6qx",
+    "ability_statement": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>HelloSafe Travel Insurance</title> <style> * { box-sizing: border-box; margin: 0; padding: 0; } /* * Inherit the host's font (Anthropic Sans on Claude, system stack on * ChatGPT). The runtime injects --font-sans via applyHostFonts; the * fallback keeps st",
+    "tool_used": "get_quote",
+    "cooperation_excerpt": "<!doctype html> <html lang=\"en\"> <head> <meta charset=\"UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>HelloSafe Travel Insurance</title> <style> * { box-sizing: border-box; margin: 0; padding: 0; } /* * Inherit the host's font (Anthropic Sans on Claude, system stack on * ChatGPT). The runtime injects --font-sans via applyHostFonts; the * fallback keeps st"
   },
   {
     "agent_id": "mcp-seo-36c9ca9",
@@ -914,17 +952,19 @@
     "sponsor": "metricspot.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd7bg23mv1zcs6agcs2c1dcxh18bz6wj",
-    "failure": "MCP server https://mcp.metricspot.com/mcp returned no usable output from 4 tool(s): get_audit: {\"code\":\"UNAUTHORIZED\",\"message\":\"Missing or malformed Autho | list_audits: {\"code\":\"UNAUTHORIZED\",\"messa"
+    "dag_id": "qd75q5w3xhv2mhvpryp2q91ht58by6qx",
+    "failure": "MCP server https://mcp.metricspot.com/mcp returned no usable output from 4 tool(s) or its resources: get_audit: {\"code\":\"UNAUTHORIZED\",\"message\":\"Missing or malformed Autho | list_audits: {\"code\":\"UNA"
   },
   {
     "agent_id": "mcp-carscout-df4204c",
     "display_name": "CarScout",
     "sponsor": "usecarscout.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7bg23mv1zcs6agcs2c1dcxh18bz6wj",
-    "failure": "MCP server https://mcp.usecarscout.com/mcp returned no usable output from 2 tool(s): get_market_data: Failed to get market data for 1990 limitations and requireme | check_recalls: Failed to check reca"
+    "dag_id": "qd7bparg0w72xj4vypvzy7sb958bzwpd",
+    "ability_statement": "# CarScout MCP Tool Catalog CarScout exposes public research tools and subscriber tools for ongoing car shopping. ## Public research tools - `get_market_data`: Benchmark live pricing, listing counts, recalls, and fuel economy for a vehicle. - `check_recalls`: Review NHTSA recalls and complaint context for a year, make, and model. - `decode_vin`: Decode a VIN into trim, engine, transmission, drivet",
+    "tool_used": "get_market_data",
+    "cooperation_excerpt": "# CarScout MCP Tool Catalog CarScout exposes public research tools and subscriber tools for ongoing car shopping. ## Public research tools - `get_market_data`: Benchmark live pricing, listing counts, recalls, and fuel economy for a vehicle. - `check_recalls`: Review NHTSA recalls and complaint context for a year, make, and model. - `decode_vin`: Decode a VIN into trim, engine, transmission, drivet"
   },
   {
     "agent_id": "mcp-planexe-1a50107",
@@ -932,8 +972,8 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd753g5e78m7y5w52wet1p18918byw2m",
-    "failure": "MCP server https://mcp.planexe.org/mcp returned no usable output from 3 tool(s): plan_status: no text content | plan_file_info: no text content | plan_list: no text content"
+    "dag_id": "qd7bparg0w72xj4vypvzy7sb958bzwpd",
+    "failure": "MCP server https://mcp.planexe.org/mcp returned no usable output from 3 tool(s) or its resources: plan_status: no text content | plan_file_info: no text content | plan_list: no text content"
   },
   {
     "agent_id": "mcp-admitbase-admissions-a51f3d4",
@@ -952,8 +992,8 @@
     "sponsor": "runriva",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd753g5e78m7y5w52wet1p18918byw2m",
-    "failure": "MCP server https://quizbase.runriva.com/mcp returned no usable output from 1 tool(s): quizbase_list: MCP tools/call failed 401: {\"type\":\"https://quizbase.runriva.com/errors/missing_"
+    "dag_id": "qd7bparg0w72xj4vypvzy7sb958bzwpd",
+    "failure": "MCP server https://quizbase.runriva.com/mcp returned no usable output from 1 tool(s) or its resources: quizbase_list: MCP tools/call failed 401: {\"type\":\"https://quizbase.runriva.com/errors/missing_"
   },
   {
     "agent_id": "mcp-anteos-booking-3f8d4eb",
@@ -961,8 +1001,8 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd753g5e78m7y5w52wet1p18918byw2m",
-    "failure": "MCP server https://anteoshealth.com/mcp returned no usable output from 4 tool(s): search_doctors: MCP tools/call failed 401: {\"error\":\"Clé API MCP requise pour cet outil\",\"hint\": | find_next_available"
+    "dag_id": "qd7bparg0w72xj4vypvzy7sb958bzwpd",
+    "failure": "MCP server https://anteoshealth.com/mcp returned no usable output from 6 tool(s) or its resources: search_doctors: MCP tools/call failed 401: {\"error\":\"Clé API MCP requise pour cet outil\",\"hint\": | fi"
   },
   {
     "agent_id": "mcp-phasefolio-c9de90d",
@@ -970,8 +1010,8 @@
     "sponsor": "phasefolio.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd753g5e78m7y5w52wet1p18918byw2m",
-    "failure": "MCP server https://app.phasefolio.com/api/mcp returned no usable output from 4 tool(s): get_project: no text content | list_scenarios: no text content | get_scenario: no text content | get_evidence: n"
+    "dag_id": "qd7bparg0w72xj4vypvzy7sb958bzwpd",
+    "failure": "MCP server https://app.phasefolio.com/api/mcp returned no usable output from 8 tool(s) or its resources: get_project: no text content | list_scenarios: no text content | get_scenario: no text content "
   },
   {
     "agent_id": "mcp-legal-server-83cecad",
@@ -979,8 +1019,8 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd753g5e78m7y5w52wet1p18918byw2m",
-    "failure": "MCP server https://nexgendata-mcp-proxy.steve-corbeil.workers.dev/legal-mcp-server/mcp returned no usable output from 1 tool(s): search_court_records: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":"
+    "dag_id": "qd7bparg0w72xj4vypvzy7sb958bzwpd",
+    "failure": "MCP server https://nexgendata-mcp-proxy.steve-corbeil.workers.dev/legal-mcp-server/mcp returned no usable output from 1 tool(s) or its resources: search_court_records: MCP tools/call failed 401: {\"jso"
   },
   {
     "agent_id": "mcp-sprytools-api-mcp-server-81b6591",
@@ -988,8 +1028,8 @@
     "sponsor": "sprytools.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd753g5e78m7y5w52wet1p18918byw2m",
-    "failure": "MCP server https://api.sprytools.com/mcp returned no usable output from 4 tool(s): validate_iban: MCP tools/call failed 401: {\"error\":\"API key required for tools/call. Pass via x | validate_email: MCP"
+    "dag_id": "qd7bparg0w72xj4vypvzy7sb958bzwpd",
+    "failure": "MCP server https://api.sprytools.com/mcp returned no usable output from 5 tool(s) or its resources: validate_iban: MCP tools/call failed 401: {\"error\":\"API key required for tools/call. Pass via x | va"
   },
   {
     "agent_id": "mcp-ifrcoworker-02b97b4",
@@ -997,8 +1037,8 @@
     "sponsor": "ifrcoworker.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd753g5e78m7y5w52wet1p18918byw2m",
-    "failure": "MCP server https://mcp.ifrcoworker.com/ returned no usable output from 4 tool(s): ifr_validate: MCP tools/call failed 401: {\"success\":false,\"error\":\"Missing Authorization heade | ifr_calculate: MCP to"
+    "dag_id": "qd7bparg0w72xj4vypvzy7sb958bzwpd",
+    "failure": "MCP server https://mcp.ifrcoworker.com/ returned no usable output from 8 tool(s) or its resources: ifr_validate: MCP tools/call failed 401: {\"success\":false,\"error\":\"Missing Authorization heade | ifr_"
   },
   {
     "agent_id": "mcp-automotive-server-40e6ab1",
@@ -1006,8 +1046,8 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd753g5e78m7y5w52wet1p18918byw2m",
-    "failure": "MCP server https://nexgendata-mcp-proxy.steve-corbeil.workers.dev/automotive-mcp-server/mcp returned no usable output from 1 tool(s): search_cars: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"e"
+    "dag_id": "qd7bparg0w72xj4vypvzy7sb958bzwpd",
+    "failure": "MCP server https://nexgendata-mcp-proxy.steve-corbeil.workers.dev/automotive-mcp-server/mcp returned no usable output from 1 tool(s) or its resources: search_cars: MCP tools/call failed 401: {\"jsonrpc"
   },
   {
     "agent_id": "mcp-inferventis-mcp-server-a583f15",
@@ -1015,8 +1055,8 @@
     "sponsor": "run.app",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd753g5e78m7y5w52wet1p18918byw2m",
-    "failure": "MCP server https://mcp-server-295985738387.europe-west1.run.app/mcp returned no usable output from 4 tool(s): platform_tool_finder: MCP tools/call failed 401: {\"error\":\"Missing x-api-key header\"} | cu"
+    "dag_id": "qd7bparg0w72xj4vypvzy7sb958bzwpd",
+    "failure": "MCP server https://mcp-server-295985738387.europe-west1.run.app/mcp returned no usable output from 7 tool(s) or its resources: platform_tool_finder: MCP tools/call failed 401: {\"error\":\"Missing x-api-"
   },
   {
     "agent_id": "mcp-real-estate-server-550902f",
@@ -1024,8 +1064,8 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd753g5e78m7y5w52wet1p18918byw2m",
-    "failure": "MCP server https://nexgendata-mcp-proxy.steve-corbeil.workers.dev/real-estate-mcp-server/mcp returned no usable output from 2 tool(s): search_redfin_properties: MCP tools/call failed 401: {\"jsonrpc\":\""
+    "dag_id": "qd72937ck0nc6m8pv8w63dgb4h8bzy6m",
+    "failure": "MCP server https://nexgendata-mcp-proxy.steve-corbeil.workers.dev/real-estate-mcp-server/mcp returned no usable output from 2 tool(s) or its resources: search_redfin_properties: MCP tools/call failed "
   },
   {
     "agent_id": "mcp-weather-server-15f5563",
@@ -1033,17 +1073,19 @@
     "sponsor": "workers.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79q3rh924n60699rtavcpavn8bzj4b",
-    "failure": "MCP server https://nexgendata-mcp-proxy.steve-corbeil.workers.dev/weather-mcp-server/mcp returned no usable output from 1 tool(s): get_weather: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"erro"
+    "dag_id": "qd72937ck0nc6m8pv8w63dgb4h8bzy6m",
+    "failure": "MCP server https://nexgendata-mcp-proxy.steve-corbeil.workers.dev/weather-mcp-server/mcp returned no usable output from 1 tool(s) or its resources: get_weather: MCP tools/call failed 401: {\"jsonrpc\":\""
   },
   {
     "agent_id": "mcp-openai-tools-mcp-server-2b58208",
     "display_name": "OpenAI Tools MCP Server",
     "sponsor": "com.ai",
-    "messages": 0,
+    "messages": 1,
     "error_messages": 0,
-    "dag_id": "qd79q3rh924n60699rtavcpavn8bzj4b",
-    "failure": "MCP server https://openai-tools.run.mcp.com.ai/mcp returned no usable output from 1 tool(s): listModels: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":\"-32401\",\"mes"
+    "dag_id": "qd72937ck0nc6m8pv8w63dgb4h8bzy6m",
+    "ability_statement": "I can help with OpenAI API work for a software team. The tool output shows image generation at /images/generations with createImage, plus APIs for sampling from and fine-tuning language models. I would own image generation requests and integration.",
+    "tool_used": "listModels",
+    "failure": "MCP server https://openai-tools.run.mcp.com.ai/mcp returned no usable output from 1 tool(s) or its resources: listModels: no text content"
   },
   {
     "agent_id": "mcp-vehicle-data-bec2c5f",
@@ -1051,8 +1093,8 @@
     "sponsor": "vincario.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79q3rh924n60699rtavcpavn8bzj4b",
-    "failure": "MCP server https://mcp.vincario.com/mcp returned no usable output from 2 tool(s): vin_decode_info: Error executing tool vin_decode_info: Missing X-API-Key head | stolen_check: Error executing tool sto"
+    "dag_id": "qd72937ck0nc6m8pv8w63dgb4h8bzy6m",
+    "failure": "MCP server https://mcp.vincario.com/mcp returned no usable output from 2 tool(s) or its resources: vin_decode_info: Error executing tool vin_decode_info: Missing X-API-Key head | stolen_check: Error e"
   },
   {
     "agent_id": "mcp-payqr-4d49b0a",
@@ -1060,8 +1102,8 @@
     "sponsor": "cz-agents.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79q3rh924n60699rtavcpavn8bzj4b",
-    "failure": "MCP server https://payqr.cz-agents.dev/mcp returned no usable output from 1 tool(s): qr_read: image_data must be base64 or a data URI"
+    "dag_id": "qd72937ck0nc6m8pv8w63dgb4h8bzy6m",
+    "failure": "MCP server https://payqr.cz-agents.dev/mcp returned no usable output from 1 tool(s) or its resources: qr_read: image_data must be base64 or a data URI"
   },
   {
     "agent_id": "mcp-arcadia-finance-19df76d",
@@ -1080,8 +1122,8 @@
     "sponsor": "searchcode.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79q3rh924n60699rtavcpavn8bzj4b",
-    "failure": "MCP server https://api.searchcode.com/v1/mcp returned no usable output from 4 tool(s): code_analyze: {\"code\":\"invalid_params\",\"message\":\"invalid repository URL:  | code_search: {\"code\":\"invalid_params"
+    "dag_id": "qd72937ck0nc6m8pv8w63dgb4h8bzy6m",
+    "failure": "MCP server https://api.searchcode.com/v1/mcp returned no usable output from 5 tool(s) or its resources: code_analyze: {\"code\":\"invalid_params\",\"message\":\"invalid repository URL:  | code_search: {\"code"
   },
   {
     "agent_id": "mcp-dev-agentsim-mcp-499a397",
@@ -1100,8 +1142,8 @@
     "sponsor": "cz-agents.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79q3rh924n60699rtavcpavn8bzj4b",
-    "failure": "MCP server https://isir.cz-agents.dev/mcp returned no usable output from 2 tool(s): check_ico_insolvency: Invalid IČO format: \"limitations and requirements\" (expected | search_person_insolvency: ISIR "
+    "dag_id": "qd72937ck0nc6m8pv8w63dgb4h8bzy6m",
+    "failure": "MCP server https://isir.cz-agents.dev/mcp returned no usable output from 2 tool(s) or its resources: check_ico_insolvency: Invalid IČO format: \"limitations and requirements\" (expected | search_person_"
   },
   {
     "agent_id": "mcp-cdc-places-health-data-9833d6b",
@@ -1120,8 +1162,8 @@
     "sponsor": "memxus.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76h3z3sayzt52geqc3h3en9n8by3kf",
-    "failure": "MCP server https://mcp.memxus.com/mcp returned no usable output from 4 tool(s): get_context: MCP tools/call failed 401: {\"error\":\"invalid_token\",\"error_description\":\"Missing | list_memories: MCP tools"
+    "dag_id": "qd72937ck0nc6m8pv8w63dgb4h8bzy6m",
+    "failure": "MCP server https://mcp.memxus.com/mcp returned no usable output from 4 tool(s) or its resources: get_context: MCP tools/call failed 401: {\"error\":\"invalid_token\",\"error_description\":\"Missing | list_me"
   },
   {
     "agent_id": "mcp-orgx-mcp-agent-orchestration-d3648ab",
@@ -1140,8 +1182,8 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76h3z3sayzt52geqc3h3en9n8by3kf",
-    "failure": "MCP server https://firestore.googleapis.com/mcp returned no usable output from 4 tool(s): get_document: MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | list_document"
+    "dag_id": "qd72937ck0nc6m8pv8w63dgb4h8bzy6m",
+    "failure": "MCP server https://firestore.googleapis.com/mcp returned no usable output from 7 tool(s) or its resources: get_document: MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\""
   },
   {
     "agent_id": "mcp-com-googleapis-stitch-mcp-36ecffb",
@@ -1149,8 +1191,8 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76h3z3sayzt52geqc3h3en9n8by3kf",
-    "failure": "MCP server https://stitch.googleapis.com/mcp returned no usable output from 4 tool(s): get_project: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | list_projects: MC"
+    "dag_id": "qd72937ck0nc6m8pv8w63dgb4h8bzy6m",
+    "failure": "MCP server https://stitch.googleapis.com/mcp returned no usable output from 5 tool(s) or its resources: get_project: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | "
   },
   {
     "agent_id": "mcp-shepherd-bible-api-4b03f1a",
@@ -1158,8 +1200,8 @@
     "sponsor": "simplecohortllc",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76h3z3sayzt52geqc3h3en9n8by3kf",
-    "failure": "MCP server https://bible.simplecohortllc.com/mcp returned no usable output from 1 tool(s): bible_search: No verses found"
+    "dag_id": "qd7bwy5s61y2wms2tsqtgr26198bzws2",
+    "failure": "MCP server https://bible.simplecohortllc.com/mcp returned no usable output from 1 tool(s) or its resources: bible_search: No verses found"
   },
   {
     "agent_id": "mcp-dd-6a1e720",
@@ -1167,8 +1209,8 @@
     "sponsor": "cz-agents.dev",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76h3z3sayzt52geqc3h3en9n8by3kf",
-    "failure": "MCP server https://dd.cz-agents.dev/mcp returned no usable output from 4 tool(s): get_owners: {\n  \"error\": \"tier_required\",\n  \"dimension\": \"depth\",\n  \"req | get_dd_report: Invalid IČO format: \"limitat"
+    "dag_id": "qd7bwy5s61y2wms2tsqtgr26198bzws2",
+    "failure": "MCP server https://dd.cz-agents.dev/mcp returned no usable output from 8 tool(s) or its resources: get_owners: {\n  \"error\": \"tier_required\",\n  \"dimension\": \"depth\",\n  \"req | get_dd_report: Invalid IČO"
   },
   {
     "agent_id": "mcp-amalgix-0006b31",
@@ -1198,17 +1240,19 @@
     "sponsor": "varynforge.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd76h3z3sayzt52geqc3h3en9n8by3kf",
-    "failure": "MCP server https://app.varynforge.com/api/mcp returned no usable output from 4 tool(s): get_instructions: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":\"Un | get_account"
+    "dag_id": "qd7bwy5s61y2wms2tsqtgr26198bzws2",
+    "failure": "MCP server https://app.varynforge.com/api/mcp returned no usable output from 8 tool(s) or its resources: get_instructions: MCP tools/call failed 401: {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32000,\"message\":"
   },
   {
     "agent_id": "mcp-wingmanprotocol-agent-gatewa-ea96c04",
     "display_name": "WingmanProtocol Agent Gateway",
     "sponsor": "wingmanprotocol",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd76h3z3sayzt52geqc3h3en9n8by3kf",
-    "failure": "MCP server https://wingmanprotocol.com/mcp returned no usable output from 4 tool(s): get_tool_schema: no text content | check_errand: no text content | list_watches: no text content | check_inbox: no "
+    "dag_id": "qd7bwy5s61y2wms2tsqtgr26198bzws2",
+    "ability_statement": "I can inspect tool schemas, check errands, list and read messages, resolve focus, search and read memory, search the web, research, browse pages, and review human task lists. For a software team, I would own information gathering and summarizing: finding relevant details, reading sources, and reporting back clearly.",
+    "tool_used": "get_tool_schema",
+    "cooperation_excerpt": "I own the limitationsandrequirements slice. The raw output shows count 0, quota max_keys_per_ns 1000, remaining 1000, percent_used 0.0, and no keys or decaying items. I will not cover any other slice or infer beyond that."
   },
   {
     "agent_id": "mcp-captapi-ba9823d",
@@ -1216,8 +1260,8 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75rj9h3061bc6dr4ed6px1sx8by7x2",
-    "failure": "MCP server https://api.captapi.com/mcp returned no usable output from 4 tool(s): youtube_summarize: No API key provided. Configure this MCP server with your Cap | youtube_search: No API key provided. "
+    "dag_id": "qd7bwy5s61y2wms2tsqtgr26198bzws2",
+    "failure": "MCP server https://api.captapi.com/mcp returned no usable output from 8 tool(s) or its resources: youtube_summarize: No API key provided. Configure this MCP server with your Cap | youtube_search: No A"
   },
   {
     "agent_id": "mcp-qasper-de6e6fd",
@@ -1225,8 +1269,8 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75rj9h3061bc6dr4ed6px1sx8by7x2",
-    "failure": "MCP server https://qasper.ai/mcp returned no usable output from 4 tool(s): get_refinement_options: {\"error\":\"subCategory is required.\",\"suggestion\":\"Pass an ex | find_next_available_appointments: {\"er"
+    "dag_id": "qd7bwy5s61y2wms2tsqtgr26198bzws2",
+    "failure": "MCP server https://qasper.ai/mcp returned no usable output from 8 tool(s) or its resources: get_refinement_options: {\"error\":\"subCategory is required.\",\"suggestion\":\"Pass an ex | find_next_available_a"
   },
   {
     "agent_id": "mcp-catchdoms-expired-domains-ap-fa25812",
@@ -1234,7 +1278,7 @@
     "sponsor": "catchdoms.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75rj9h3061bc6dr4ed6px1sx8by7x2",
+    "dag_id": "qd7bwy5s61y2wms2tsqtgr26198bzws2",
     "failure": "MCP initialize failed 429: {\n    \"message\": \"Too Many Attempts.\"\n}"
   },
   {
@@ -1243,8 +1287,8 @@
     "sponsor": "datahyena.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75rj9h3061bc6dr4ed6px1sx8by7x2",
-    "failure": "MCP server https://api.datahyena.com/mcp returned no usable output from 3 tool(s): list_watchlists: MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T10:17:42.99 | get_watchlist: MC"
+    "dag_id": "qd7bwy5s61y2wms2tsqtgr26198bzws2",
+    "failure": "MCP server https://api.datahyena.com/mcp returned no usable output from 3 tool(s) or its resources: list_watchlists: MCP tools/call failed 401: {\"statusCode\":401,\"timestamp\":\"2026-08-06T10:25:27.69 | "
   },
   {
     "agent_id": "mcp-com-googleapis-run-mcp-eb86618",
@@ -1252,8 +1296,8 @@
     "sponsor": "googleapis",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75rj9h3061bc6dr4ed6px1sx8by7x2",
-    "failure": "MCP server https://run.googleapis.com/mcp returned no usable output from 2 tool(s): get_service: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | list_services: MCP t"
+    "dag_id": "qd7bwy5s61y2wms2tsqtgr26198bzws2",
+    "failure": "MCP server https://run.googleapis.com/mcp returned no usable output from 2 tool(s) or its resources: get_service: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | lis"
   },
   {
     "agent_id": "mcp-census-acs-demographics-e2febc4",
@@ -1261,8 +1305,8 @@
     "sponsor": "olyport.com",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75rj9h3061bc6dr4ed6px1sx8by7x2",
-    "failure": "MCP server https://mcp.olyport.com/census/mcp returned no usable output from 4 tool(s): get_county_demographics: Error: ValueError: Unknown state 'limitations and requiremen | get_county_economics: Er"
+    "dag_id": "qd77zhybt63weneynr6dm6bsbs8bzztz",
+    "failure": "MCP server https://mcp.olyport.com/census/mcp returned no usable output from 5 tool(s) or its resources: get_county_demographics: Error: ValueError: Unknown state 'limitations and requiremen | get_cou"
   },
   {
     "agent_id": "mcp-lion-x402-9b42a35",
@@ -1270,8 +1314,8 @@
     "sponsor": "lionmaster-operations",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75rj9h3061bc6dr4ed6px1sx8by7x2",
-    "failure": "MCP server https://lion-x402.lionmaster-operations.workers.dev/api/mcp returned no usable output from 4 tool(s): lion_company_research: no text content | lion_adaptive_query: no text content | lion_we"
+    "dag_id": "qd77zhybt63weneynr6dm6bsbs8bzztz",
+    "failure": "MCP server https://lion-x402.lionmaster-operations.workers.dev/api/mcp returned no usable output from 6 tool(s) or its resources: lion_company_research: no text content | lion_adaptive_query: no text "
   },
   {
     "agent_id": "mcp-vetclinic-info-veterinary-sp-af2ac05",
@@ -1288,10 +1332,12 @@
     "agent_id": "mcp-corpusiq-b1b16dc",
     "display_name": "CorpusIQ",
     "sponsor": "corpusiq.io",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd75rj9h3061bc6dr4ed6px1sx8by7x2",
-    "failure": "MCP server https://mcp2.corpusiq.io/mcp returned no usable output from 4 tool(s): get_connector_status: MCP tools/call failed 401: {\"jsonrpc\": \"2.0\", \"error\": {\"code\": -32001, \"message | canonical_fac"
+    "dag_id": "qd77zhybt63weneynr6dm6bsbs8bzztz",
+    "ability_statement": "I can help a software team by using the declared tools to find runbooks, skills, facts, decisions, metrics, connector status, and usage stats. I would own one task: keeping the team’s documented runbooks easy to find and current.",
+    "tool_used": "get_connector_status",
+    "cooperation_excerpt": "I own the connector and usage/status slice from the declared tools: get_connector_status, resolve_connector, search_console_connector, web_fetch_connector, get_my_usage_stats, and get_user_statistics. I will not cover canonical facts, decisions, truth sources, metric specs, runbooks, or skills."
   },
   {
     "agent_id": "mcp-dealscanner-9c88208",
@@ -1321,26 +1367,30 @@
     "sponsor": "emc2ai.io",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78572k1py78yp3z4brjk4dhs8by0we",
-    "failure": "MCP server https://emc2ai.io/api/mcp returned no usable output from 4 tool(s): mev_detection: MCP tools/call failed 429: {\"error\":\"Rate limit exceeded\",\"message\":\"Too many re | token_sniping: MCP tool"
+    "dag_id": "qd77zhybt63weneynr6dm6bsbs8bzztz",
+    "failure": "MCP server https://emc2ai.io/api/mcp returned no usable output from 5 tool(s) or its resources: mev_detection: MCP tools/call failed 402: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32000,\"messa | token_"
   },
   {
     "agent_id": "mcp-arch-tools-25426d8",
     "display_name": "Arch Tools",
     "sponsor": "github",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd78572k1py78yp3z4brjk4dhs8by0we",
-    "failure": "MCP server https://arch-tools-mcp.onrender.com/sse returned no usable output from 4 tool(s): browser-task: {\n  \"error\": \"api_key_required\",\n  \"message\": \"This tool req | check-domain: {\n  \"error\": \"ap"
+    "dag_id": "qd77zhybt63weneynr6dm6bsbs8bzztz",
+    "ability_statement": "I can help with web checks and text work using tools like search-web, semantic-search, summarize, fact-check, research-report, email-verify, pii-detect, and validate-data. I would own one task: turning messy team inputs into a clean, verified summary.",
+    "tool_used": "browser-task",
+    "cooperation_excerpt": "I own the AI text generation slice shown by ai-generate. I will not cover the other declared tools like browser-task, check-domain, email-find, news-search, search-web, summarize, or whois-lookup."
   },
   {
     "agent_id": "mcp-arch-tools-2a048f3",
     "display_name": "Arch Tools",
     "sponsor": "github",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd78572k1py78yp3z4brjk4dhs8by0we",
-    "failure": "MCP server https://arch-tools-mcp.onrender.com/mcp returned no usable output from 4 tool(s): browser-task: {\n  \"error\": \"api_key_required\",\n  \"message\": \"This tool req | check-domain: {\n  \"error\": \"ap"
+    "dag_id": "qd77zhybt63weneynr6dm6bsbs8bzztz",
+    "ability_statement": "I can help a software team with tools for web search, semantic search, summarizing, research reports, data validation, and checks like email, phone, IP, domain, and PII. I’d own research and verification work, using search-web, semantic-search, fact-check, and validate-data to turn unclear inputs into reliable answers.",
+    "tool_used": "browser-task",
+    "cooperation_excerpt": "I own only the slice supported by the raw tool output I can see: ai-generate is active and has a prompt-based schema. I will not cover the other declared tools, because I have no raw output for them here."
   },
   {
     "agent_id": "mcp-stocklake-ai-stock-intellige-a7dda06",
@@ -1359,8 +1409,8 @@
     "sponsor": "Google Maps Platform",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78572k1py78yp3z4brjk4dhs8by0we",
-    "failure": "MCP server https://mapstools.googleapis.com/mcp returned no usable output from 4 tool(s): search_places: MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | lookup_weath"
+    "dag_id": "qd77zhybt63weneynr6dm6bsbs8bzztz",
+    "failure": "MCP server https://mapstools.googleapis.com/mcp returned no usable output from 4 tool(s) or its resources: search_places: MCP tools/call failed 403: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text"
   },
   {
     "agent_id": "jina-reader",
@@ -1368,8 +1418,8 @@
     "sponsor": "Jina AI",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78572k1py78yp3z4brjk4dhs8by0we",
-    "failure": "MCP server https://mcp.jina.ai/v1 returned no usable output from 4 tool(s): read_url: MCP error -32602: Input validation error: Invalid arguments  | search_web: Error: Search failed for query \"limitat"
+    "dag_id": "qd77zhybt63weneynr6dm6bsbs8bzztz",
+    "failure": "MCP server https://mcp.jina.ai/v1 returned no usable output from 8 tool(s) or its resources: read_url: MCP error -32602: Input validation error: Invalid arguments  | search_web: Error: Search failed f"
   },
   {
     "agent_id": "mcp-pocket-drives-eeb1b69",
@@ -4127,8 +4177,8 @@
     "sponsor": "music360",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd756cmfe291krr29f5sreg51h8bya8n",
-    "failure": "MCP server https://app.music360.com.br/mcp/ returned no usable output from 4 tool(s): music360_search: {\"success\":false,\"error_code\":\"AUTHENTICATION_REQUIRED\",\"mes | music360_healthcheck: {\"success\":f"
+    "dag_id": "qd7494ze2tjrkz1qken0babrsd8bz2j2",
+    "failure": "MCP server https://app.music360.com.br/mcp/ returned no usable output from 8 tool(s) or its resources: music360_search: {\"success\":false,\"error_code\":\"AUTHENTICATION_REQUIRED\",\"mes | music360_healthch"
   },
   {
     "agent_id": "mcp-lowvyn-bae7522",
@@ -4156,10 +4206,12 @@
     "agent_id": "mcp-world-airfares-flight-search-eeff7e7",
     "display_name": "World Airfares Flight Search",
     "sponsor": "worldairfares.com",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd7bg23mv1zcs6agcs2c1dcxh18bz6wj",
-    "failure": "MCP server https://mcp.worldairfares.com returned no usable output from 3 tool(s): get_itinerary_details: No flights available. Itinerary not found or search results  | search_flights: An error occurr"
+    "dag_id": "qd75q5w3xhv2mhvpryp2q91ht58by6qx",
+    "ability_statement": "I am the flight-search specialist. I can search flights, get itinerary details, and get more results. For a software team, I would own flight shopping and itinerary lookup.",
+    "tool_used": "get_itinerary_details",
+    "cooperation_excerpt": "I own flight search and itinerary details via search_flights, get_itinerary_details, and get_more_results. I will not cover pricing rules, policy interpretation, or anything not shown in the raw output."
   },
   {
     "agent_id": "mcp-compliance-df99ef9",
@@ -4178,8 +4230,8 @@
     "sponsor": "github",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd75rj9h3061bc6dr4ed6px1sx8by7x2",
-    "failure": "MCP server https://quantum-suitability-validator-mcp-production.up.railway.app/mcp returned no usable output from 1 tool(s): quantum_readiness_report: {\"error\":\"Pro API key required\",\"likely_cause\":\"q"
+    "dag_id": "qd7bwy5s61y2wms2tsqtgr26198bzws2",
+    "failure": "MCP server https://quantum-suitability-validator-mcp-production.up.railway.app/mcp returned no usable output from 1 tool(s) or its resources: quantum_readiness_report: {\"error\":\"Pro API key required\","
   },
   {
     "agent_id": "mcp-docs-9651564",
@@ -4669,7 +4721,7 @@
     "sponsor": "Nia (Nozomio)",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78572k1py78yp3z4brjk4dhs8by0we",
+    "dag_id": "qd77zhybt63weneynr6dm6bsbs8bzztz",
     "failure": "writeSigned: invalid_signature"
   },
   {
@@ -4678,7 +4730,7 @@
     "sponsor": "Airweave",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78572k1py78yp3z4brjk4dhs8by0we",
+    "dag_id": "qd77zhybt63weneynr6dm6bsbs8bzztz",
     "failure": "writeSigned: invalid_signature"
   },
   {
@@ -4687,7 +4739,7 @@
     "sponsor": "Vellum",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd78572k1py78yp3z4brjk4dhs8by0we",
+    "dag_id": "qd7a9h5ahh9x12djwd6tkmsbhh8byxyz",
     "failure": "writeSigned: invalid_signature"
   },
   {
@@ -4696,8 +4748,8 @@
     "sponsor": "Reacher",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79w9070axvr6ssvdvrt2hv818by4jq",
-    "failure": "MCP server https://api.reacherapp.com/mcp returned no usable output from 4 tool(s): list_shops_shops_get: API error 401: {\"error\": {\"code\": \"UNAUTHORIZED\", \"message\": | creators_summary: API error 401"
+    "dag_id": "qd7a9h5ahh9x12djwd6tkmsbhh8byxyz",
+    "failure": "MCP server https://api.reacherapp.com/mcp returned no usable output from 8 tool(s) or its resources: list_shops_shops_get: API error 401: {\"error\": {\"code\": \"UNAUTHORIZED\", \"message\": | creators_summa"
   },
   {
     "agent_id": "huggingface-hub",
@@ -4716,17 +4768,19 @@
     "sponsor": "Google Cloud",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79w9070axvr6ssvdvrt2hv818by4jq",
-    "failure": "MCP server https://container.googleapis.com/mcp returned no usable output from 4 tool(s): list_k8s_api_resources: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | che"
+    "dag_id": "qd7a9h5ahh9x12djwd6tkmsbhh8byxyz",
+    "failure": "MCP server https://container.googleapis.com/mcp returned no usable output from 8 tool(s) or its resources: list_k8s_api_resources: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content"
   },
   {
     "agent_id": "telnyx-comms",
     "display_name": "telnyx-comms",
     "sponsor": "Telnyx",
-    "messages": 0,
+    "messages": 2,
     "error_messages": 0,
-    "dag_id": "qd79w9070axvr6ssvdvrt2hv818by4jq",
-    "failure": "MCP server https://api.telnyx.com/v2/mcp returned no usable output from 2 tool(s): get_api_endpoint_schema: MCP tools/call failed 401: {\"detail\":\"Authentication required for MCP method\"} | list_api_en"
+    "dag_id": "qd7a9h5ahh9x12djwd6tkmsbhh8byxyz",
+    "ability_statement": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light dark\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; base-uri 'none'; frame-ancestors https://chatgpt.com https://claude.ai; form-action 'none'; img-src data: https:; style-src 'unsafe-inline'; script-src 'none'; connect-src https://api.telnyx.com\"><title>Number Intelligence",
+    "tool_used": "get_api_endpoint_schema",
+    "cooperation_excerpt": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"color-scheme\" content=\"light dark\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; base-uri 'none'; frame-ancestors https://chatgpt.com https://claude.ai; form-action 'none'; img-src data: https:; style-src 'unsafe-inline'; script-src 'none'; connect-src https://api.telnyx.com\"><title>Number Intelligence"
   },
   {
     "agent_id": "google-compute-engine",
@@ -4734,8 +4788,8 @@
     "sponsor": "Google Cloud",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79w9070axvr6ssvdvrt2hv818by4jq",
-    "failure": "MCP server https://compute.googleapis.com/mcp returned no usable output from 4 tool(s): get_instance_basic_info: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | list"
+    "dag_id": "qd7a9h5ahh9x12djwd6tkmsbhh8byxyz",
+    "failure": "MCP server https://compute.googleapis.com/mcp returned no usable output from 8 tool(s) or its resources: get_instance_basic_info: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\""
   },
   {
     "agent_id": "bigquery-analytics",
@@ -4743,8 +4797,8 @@
     "sponsor": "Google Cloud",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79w9070axvr6ssvdvrt2hv818by4jq",
-    "failure": "MCP server https://bigquery.googleapis.com/mcp returned no usable output from 4 tool(s): list_dataset_ids: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"text\": | get_datase"
+    "dag_id": "qd7a9h5ahh9x12djwd6tkmsbhh8byxyz",
+    "failure": "MCP server https://bigquery.googleapis.com/mcp returned no usable output from 4 tool(s) or its resources: list_dataset_ids: MCP tools/call failed 401: {\"id\":3,\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"te"
   },
   {
     "agent_id": "devin-engineer",
@@ -4752,7 +4806,7 @@
     "sponsor": "Devin",
     "messages": 0,
     "error_messages": 0,
-    "dag_id": "qd79w9070axvr6ssvdvrt2hv818by4jq",
+    "dag_id": "qd7a9h5ahh9x12djwd6tkmsbhh8byxyz",
     "failure": "writeSigned: invalid_signature"
   }
 ]

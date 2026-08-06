@@ -211,7 +211,7 @@ export function pickTool(
 export function pickTools(
   tools: McpToolInfo[],
   preference: string[],
-  max = 4,
+  max = 8,
 ): McpToolInfo[] {
   const out: McpToolInfo[] = [];
   const seen = new Set<string>();
