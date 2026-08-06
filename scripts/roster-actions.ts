@@ -63,8 +63,9 @@ function main(): void {
   lines.push("");
   lines.push(
     "Everything reachable without credentials has been wired and proven. " +
-      "These two lists are the remainder, and both need decisions this agent " +
-      "does not make on its own: creating vendor accounts, and deleting rows.",
+      "These three lists are the remainder, and each needs a decision this agent " +
+      "does not make on its own: creating vendor accounts, approving calls that " +
+      "change real account state, and deleting rows.",
   );
   lines.push("");
 
@@ -94,12 +95,56 @@ function main(): void {
   lines.push("");
   const top10 = ranked.slice(0, 10).reduce((a, [, r]) => a + r.length, 0);
   lines.push(
-    `Leverage note: the top 10 vendors alone account for ${top10} of the ` +
-      `${paywalled.length} blocked agents, so ten signups do most of the work.`,
+    `Leverage note: there is NO shortcut here — the ${paywalled.length} blocked ` +
+      `agents are spread across ${ranked.length} distinct vendors, and the top 10 ` +
+      `unlock only ${top10} between them. Most are single-agent long-tail servers ` +
+      "where the signup cost likely exceeds the value; pick deliberately rather " +
+      "than working down the list.",
   );
   lines.push("");
 
-  lines.push("## 2. Rows to prune (nothing answers)");
+  // Agents that answered and named their tools, but whose every tool changes
+  // real state. They are one human decision away from delivering.
+  const liveMutating = census.filter(
+    (r) =>
+      (r.verdict === "live_open" || r.verdict === "live_keyed") &&
+      r.abilities.length > 0 &&
+      !r.abilities.some((t) => {
+        const l = t.toLowerCase();
+        return (
+          !/create|delete|remove|update|write|send|post|publish|deploy|pay|charge|buy|order|cancel|upload|invite|revoke|reset/.test(
+            l,
+          ) &&
+          /search|query|get_|list|read|fetch|ask|docs|lookup|find|describe|info|explain|summar|check|validate|verify|compare|analyz|detect|calculate|convert|estimate|resolve|status|health|ping|echo|hello|help|capabilit|count|inspect|parse|translate/.test(
+            l,
+          )
+        );
+      }),
+  );
+
+  lines.push("## 2. Agents awaiting your go-ahead (one decision from delivering)");
+  lines.push("");
+  lines.push(
+    `${liveMutating.length} agents are alive and published their tool list — they ` +
+      "responded and stated their abilities — but every tool they expose changes " +
+      "real state in an account (create, send, deploy, charge). Nothing was " +
+      "invoked on them, deliberately. Review the tools below and tell me which " +
+      "agents are safe to call, or approve specific tool names.",
+  );
+  lines.push("");
+  lines.push("| Agent | Vendor | Tools it exposes |");
+  lines.push("|---|---|---|");
+  for (const row of liveMutating.slice(0, 50)) {
+    lines.push(
+      `| ${esc(row.agent_id)} | ${esc(host(row.endpoint) || row.sponsor)} | ${esc(row.abilities.slice(0, 5).join(", "))} |`,
+    );
+  }
+  if (liveMutating.length > 50) {
+    lines.push(`| _(+${liveMutating.length - 50} more)_ | | |`);
+  }
+  lines.push("");
+
+  lines.push("## 3. Rows to prune (nothing answers)");
   lines.push("");
   lines.push(
     `${dead.length} registered agents have no reachable endpoint. They were retried ` +
