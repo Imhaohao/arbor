@@ -25,13 +25,13 @@ Within `live_no_delivery`: 36 expose only account-mutating tools and were delibe
 
 | Outcome | Agents | What it means |
 |---|---:|---|
-| Live, callable free | 555 | Server answered and listed real tools with no credential |
+| Live, callable free | 556 | Server answered and listed real tools with no credential |
 | Live with a key we hold | 4 | Answered using a credential already in the deployment |
 | **Needs money or an account** | **410** | Server is alive but refuses without credentials we do not have |
-| Dead endpoint | 243 | Nothing answers: DNS failure, timeout, 404, or 5xx |
+| Dead endpoint | 242 | Nothing answers: DNS failure, timeout, 404, or 5xx |
 | No transport in the row | 33 | Catalog entry with no endpoint to call at all |
 
-Of the 559 live agents, 502 expose at least one read-only tool that is safe to call blind. The other 57 expose only account-mutating tools (create/delete/send/deploy), so their liveness and abilities are proven but calling them would change real state in someone's account.
+Of the 560 live agents, 503 expose at least one read-only tool that is safe to call blind. The other 57 expose only account-mutating tools (create/delete/send/deploy), so their liveness and abilities are proven but calling them would change real state in someone's account.
 
 ## Proven in the hive
 
@@ -157,7 +157,7 @@ HTTP 402 (literal Payment Required) was returned by 3 agents; the rest return 40
 |---|---:|
 | HTTP 404 | 107 |
 | fetch failed | 64 |
-| HTTP 200 | 22 |
+| HTTP 200 | 21 |
 | This operation was aborted | 14 |
 | HTTP 503 | 8 |
 | HTTP 405 | 8 |
@@ -171,7 +171,7 @@ These are registry rows pointing at servers that no longer exist. They are not f
 
 ## The ceiling, stated plainly
 
-A goal of "all 1248 agents deliver real output" is not reachable from here. 243 endpoints are gone, and 410 require accounts I will not create on your behalf. The reachable universe is 559 agents, and that is the population this run works against.
+A goal of "all 1248 agents deliver real output" is not reachable from here. 242 endpoints are gone, and 410 require accounts I will not create on your behalf. The reachable universe is 560 agents, and that is the population this run works against.
 
 Files: `autoresearch/data/roster-census.json`, `autoresearch/data/hive-mass-proof.json`.
 
