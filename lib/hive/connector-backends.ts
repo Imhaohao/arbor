@@ -284,6 +284,127 @@ async function readFirstResource(
   return null;
 }
 
+// ── A2A (agent-to-agent JSON-RPC) ───────────────────────────────────────────
+
+/**
+ * Speak to an A2A agent with `message/send`.
+ *
+ * The census only fetched agent cards, which proves a server is there but
+ * never asks it to do anything — 103 live A2A agents were counted as reachable
+ * without ever being invoked. A reply arrives either as a Message (parts) or
+ * as a Task (status.message + artifacts), so both shapes are read here.
+ *
+ * Dialect note carried over from lib/specialists/a2a-forwarding: v0.3 uses
+ * `kind: "text"` while older SDKs require `type: "text"`. The current dialect
+ * goes first and the legacy shape is retried only on an explicit rejection.
+ */
+export async function callA2aAgent(options: {
+  endpoint: string;
+  bearer?: string;
+  text: string;
+  timeoutMs?: number;
+}): Promise<BackendReply> {
+  const timeoutMs = options.timeoutMs ?? 60_000;
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    accept: "application/json",
+    ...(options.bearer ? { authorization: `Bearer ${options.bearer}` } : {}),
+  };
+
+  const send = async (legacy: boolean): Promise<unknown> => {
+    const part = legacy
+      ? { type: "text", text: options.text }
+      : { kind: "text", text: options.text };
+    const response = await fetchWithTimeout(
+      options.endpoint,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: `arbor-${Date.now()}`,
+          method: "message/send",
+          params: {
+            message: {
+              role: "user",
+              parts: [part],
+              messageId: `arbor-${Date.now()}`,
+              kind: "message",
+            },
+          },
+        }),
+      },
+      timeoutMs,
+    );
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(`A2A ${response.status}: ${body.slice(0, 160)}`);
+    }
+    const parsed = JSON.parse(body) as {
+      result?: unknown;
+      error?: { message?: string };
+    };
+    if (parsed.error) {
+      throw new Error(`A2A error: ${parsed.error.message?.slice(0, 160)}`);
+    }
+    return parsed.result;
+  };
+
+  let result: unknown;
+  try {
+    result = await send(false);
+  } catch (err) {
+    const message = (err as Error).message;
+    // Only retry the legacy dialect when the peer rejected the part shape.
+    if (!/part|kind|type|invalid/i.test(message)) throw err;
+    result = await send(true);
+  }
+
+  const text = extractA2aText(result);
+  if (!text) throw new Error("A2A agent returned no text content");
+  if (looksLikeErrorText(text)) {
+    throw new Error(`A2A agent returned an error: ${text.slice(0, 160)}`);
+  }
+  return {
+    text,
+    provenance: `real agent-to-agent: A2A message/send @ ${options.endpoint}`,
+  };
+}
+
+function partsText(parts: unknown): string {
+  if (!Array.isArray(parts)) return "";
+  return parts
+    .map((p) =>
+      p && typeof p === "object" && typeof (p as { text?: string }).text === "string"
+        ? ((p as { text: string }).text ?? "")
+        : "",
+    )
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
+/** Pull text out of either an A2A Message or an A2A Task result. */
+export function extractA2aText(result: unknown): string {
+  if (!result || typeof result !== "object") return "";
+  const r = result as {
+    parts?: unknown;
+    status?: { message?: { parts?: unknown } };
+    artifacts?: Array<{ parts?: unknown }>;
+    task?: unknown;
+  };
+  const direct = partsText(r.parts);
+  if (direct) return direct;
+  const fromStatus = partsText(r.status?.message?.parts);
+  if (fromStatus) return fromStatus;
+  for (const artifact of r.artifacts ?? []) {
+    const t = partsText(artifact?.parts);
+    if (t) return t;
+  }
+  if (r.task) return extractA2aText(r.task);
+  return "";
+}
+
 // ── Devin (Cognition) sessions API ──────────────────────────────────────────
 
 const DEVIN_BASE = "https://api.devin.ai/v1";
