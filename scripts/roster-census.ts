@@ -560,10 +560,88 @@ async function deliverAll(): Promise<void> {
   console.log(`delivered real output: ${ok}/${rows.length}`);
 }
 
+/**
+ * Second chance for endpoints recorded as dead.
+ *
+ * A registry row can be one path segment away from working: MCP servers are
+ * published variously at `/`, `/mcp`, `/sse`, and `/api/mcp`, and some rows
+ * carry a trailing slash the server rejects. Retrying those variants
+ * separates "this vendor is gone" from "our stored URL was wrong", which are
+ * very different problems for the operator.
+ */
+function urlVariants(endpoint: string): string[] {
+  const trimmed = endpoint.replace(/\/+$/, "");
+  const out = new Set<string>();
+  const alreadyMcp = /\/(mcp|sse|api\/mcp)$/i.test(trimmed);
+  if (!alreadyMcp) {
+    out.add(`${trimmed}/mcp`);
+    out.add(`${trimmed}/sse`);
+    out.add(`${trimmed}/api/mcp`);
+  } else {
+    // Strip the suffix in case the base itself is the server.
+    out.add(trimmed.replace(/\/(mcp|sse|api\/mcp)$/i, ""));
+  }
+  out.add(`${trimmed}/`);
+  out.delete(trimmed);
+  return [...out].filter((u) => u.length > 8);
+}
+
+async function repairDead(): Promise<void> {
+  const census = JSON.parse(readFileSync(CENSUS_PATH, "utf8")) as CensusRow[];
+  const dead = census.filter((r) => r.verdict === "dead" && r.endpoint);
+  const limit = Number(flag("limit") ?? dead.length);
+  const subset = dead.slice(0, limit);
+  const timeoutMs = Number(flag("timeout") ?? 8_000);
+  console.log(`repair-probing ${subset.length} dead endpoints across URL variants`);
+
+  let recovered = 0;
+  const updates = await mapWithConcurrency(
+    subset,
+    Number(flag("concurrency") ?? 20),
+    async (row): Promise<CensusRow> => {
+      for (const candidate of urlVariants(row.endpoint!)) {
+        const key = row.key_env ? process.env[row.key_env]?.trim() : undefined;
+        const probe = await probeMcp(candidate, key, timeoutMs);
+        if (probe.ok) {
+          recovered += 1;
+          return {
+            ...row,
+            endpoint: candidate,
+            verdict: key ? "live_keyed" : "live_open",
+            abilities: probe.abilities,
+            http_status: probe.status,
+            detail: `recovered by URL repair from ${row.endpoint}`,
+          };
+        }
+        if (probe.status && isAuthStatus(probe.status)) {
+          return {
+            ...row,
+            endpoint: candidate,
+            verdict: "paywalled",
+            http_status: probe.status,
+            detail: `URL repaired from ${row.endpoint}; server demands credentials`,
+          };
+        }
+      }
+      return row;
+    },
+    (done, total) => console.log(`  ${done}/${total}`),
+  );
+
+  const byId = new Map(updates.map((u) => [u.agent_id, u]));
+  const merged = census.map((r) => byId.get(r.agent_id) ?? r);
+  writeFileSync(CENSUS_PATH, `${JSON.stringify(merged, null, 2)}\n`);
+  const tally: Record<string, number> = {};
+  for (const r of merged) tally[r.verdict] = (tally[r.verdict] ?? 0) + 1;
+  console.log(`\nrecovered ${recovered} previously-dead endpoints`);
+  console.log(JSON.stringify(tally, null, 2));
+}
+
 async function main(): Promise<void> {
   loadEnvLocal();
   const command = process.argv[2];
   if (command === "probe") await probeAll();
+  else if (command === "repair") await repairDead();
   else if (command === "deliver") await deliverAll();
   else {
     console.log("usage: roster-census <probe|deliver> [--limit N] [--concurrency N]");

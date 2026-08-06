@@ -361,6 +361,157 @@ async function run(): Promise<void> {
   console.log(`proof written to ${PROOF_PATH}`);
 }
 
+/**
+ * Seat agents whose every tool mutates real account state.
+ *
+ * These servers answered `tools/list` with real tool names — that is a
+ * non-error response and it is their ability statement. What they cannot
+ * safely do in a blind sweep is DELIVER, because invoking their tools would
+ * create, send, deploy, or charge something in a real account. So they join
+ * the table with a capability declaration derived strictly from the tool
+ * names they published, and the board entry says plainly that no tool was
+ * invoked. Two of the three bars, honestly labeled, instead of a fake third.
+ */
+async function declareOnly(): Promise<void> {
+  const census = readJson<CensusLike[]>(CENSUS_PATH, []);
+  const live = census.filter(
+    (r) =>
+      (r.verdict === "live_open" || r.verdict === "live_keyed") &&
+      r.transport === "mcp" &&
+      r.abilities.length > 0,
+  );
+  const { readOnlyAbilities } = await import("../lib/hive/census-roster");
+  const mutatingOnly = live.filter((r) => readOnlyAbilities(r.abilities).length === 0);
+
+  const done = readJson<AgentProof[]>(PROOF_PATH, []);
+  const doneIds = new Set(done.filter((d) => d.messages > 0).map((d) => d.agent_id));
+  const pending = mutatingOnly.filter((r) => !doneIds.has(r.agent_id));
+  const limit = Number(flag("limit") ?? pending.length);
+  const subset = pending.slice(0, limit);
+  const batchSize = Number(flag("batch") ?? 10);
+  console.log(
+    `declare-only: ${mutatingOnly.length} mutating-only live agents, ${subset.length} pending`,
+  );
+
+  const secrets = readJson<Record<string, string>>(SECRETS_PATH, {});
+  const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL ?? "");
+  const proofs = [...done];
+
+  for (let i = 0; i < subset.length; i += batchSize) {
+    const batch = subset.slice(i, i + batchSize);
+    const toProvision = batch.map((row) => {
+      if (!secrets[row.agent_id]) {
+        secrets[row.agent_id] = randomBytes(32).toString("base64");
+      }
+      return {
+        agent_id: row.agent_id,
+        display_name: (row.display_name || row.agent_id).slice(0, 80),
+        sponsor: (row.sponsor || "unknown").slice(0, 80),
+        capabilities: row.abilities.slice(0, 6),
+        system_prompt: `You are ${row.agent_id}, an external specialist in an Arbor hive roundtable.`,
+        cost_per_task_estimate: 0.4,
+        starting_reputation: 0.5,
+        secret_b64: secrets[row.agent_id],
+      };
+    });
+
+    try {
+      convexRun("hiveConnector:_bulkProvision", { agents: toProvision });
+      writeJson(SECRETS_PATH, secrets);
+      const created = convexRun("hiveConnector:_createDiscussionSession", {
+        goal: GOAL,
+        posted_by: "hive-mass-declare",
+        max_budget: 5,
+        agent_ids: batch.map((b) => b.agent_id),
+      }) as { dag_id?: string } | null;
+      if (!created?.dag_id) throw new Error("session creation failed");
+      const dagId = created.dag_id;
+
+      const results = await Promise.allSettled(
+        batch.map(async (row) => {
+          const statement = await callOpenAI({
+            purpose: "agent",
+            maxTokens: 200,
+            systemPrompt:
+              `You are ${row.agent_id} (${row.display_name} by ${row.sponsor}), an external ` +
+              "specialist at a multi-agent roundtable. State what you can do for a software " +
+              "team, based ONLY on the tool names your server published. Name one task you " +
+              "would own. Say explicitly that your tools change real account state, so you " +
+              "need an operator's go-ahead before you run anything. Under 60 words, plain " +
+              "sentences, no markdown.",
+            userPrompt: `Tools your server published: ${row.abilities.slice(0, 25).join(", ")}`,
+          });
+          const secret = secrets[row.agent_id];
+          if (!secret) throw new Error("no HMAC secret");
+          const written = (await client.action(
+            api.scratchpadActions.writeSigned,
+            signedWriteArgs({
+              payload: {
+                dag_id: dagId,
+                node_id: `propose:${row.agent_id}`,
+                kind: "proposal",
+                content: composeEntryContent({
+                  message: truncateForBoard(statement.trim()),
+                  provenance:
+                    `capabilities declared via MCP tools/list @ ${row.endpoint} — ` +
+                    "NO tool invoked: every tool this server exposes mutates real " +
+                    "account state, so delivery awaits operator approval",
+                }),
+                confidence: 0.5,
+              },
+              agentId: row.agent_id,
+              secretB64: secret,
+              nowMs: Date.now(),
+              nonce: randomUUID(),
+            }) as never,
+          )) as { ok: boolean; error?: string };
+          if (!written.ok) throw new Error(`writeSigned: ${written.error}`);
+          return { row, statement: statement.trim() };
+        }),
+      );
+
+      const merged = new Map(proofs.map((p) => [p.agent_id, p]));
+      results.forEach((res, idx) => {
+        const row = batch[idx];
+        if (res.status === "fulfilled") {
+          merged.set(row.agent_id, {
+            agent_id: row.agent_id,
+            display_name: row.display_name,
+            sponsor: row.sponsor,
+            messages: 1,
+            error_messages: 0,
+            dag_id: dagId,
+            ability_statement: res.value.statement.slice(0, 400),
+            tool_used: "(declared only — no tool invoked)",
+          });
+        } else {
+          const msg =
+            res.reason instanceof Error ? res.reason.message : String(res.reason);
+          merged.set(row.agent_id, {
+            agent_id: row.agent_id,
+            display_name: row.display_name,
+            sponsor: row.sponsor,
+            messages: 0,
+            error_messages: 0,
+            failure: msg.slice(0, 200),
+          });
+        }
+      });
+      proofs.length = 0;
+      proofs.push(...merged.values());
+      writeJson(PROOF_PATH, proofs);
+      convexRun("hiveConnector:_completeSession", { dag_id: dagId });
+      const ok = results.filter((r) => r.status === "fulfilled").length;
+      console.log(`declare batch ${i / batchSize + 1}: ${ok}/${batch.length} declared`);
+    } catch (err) {
+      console.log(
+        `declare batch ${i / batchSize + 1} FAILED: ${(err as Error).message.slice(0, 140)}`,
+      );
+    }
+  }
+  console.log(`total board participants now: ${proofs.filter((p) => p.messages >= 1).length}`);
+}
+
 function report(): void {
   const proofs = readJson<AgentProof[]>(PROOF_PATH, []);
   const proven = proofs.filter((p) => p.messages >= 1);
@@ -377,9 +528,10 @@ async function main(): Promise<void> {
   loadEnvLocal();
   const command = process.argv[2];
   if (command === "run") await run();
+  else if (command === "declare") await declareOnly();
   else if (command === "report") report();
   else {
-    console.log("usage: hive-mass-session <run|report> [--batch N] [--rounds N] [--limit N]");
+    console.log("usage: hive-mass-session <run|declare|report> [--batch N] [--rounds N] [--limit N]");
     process.exitCode = 2;
   }
 }

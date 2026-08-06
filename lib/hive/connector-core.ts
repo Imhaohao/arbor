@@ -214,15 +214,56 @@ export function buildToolArgs(
   query: string,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  const props = schema?.properties ?? {};
+  const props = (schema?.properties ?? {}) as Record<string, SchemaProperty>;
   for (const name of schema?.required ?? []) {
-    const type = props[name]?.type;
-    if (type === "number" || type === "integer") out[name] = 5;
-    else if (type === "boolean") out[name] = false;
-    else if (type === "array") out[name] = [query];
-    else out[name] = query;
+    out[name] = valueForProperty(props[name], query);
   }
   return out;
+}
+
+interface SchemaProperty {
+  type?: string;
+  enum?: unknown[];
+  default?: unknown;
+  format?: string;
+  items?: SchemaProperty;
+  minimum?: number;
+}
+
+/**
+ * Pick a value a server will actually accept for one schema property.
+ *
+ * The schema usually already answers the question the error messages were
+ * asking: an `enum` lists the exact accepted values, and `default` is the
+ * server's own preferred input. Ignoring both was why the largest failure
+ * bucket in the roster sweep was "Invalid <field>. Available: ..." — the
+ * server had published the answer and we sent free text anyway.
+ */
+function valueForProperty(prop: SchemaProperty | undefined, query: string): unknown {
+  if (!prop) return query;
+  // The server enumerated exactly what it accepts — never guess past that.
+  if (Array.isArray(prop.enum) && prop.enum.length > 0) return prop.enum[0];
+  if (prop.default !== undefined) return prop.default;
+
+  switch (prop.type) {
+    case "number":
+    case "integer":
+      return typeof prop.minimum === "number" ? prop.minimum : 5;
+    case "boolean":
+      return false;
+    case "array":
+      return [valueForProperty(prop.items, query)];
+    case "object":
+      return {};
+    default:
+      break;
+  }
+  // Format-shaped strings reject prose outright.
+  if (prop.format === "date") return "2026-01-01";
+  if (prop.format === "date-time") return "2026-01-01T00:00:00Z";
+  if (prop.format === "email") return "agent@arbor.local";
+  if (prop.format === "uri" || prop.format === "url") return "https://example.com";
+  return query;
 }
 
 /**

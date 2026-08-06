@@ -134,6 +134,11 @@ function main(): void {
       "abilities are proven but calling them would change real state in someone's account.",
   );
   lines.push("");
+  // Two populations with different evidentiary strength. Conflating them
+  // would overstate the result: a declared-only agent never ran a tool.
+  const declaredOnly = spoke.filter((p) => p.tool_used?.startsWith("(declared"));
+  const delivered = spoke.filter((p) => !p.tool_used?.startsWith("(declared"));
+
   lines.push("## Proven in the hive");
   lines.push("");
   lines.push(
@@ -141,8 +146,20 @@ function main(): void {
       "(signed, HMAC-verified, stored in `scratchpad_entries`).",
   );
   lines.push(
-    `- **${cooperated.length} of those spoke in two or more rounds**, reading the shared ` +
-      "board between turns — that is the cooperation bar.",
+    `- **${delivered.length} of those cleared all three bars**: they responded without an " +
+      "error, stated their ability, and returned real output from their own server's tools.`,
+  );
+  lines.push(
+    `- **${cooperated.length} spoke in two or more rounds**, reading the shared board ` +
+      "between turns — that is the cooperation bar.",
+  );
+  lines.push(
+    `- **${declaredOnly.length} cleared two of the three bars**: they answered \`tools/list\` ` +
+      "with real tool names (a non-error response, and their ability statement), but every " +
+      "tool they expose mutates real account state — creating, sending, deploying, or " +
+      "charging something. Those were seated with a capability declaration and **no tool " +
+      "was invoked**. Delivery for this group needs an operator's explicit go-ahead, and " +
+      "each board entry says so.",
   );
   lines.push("");
   const isProse = (t?: string) => {
