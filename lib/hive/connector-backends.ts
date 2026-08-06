@@ -188,9 +188,52 @@ export async function callMcpAgent(
     };
   }
 
-  throw new Error(
-    `MCP server ${options.endpoint} returned no usable output from ${candidates.length} tool(s): ${failures.join(" | ").slice(0, 200)}`,
+  // Last resort: MCP exposes three primitives and tools are only one of them.
+  // A server whose tools demand domain arguments we cannot synthesize often
+  // still serves RESOURCES, which are pure reads by definition — no arguments
+  // to guess and no state to mutate.
+  const resourceText = await readFirstResource(session, timeoutMs).catch(
+    () => null,
   );
+  if (resourceText) {
+    return {
+      text: resourceText,
+      provenance: `real tool-backed: MCP resources/read @ ${options.endpoint}`,
+    };
+  }
+
+  throw new Error(
+    `MCP server ${options.endpoint} returned no usable output from ${candidates.length} tool(s) or its resources: ${failures.join(" | ").slice(0, 200)}`,
+  );
+}
+
+/** Read the first readable resource a server advertises, if any. */
+async function readFirstResource(
+  session: McpSession,
+  timeoutMs: number,
+): Promise<string | null> {
+  const listed = (await mcpRpc(session, "resources/list", {}, timeoutMs).catch(
+    () => null,
+  )) as { result?: { resources?: Array<{ uri?: string }> } } | null;
+  const resources = listed?.result?.resources ?? [];
+  for (const resource of resources.slice(0, 3)) {
+    if (!resource.uri) continue;
+    const read = (await mcpRpc(
+      session,
+      "resources/read",
+      { uri: resource.uri },
+      timeoutMs,
+    ).catch(() => null)) as {
+      result?: { contents?: Array<{ text?: string }> };
+    } | null;
+    const text = (read?.result?.contents ?? [])
+      .map((c) => c.text ?? "")
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+    if (text && !looksLikeErrorText(text)) return text.slice(0, 4000);
+  }
+  return null;
 }
 
 // ── Devin (Cognition) sessions API ──────────────────────────────────────────

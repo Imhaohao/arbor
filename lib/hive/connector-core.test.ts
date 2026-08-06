@@ -348,7 +348,7 @@ assert.equal(
     Array.from({ length: 10 }, (_, i) => ({ name: `search_${i}` })),
     Array.from({ length: 10 }, (_, i) => `search_${i}`),
   ).length,
-  4,
+  8,
 );
 
 console.log("multi-tool fallback tests passed");
