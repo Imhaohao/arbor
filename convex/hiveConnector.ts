@@ -86,6 +86,68 @@ export const _setAgentRole = internalMutation({
   },
 });
 
+// Bulk provisioning for census-scale roundtables. One row per agent plus one
+// HMAC key each; batched by the caller because a Convex mutation is a
+// transaction with a bounded write budget. Idempotent on the agent row, and
+// key rotation is deliberate: re-provisioning mints a fresh secret rather
+// than trusting whatever the caller last stored.
+export const _bulkProvision = internalMutation({
+  args: {
+    agents: v.array(
+      v.object({
+        agent_id: v.string(),
+        display_name: v.string(),
+        sponsor: v.string(),
+        capabilities: v.array(v.string()),
+        system_prompt: v.string(),
+        cost_per_task_estimate: v.number(),
+        starting_reputation: v.number(),
+        secret_b64: v.string(),
+      }),
+    ),
+  },
+  returns: v.object({ created: v.number(), keyed: v.number() }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    let created = 0;
+    let keyed = 0;
+    for (const a of args.agents) {
+      const existing = await ctx.db
+        .query("agents")
+        .withIndex("by_agent_id", (q) => q.eq("agent_id", a.agent_id))
+        .first();
+      if (!existing) {
+        await ctx.db.insert("agents", {
+          agent_id: a.agent_id,
+          display_name: a.display_name,
+          sponsor: a.sponsor,
+          capabilities: a.capabilities,
+          system_prompt: a.system_prompt,
+          cost_per_task_estimate: a.cost_per_task_estimate,
+          reputation_score: a.starting_reputation,
+          total_tasks_completed: 0,
+          total_disputes_lost: 0,
+        });
+        created += 1;
+      }
+      const priorKeys = await ctx.db
+        .query("agent_keys")
+        .withIndex("by_agent_id", (q) => q.eq("agent_id", a.agent_id))
+        .collect();
+      const active = priorKeys.filter((k) => k.revoked_at === undefined);
+      if (active.length === 0) {
+        await ctx.db.insert("agent_keys", {
+          agent_id: a.agent_id,
+          secret_b64: a.secret_b64,
+          created_at: now,
+        });
+        keyed += 1;
+      }
+    }
+    return { created, keyed };
+  },
+});
+
 export const _completeSession = internalMutation({
   args: { dag_id: v.id("hive_dags") },
   returns: v.null(),

@@ -50,6 +50,40 @@ still see audit tasks as ordinary tasks in the auction.
 - Stock media module (`lib/stock/*`): not wired into any runtime path at all
   (only `scripts/render-video.ts` uses it) — integration before UI.
 
+## Demo run-sheet (measured 2026-08-06, capped roster)
+
+The task-execution note above ("fails live with provider 429s") is stale. The
+flow works on the Azure lane. Measured over 22 realistic buyer tasks with
+`ARBOR_MAX_SOLICITED_AGENTS=40`: 11/22 reach a judged deliverable, median
+128s, 0 auctions fail outright, and 85.7% of wins go to a genuine specialist
+rather than an Arbor floor agent.
+
+Demo these four. All are single-step, accepted by the judge, and land in
+about two minutes:
+
+| Task | Winner | Time |
+|---|---|---|
+| `copy-water-bottle` (copywriting) | reacher-social | 111s |
+| `organic-pr-review` | arbor-baseline | 116s |
+| `campaign-electrolyte-full` | reacher-social | 128s |
+| `organic-trip-planning` | reacher-social | 132s |
+
+Prompts are in `scripts/demo-reliability.ts`. Re-measure any time with:
+`npx tsx scripts/demo-reliability.ts --timeout-ms 600000`
+
+Do NOT demo a compound/multi-step task. Child auctions run sequentially at
+~2 min each, and 6/22 parents ended `blocked_on_failed_child`.
+
+## Known-bad agents (block the remaining deliveries)
+
+- `nia-context` won 4 auctions and failed all 4 —
+  `execution_failed: partial_receipt: missing external_session_id`. This is
+  the single largest remaining source of failed tasks.
+- `aws-knowledge` failed 2 child steps, `twilio-docs` 1, same receipt error.
+- `openzeppelin-contracts` won an auction with no registered runner at all
+  ("No specialist runner registered"). A discovered specialist can bid
+  without being executable — worth a registry-level guard.
+
 ## Verification caveats
 
 - Media artifacts panel (`components/task/MediaArtifactsPanel.tsx`) ships

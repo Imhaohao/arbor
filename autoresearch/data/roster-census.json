@@ -1,0 +1,1089 @@
+[
+  {
+    "agent_id": "seed-launch-strategist",
+    "display_name": "Seed Launch Strategist",
+    "sponsor": "Independent Growth Advisor (synthesized)",
+    "transport": "none",
+    "key_present": false,
+    "verdict": "no_transport",
+    "abilities": []
+  },
+  {
+    "agent_id": "currency-agent-a2a",
+    "display_name": "Currency Agent",
+    "sponsor": "Currency Agent",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "dead",
+    "abilities": [],
+    "endpoint": "https://partner-imposed-exploration-hawk.trycloudflare.com/",
+    "detail": "fetch failed",
+    "latency_ms": 30
+  },
+  {
+    "agent_id": "currency-agent-a2a-2",
+    "display_name": "Currency Agent",
+    "sponsor": "Currency Agent",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "dead",
+    "abilities": [],
+    "endpoint": "https://combining-divx-riders-los.trycloudflare.com/",
+    "detail": "fetch failed",
+    "latency_ms": 31
+  },
+  {
+    "agent_id": "infergonka-a2a",
+    "display_name": "inferGONKA",
+    "sponsor": "Gonka Network",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "dead",
+    "abilities": [],
+    "endpoint": "https://a2a.gogonka.com/messages",
+    "http_status": 410,
+    "detail": "<html>\r\n<head><title>410 Gone</title></head>\r\n<body>\r\n<center><h1>410 Gone</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n",
+    "latency_ms": 746
+  },
+  {
+    "agent_id": "aiscan",
+    "display_name": "AIScan",
+    "sponsor": "AIScan",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Check Health",
+      "Check Llms Txt",
+      "Check Schema",
+      "Check Agent Files",
+      "Check Mcp",
+      "Score Aeo",
+      "Score Geo",
+      "Score Agent",
+      "Score Mcp",
+      "Generate Llms Txt",
+      "Generate Mcp Json",
+      "Full Audit",
+      "Fix Pack",
+      "Compare",
+      "Visibility Fix Pack",
+      "Full Report",
+      "Visibility Check",
+      "Visibility Vs Competitor"
+    ],
+    "endpoint": "https://api.getaiscan.app/a2a",
+    "http_status": 200,
+    "latency_ms": 397
+  },
+  {
+    "agent_id": "partstable-intelligence",
+    "display_name": "PartsTable Intelligence",
+    "sponsor": "PartsTable Design LLC",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "dead",
+    "abilities": [],
+    "endpoint": "https://partsiq-api.onrender.com/a2a",
+    "key_env": "ARBOR_A2A_KEY_PARTSTABLE_INTELLIGENCE",
+    "http_status": 503,
+    "detail": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>Service",
+    "latency_ms": 396
+  },
+  {
+    "agent_id": "gitdealflow-signal-agent",
+    "display_name": "GitDealFlow Signal Agent",
+    "sponsor": "GitDealFlow",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Get Trending Startups",
+      "Search Startups by Sector",
+      "Get Startup Signal Profile",
+      "Get Signals Summary",
+      "Get Methodology",
+      "Get Scout Receipts",
+      "Get Deep Signal (paid)"
+    ],
+    "endpoint": "https://signals.gitdealflow.com/api/a2a",
+    "http_status": 200,
+    "latency_ms": 504
+  },
+  {
+    "agent_id": "postalform",
+    "display_name": "PostalForm",
+    "sponsor": "PostalForm",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Connect an agent to PostalForm MCP",
+      "Plan a reviewable physical-mail draft",
+      "Plan an authorized machine-paid mail order"
+    ],
+    "endpoint": "https://postalform.com/a2a",
+    "http_status": 200,
+    "latency_ms": 723
+  },
+  {
+    "agent_id": "bot-hub",
+    "display_name": "Bot Hub",
+    "sponsor": "Bot Hub",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Portfolio Status",
+      "Weather Forecast Edge",
+      "Market Scan",
+      "Oracle Trading Picks"
+    ],
+    "endpoint": "https://baconhollow.com",
+    "http_status": 200,
+    "latency_ms": 811
+  },
+  {
+    "agent_id": "mobility-quote-agent",
+    "display_name": "Mobility Quote Agent",
+    "sponsor": "KLO",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "dead",
+    "abilities": [],
+    "endpoint": "https://212-47-77-33.sslip.io/",
+    "detail": "fetch failed",
+    "latency_ms": 10497
+  },
+  {
+    "agent_id": "proofof-ai-meok-compliance-attestation-ag",
+    "display_name": "ProofOf.AI — MEOK Compliance Attestation Agent",
+    "sponsor": "MEOK AI Labs (CSOAI LTD, UK Companies House 16939677)",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "ProofOf.ai"
+    ],
+    "endpoint": "https://proofof.ai",
+    "http_status": 200,
+    "latency_ms": 804
+  },
+  {
+    "agent_id": "packrift-a2a-packaging-procurement-router",
+    "display_name": "Packrift A2A Packaging Procurement Router",
+    "sponsor": "Packrift",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Packrift Procurement Routing",
+      "Public SKU Record Lookup",
+      "Guarded Cart Handoff"
+    ],
+    "endpoint": "https://packrift-agent-discovery-hub.vercel.app/api/a2a",
+    "http_status": 200,
+    "latency_ms": 614
+  },
+  {
+    "agent_id": "agent-exchange",
+    "display_name": "Agent Exchange",
+    "sponsor": "Agent Exchange",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "dead",
+    "abilities": [],
+    "endpoint": "https://agentexchange.work/a2a/",
+    "http_status": 404,
+    "detail": "Not found",
+    "latency_ms": 2135
+  },
+  {
+    "agent_id": "silas",
+    "display_name": "Silas",
+    "sponsor": "Sylex Commons",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Community Information",
+      "Join Community",
+      "Open Conversation"
+    ],
+    "endpoint": "https://silas.sylex.ai",
+    "http_status": 200,
+    "latency_ms": 916
+  },
+  {
+    "agent_id": "rosentic",
+    "display_name": "Rosentic",
+    "sponsor": "Rosentic",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Assess Integration Posture",
+      "Check Cross-Branch Conflicts",
+      "Explain Conflict",
+      "List Branches",
+      "Merge Index"
+    ],
+    "endpoint": "https://api.rosentic.com/a2a",
+    "http_status": 200,
+    "latency_ms": 833
+  },
+  {
+    "agent_id": "aurelius-agent",
+    "display_name": "Aurelius Agent",
+    "sponsor": "wundercorp",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Strategic Planning",
+      "Implementation Coordination",
+      "Build, Smoke Test, and Release Flow Support"
+    ],
+    "endpoint": "https://rpc.aureliusagent.dev/api/a2a",
+    "http_status": 200,
+    "latency_ms": 998
+  },
+  {
+    "agent_id": "match-it-up-networkbot",
+    "display_name": "Match It Up NetworkBot",
+    "sponsor": "Match It Up",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Intent Matching",
+      "Agent-to-Agent DM",
+      "Signal Posting",
+      "Trust Stamp Endorsement",
+      "Bond Protocol",
+      "Agent Registration",
+      "Agent Heartbeat / Status",
+      "Agent-to-Agent (A2A) Messaging",
+      "Cryptographic Agent Passport (Ed25519)",
+      "Agent Federation",
+      "Service Marketplace",
+      "Task Contracts"
+    ],
+    "endpoint": "https://matchitup.in/api/protocol",
+    "key_env": "ARBOR_A2A_KEY_MATCH_IT_UP_NETWORKBOT",
+    "http_status": 200,
+    "latency_ms": 1169
+  },
+  {
+    "agent_id": "nexus-intelligence",
+    "display_name": "NEXUS Intelligence",
+    "sponsor": "NEXUS Intelligence",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Get Kalshi Prediction Odds",
+      "Kalshi vs Polymarket Arb Spread",
+      "Market Signal Micro"
+    ],
+    "endpoint": "https://nexus-agent-xa12.onrender.com/a2a",
+    "http_status": 200,
+    "latency_ms": 989
+  },
+  {
+    "agent_id": "fodda",
+    "display_name": "Fodda",
+    "sponsor": "PSFK / Fodda",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Brand Intelligence",
+      "Trend Search",
+      "Deep Research",
+      "Cross-Company Earnings Themes",
+      "Per-Ticker Earnings Intelligence",
+      "Expert Consult",
+      "Commissioned Deliverable"
+    ],
+    "endpoint": "https://mcp.fodda.ai/a2a",
+    "http_status": 200,
+    "latency_ms": 1061
+  },
+  {
+    "agent_id": "anp2-network-relay",
+    "display_name": "ANP2 Network Relay",
+    "sponsor": "ANP2",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Publish signed event",
+      "Query the append-only log",
+      "Discover peer agents and capabilities",
+      "AI-to-AI task lifecycle (kinds 50-54)",
+      "Per-agent runtime dashboard",
+      "Recent trust-vote digest per agent",
+      "A2A v0.3 JSON-RPC interop",
+      "Single-file LLM agent onboarding (skill.md)"
+    ],
+    "endpoint": "https://anp2.com/api/a2a",
+    "http_status": 200,
+    "latency_ms": 1443
+  },
+  {
+    "agent_id": "perkoon-agent-data-layer",
+    "display_name": "Perkoon — Agent Data Layer",
+    "sponsor": "Perkoon",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Describe Capabilities",
+      "Send Files P2P",
+      "Receive Files",
+      "Session Status"
+    ],
+    "endpoint": "https://perkoon.com/a2a",
+    "http_status": 200,
+    "latency_ms": 1875
+  },
+  {
+    "agent_id": "korean-news-agent",
+    "display_name": "Korean News Agent",
+    "sponsor": "sapjilcoding",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Korean News Search",
+      "Global Tech News",
+      "Keyword News Search",
+      "Trending Headlines",
+      "Daily News Briefing"
+    ],
+    "endpoint": "https://news-agent.songt50.us",
+    "http_status": 200,
+    "latency_ms": 1765
+  },
+  {
+    "agent_id": "humanbrowser",
+    "display_name": "humanbrowser",
+    "sponsor": "Virix Labs",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Browser Task",
+      "Login and Scrape",
+      "Meta Business Workflow",
+      "Fill Form",
+      "Scrape URL",
+      "Relay (reverse-API)",
+      "Hostile Site Solver",
+      "Email-Verified Signup"
+    ],
+    "endpoint": "https://agent.humanbrowser.cloud/a2a",
+    "key_env": "ARBOR_A2A_KEY_HUMANBROWSER",
+    "http_status": 200,
+    "latency_ms": 1843
+  },
+  {
+    "agent_id": "korean-public-data-agent",
+    "display_name": "Korean Public Data Agent",
+    "sponsor": "sapjilcoding",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Korea Weather Forecast",
+      "Korea Air Quality",
+      "Korea Apartment Prices",
+      "Korea Economic Statistics",
+      "Business Registration Check"
+    ],
+    "endpoint": "https://publicdata-agent.songt50.us",
+    "http_status": 200,
+    "latency_ms": 1572
+  },
+  {
+    "agent_id": "torify-japanese-locale-apis-for-ai-agents",
+    "display_name": "Torify — Japanese Locale APIs for AI Agents",
+    "sponsor": "Torify (operated by Hiroki Sonoda)",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Japanese Era Conversion",
+      "Invoice Number Format Validation",
+      "Invoice Number Existence Verification",
+      "Japanese Corporate Number Lookup",
+      "Japanese Postal Code Lookup",
+      "Japanese Name Romanization",
+      "Kanji to Kana Conversion",
+      "Free Trial Signup",
+      "Japanese Consumption Tax Calculator",
+      "Japanese Public Holiday Check",
+      "Japanese Bank/Branch Lookup (Zengin)",
+      "Japanese Address Normalization",
+      "Japan Geodetic Coordinate Conversion (WGS84 ↔ JGD2011)",
+      "Japanese Age & School Year Calculation",
+      "Hiragana ↔ Katakana ↔ Half-width Conversion"
+    ],
+    "endpoint": "https://torify.dev/a2a",
+    "http_status": 200,
+    "latency_ms": 1424
+  },
+  {
+    "agent_id": "bidmachine-ad-exchange",
+    "display_name": "BidMachine Ad Exchange",
+    "sponsor": "BidMachine",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Search Inventory",
+      "Create Deal",
+      "List Deals",
+      "Activate Deal",
+      "Negotiate Pricing",
+      "Propose Deal",
+      "Refine Proposal",
+      "Finalize Proposal",
+      "Get Delivery Metrics",
+      "Get Audience Signals",
+      "Get Market Rate Intelligence",
+      "Get Trust Score",
+      "Get Deal Health",
+      "Simulate Auction",
+      "AdCP: comply_test_controller",
+      "AdCP: create_media_buy",
+      "AdCP: get_adcp_capabilities",
+      "AdCP: get_media_buy_delivery",
+      "AdCP: get_media_buys",
+      "AdCP: get_products",
+      "AdCP: get_signals",
+      "AdCP: list_accounts",
+      "AdCP: list_creative_formats",
+      "AdCP: preview_creative",
+      "AdCP: provide_performance_feedback",
+      "AdCP: sync_accounts",
+      "AdCP: update_media_buy"
+    ],
+    "endpoint": "https://a2a.bidmachine.io/a2a",
+    "http_status": 200,
+    "latency_ms": 1339
+  },
+  {
+    "agent_id": "paki-curator",
+    "display_name": "PaKi Curator",
+    "sponsor": "El Vórtice — César Yagüe & Sara Vázquez",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Art Curation & Vibrational Guidance",
+      "Catalog & Technical Query",
+      "Spatial & Architectural Consultation",
+      "Multilingual Visitor Engagement",
+      "Agent-to-Agent Collaboration",
+      "Autonomous Outreach Missions",
+      "MCP Art Catalog Server"
+    ],
+    "endpoint": "https://paki-api.elfresonero.workers.dev",
+    "http_status": 200,
+    "latency_ms": 3793
+  },
+  {
+    "agent_id": "microquery",
+    "display_name": "Microquery",
+    "sponsor": "Microquery",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Biomedical & Clinical Data Query",
+      "Financial & Macroeconomic Data Query",
+      "Security & Vulnerability Data Query",
+      "Blockchain & DeFi Data Query",
+      "Research & Tech Data Query",
+      "Dataset Schema Discovery",
+      "Autonomous Agent Registration"
+    ],
+    "endpoint": "https://microquery.dev/v1/a2a",
+    "key_env": "ARBOR_A2A_KEY_MICROQUERY",
+    "http_status": 200,
+    "latency_ms": 1412
+  },
+  {
+    "agent_id": "iwant-marketplace",
+    "display_name": "iwant-marketplace",
+    "sponsor": "iwant.fyi",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "iwant.fyi demand-side protocol v1.0",
+      "Browse Wants",
+      "Post a Want",
+      "Respond to a Want",
+      "Get Want Details",
+      "Agent Profile"
+    ],
+    "endpoint": "https://iwant.fyi/api/a2a",
+    "http_status": 200,
+    "latency_ms": 1222
+  },
+  {
+    "agent_id": "ragsphere",
+    "display_name": "RagSphere",
+    "sponsor": "RagSphere Team",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Document Ingestion",
+      "RAG Query"
+    ],
+    "endpoint": "https://ragsphere.vercel.app/api/a2a/tasks",
+    "key_env": "ARBOR_A2A_KEY_RAGSPHERE",
+    "http_status": 200,
+    "latency_ms": 1082
+  },
+  {
+    "agent_id": "hivebank",
+    "display_name": "HiveBank",
+    "sponsor": "Hive Agent IQ",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "USDC Vault",
+      "Streaming Payments",
+      "Budget Management",
+      "Performance Credit Lines",
+      "HiveBond Staking",
+      "Ritz Cashback"
+    ],
+    "endpoint": "https://hivebank.onrender.com",
+    "http_status": 200,
+    "latency_ms": 1177
+  },
+  {
+    "agent_id": "pictomancer-ai",
+    "display_name": "Pictomancer.ai",
+    "sponsor": "Pictomancer.ai",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Analyze image",
+      "Resize image",
+      "Compress image",
+      "Convert image format",
+      "Crop image",
+      "Optimize image for a vision model",
+      "Image processing pipeline"
+    ],
+    "endpoint": "https://api.pictomancer.ai/a2a",
+    "http_status": 200,
+    "latency_ms": 1545
+  },
+  {
+    "agent_id": "hiveclear",
+    "display_name": "HiveClear",
+    "sponsor": "Hive Agent IQ",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Settlement",
+      "Validator Network"
+    ],
+    "endpoint": "https://hiveclear.onrender.com/a2a",
+    "http_status": 200,
+    "latency_ms": 1158
+  },
+  {
+    "agent_id": "algovoi-payment-agent",
+    "display_name": "AlgoVoi Payment Agent",
+    "sponsor": "AlgoVoi",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Verify On-Chain Payment",
+      "Create Hosted Checkout",
+      "Check Payment Status",
+      "Post Twitter Checkout",
+      "Agent Trust Bench"
+    ],
+    "endpoint": "https://api.algovoi.co.uk",
+    "key_env": "ARBOR_A2A_KEY_ALGOVOI_PAYMENT_AGENT",
+    "http_status": 200,
+    "latency_ms": 1832
+  },
+  {
+    "agent_id": "hivelaw",
+    "display_name": "HiveLaw",
+    "sponsor": "Hive Agent IQ",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Compliance Certification",
+      "Hallucination Audit",
+      "Dispute Resolution"
+    ],
+    "endpoint": "https://hivelaw.onrender.com",
+    "http_status": 200,
+    "latency_ms": 1116
+  },
+  {
+    "agent_id": "ambr",
+    "display_name": "Ambr",
+    "sponsor": "Ambr",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Create Ricardian Contract",
+      "Browse Contract Templates",
+      "Get Contract Details",
+      "Verify Contract Integrity",
+      "Check Contract Status",
+      "Agent Handshake"
+    ],
+    "endpoint": "https://getamber.dev/api/a2a",
+    "key_env": "ARBOR_A2A_KEY_AMBR",
+    "http_status": 200,
+    "latency_ms": 1150
+  },
+  {
+    "agent_id": "agent-health-monitor-ahm",
+    "display_name": "Agent Health Monitor (AHM)",
+    "sponsor": "Digital Intensity Ltd",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Trust Score Evaluation",
+      "Agent Health Monitoring",
+      "Verifiable Credential Issuance",
+      "Trust Report Generation",
+      "Agent Registration"
+    ],
+    "endpoint": "https://agenthealthmonitor.xyz/a2a",
+    "key_env": "ARBOR_A2A_KEY_AGENT_HEALTH_MONITOR_AHM",
+    "http_status": 200,
+    "latency_ms": 1138
+  },
+  {
+    "agent_id": "chainaware-ai-api",
+    "display_name": "ChainAware.ai API",
+    "sponsor": "ChainAware.ai",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Fraud Check",
+      "Wallet Audit",
+      "Wallet Segmentation",
+      "Rug Pull Check",
+      "Credit Score"
+    ],
+    "endpoint": "https://beta.backend.chainaware.ai/api/a2a",
+    "key_env": "ARBOR_A2A_KEY_CHAINAWARE_AI_API",
+    "http_status": 200,
+    "latency_ms": 1377
+  },
+  {
+    "agent_id": "marginalia",
+    "display_name": "marginalia",
+    "sponsor": "Polycode Limited",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Open chat",
+      "Recall memory",
+      "Research projects"
+    ],
+    "endpoint": "https://marginalia.polycode.co.uk/api/a2a",
+    "http_status": 200,
+    "latency_ms": 1225
+  },
+  {
+    "agent_id": "anlora",
+    "display_name": "Anlora",
+    "sponsor": "Anlora",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Get OnlyFans Agency Cost Benchmark",
+      "Compare OnlyFans Agency Tooling Landscape",
+      "Get AI-Autonomous vs AI-Assisted Threshold",
+      "List Industry Sources"
+    ],
+    "endpoint": "https://meetanlora.com/a2a",
+    "http_status": 200,
+    "latency_ms": 1105
+  },
+  {
+    "agent_id": "nefesh-human-state-agent",
+    "display_name": "Nefesh Human State Agent",
+    "sponsor": "Nefesh AI",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Get Human State",
+      "Ingest Biometric Signals",
+      "Get Trigger Memory",
+      "Get Session History"
+    ],
+    "endpoint": "https://mcp.nefesh.ai/a2a",
+    "http_status": 200,
+    "latency_ms": 1173
+  },
+  {
+    "agent_id": "zee",
+    "display_name": "Zee",
+    "sponsor": "p0stman",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Agency Inquiry",
+      "Portfolio Research",
+      "Book Discovery Call"
+    ],
+    "endpoint": "https://p0stman.com/api/agent",
+    "http_status": 200,
+    "latency_ms": 732
+  },
+  {
+    "agent_id": "acc-airspace",
+    "display_name": "ACC AirSpace",
+    "sponsor": "ACC Foundation",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Cross-platform Review Collaboration",
+      "Merchant-Consumer Matching",
+      "AI Content Collaboration",
+      "Cross-border Commerce",
+      "P2P Advertising Market"
+    ],
+    "endpoint": "https://acc-web3.onrender.com/api/guardian/a2a",
+    "http_status": 200,
+    "latency_ms": 778
+  },
+  {
+    "agent_id": "the-colony",
+    "display_name": "The Colony",
+    "sponsor": "The Colony",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Agent Registration",
+      "Create Posts",
+      "Comment on Posts",
+      "Vote on Posts",
+      "Browse Posts",
+      "Personalised For-You Feed",
+      "Direct Messages",
+      "Search",
+      "Agent Profiles",
+      "Marketplace",
+      "Collaborative Wiki"
+    ],
+    "endpoint": "https://thecolony.cc/api/v1",
+    "key_env": "ARBOR_A2A_KEY_THE_COLONY",
+    "http_status": 200,
+    "latency_ms": 1140
+  },
+  {
+    "agent_id": "a2a-browser",
+    "display_name": "a2a-browser",
+    "sponsor": "digiantnz",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Web Search",
+      "Page Fetch"
+    ],
+    "endpoint": "https://a2a-browser.digiant.nz",
+    "http_status": 200,
+    "latency_ms": 2809
+  },
+  {
+    "agent_id": "execution-market",
+    "display_name": "Execution Market",
+    "sponsor": "Ultravioleta DAO",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Publish Task for Execution",
+      "Manage Published Tasks",
+      "Review and Approve Submissions",
+      "Worker Assignment and Management",
+      "Batch Task Operations",
+      "Task Analytics and Reporting",
+      "Payment Management"
+    ],
+    "endpoint": "https://api.execution.market/a2a/v1",
+    "key_env": "ARBOR_A2A_KEY_EXECUTION_MARKET",
+    "http_status": 200,
+    "latency_ms": 957
+  },
+  {
+    "agent_id": "agent-approval-gateway-base-sepolia-testn",
+    "display_name": "Agent Approval Gateway (Base Sepolia Testnet)",
+    "sponsor": "Agent Approval Gateway",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Agent Approval"
+    ],
+    "endpoint": "https://claim-verification-agent-sepolia.muhammandahmad158609.workers.dev",
+    "http_status": 200,
+    "latency_ms": 731
+  },
+  {
+    "agent_id": "kira",
+    "display_name": "Kira",
+    "sponsor": "Kira Autonoma",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Web Intelligence Scan",
+      "CVE Security Analysis",
+      "GitHub Repository Health Check"
+    ],
+    "endpoint": "http://178.104.49.246:3000/a2a",
+    "http_status": 200,
+    "latency_ms": 418
+  },
+  {
+    "agent_id": "rett-fra-bonden",
+    "display_name": "Rett fra Bonden",
+    "sponsor": "Rett fra Bonden",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Discover Local Food Agents / Finn lokale matagenter",
+      "Register Food Producer Agent / Registrer matagent",
+      "Search & Compare Local Food / Søk og sammenlign",
+      "Start Agent Negotiation / Start forhandling"
+    ],
+    "endpoint": "https://rettfrabonden.com/a2a",
+    "http_status": 200,
+    "latency_ms": 1272
+  },
+  {
+    "agent_id": "clix-agent",
+    "display_name": "Clix Agent",
+    "sponsor": "Clix",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Send Push Notification",
+      "Trigger Campaign",
+      "Create or Update User",
+      "Track User Event"
+    ],
+    "endpoint": "https://api.clix.so/a2a",
+    "key_env": "ARBOR_A2A_KEY_CLIX_AGENT",
+    "http_status": 200,
+    "latency_ms": 1267
+  },
+  {
+    "agent_id": "agent-approval-gateway",
+    "display_name": "Agent Approval Gateway",
+    "sponsor": "Agent Approval Gateway",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Agent Approval"
+    ],
+    "endpoint": "https://claim-verification-agent-mvp.muhammandahmad158609.workers.dev",
+    "http_status": 200,
+    "latency_ms": 1121
+  },
+  {
+    "agent_id": "agent-hustle",
+    "display_name": "Agent Hustle",
+    "sponsor": "Pragmatic Coder",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "dead",
+    "abilities": [],
+    "endpoint": "https://agent.stakewatch.dev/a2a",
+    "http_status": 410,
+    "detail": "{\"error\":\"Agent Hustle services are offline\",\"status\":\"disabled\"}",
+    "latency_ms": 1348
+  },
+  {
+    "agent_id": "ragmap",
+    "display_name": "RAGMap",
+    "sponsor": "RAGMap",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "dead",
+    "abilities": [],
+    "endpoint": "https://ragmap-api.web.app",
+    "http_status": 503,
+    "detail": "\n<html><head>\n<meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\">\n<title>503 Server Error</title>\n</head>\n<body text=#000000 bgcolor=#ffffff>\n<h1",
+    "latency_ms": 1559
+  },
+  {
+    "agent_id": "validate-agent",
+    "display_name": "Validate Agent",
+    "sponsor": "Validate Agent",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Prompt Injection Detection",
+      "PII Detection & Redaction",
+      "HTML/XSS Sanitization",
+      "SQL Syntax & Injection Check",
+      "Data Format Validation",
+      "JSON Schema Validation",
+      "Batch Validation",
+      "IP Geo-Reputation & Sanctions",
+      "Secret & Credential Sweeping",
+      "JSON & Markdown Repair",
+      "Web Asset & Citation Formatting",
+      "Language & Toxicity Triage",
+      "Static Security Scan",
+      "Tool Chain Audit",
+      "Adversarial Probe"
+    ],
+    "endpoint": "https://validate-agent.fly.dev/api/a2a",
+    "http_status": 200,
+    "latency_ms": 1294
+  },
+  {
+    "agent_id": "policycheck",
+    "display_name": "PolicyCheck",
+    "sponsor": "PolicyCheck",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Comprehensive Policy Analysis",
+      "Quick Risk Check",
+      "Return Policy Analysis",
+      "Shipping Policy Analysis",
+      "Warranty Analysis",
+      "Terms & Conditions Analysis",
+      "Signed Seller Assessment"
+    ],
+    "endpoint": "https://policycheck.tools/api/a2a",
+    "key_env": "ARBOR_A2A_KEY_POLICYCHECK",
+    "http_status": 200,
+    "latency_ms": 1192
+  },
+  {
+    "agent_id": "mycelnet",
+    "display_name": "Mycelnet",
+    "sponsor": "Mycelnet",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Search Collective Knowledge",
+      "Browse Network Agents",
+      "Get Agent Trust Data",
+      "Network Digest",
+      "Join SwarmProfits Arena"
+    ],
+    "endpoint": "https://mycelnet.ai/a2a",
+    "http_status": 200,
+    "latency_ms": 1264
+  },
+  {
+    "agent_id": "phos-labs",
+    "display_name": "Phos Labs",
+    "sponsor": "Phos Labs",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Diagnose Customer Drop-off",
+      "Fix Checkout Flow",
+      "Write Converting Product Copy",
+      "Optimize Pricing Strategy",
+      "Predict Customer Churn",
+      "Personalize Sales Approach",
+      "Add Social Proof Signals",
+      "Design A/B Experiment",
+      "Ethics & Dark Pattern Audit"
+    ],
+    "endpoint": "https://mcp.phoslabs.io",
+    "http_status": 200,
+    "latency_ms": 1302
+  },
+  {
+    "agent_id": "neva",
+    "display_name": "Neva",
+    "sponsor": "Neva",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "Build Together"
+    ],
+    "endpoint": "https://neva.dt-agent.co.uk",
+    "http_status": 200,
+    "latency_ms": 1872
+  },
+  {
+    "agent_id": "a2abench",
+    "display_name": "A2ABench",
+    "sponsor": "A2ABench",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "dead",
+    "abilities": [],
+    "endpoint": "https://a2abench-api.web.app",
+    "http_status": 503,
+    "detail": "\n<html><head>\n<meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\">\n<title>503 Server Error</title>\n</head>\n<body text=#000000 bgcolor=#ffffff>\n<h1",
+    "latency_ms": 1575
+  },
+  {
+    "agent_id": "tooloracle",
+    "display_name": "ToolOracle",
+    "sponsor": "FeedOracle Technologies",
+    "transport": "a2a",
+    "key_present": false,
+    "verdict": "live_open",
+    "abilities": [
+      "NOMOS Cross-Border Preflight",
+      "OracleNet Intent Router",
+      "Multi-Chain Blockchain Intelligence (14 chains)",
+      "EU Regulatory Compliance (35 servers, 462 tools)",
+      "Finance, Macro & Markets (7 servers, 86 tools)",
+      "Business Intelligence & Growth (9 servers, 85 tools)",
+      "Travel, Jobs & Entertainment (8 servers, 76 tools)",
+      "Agent Trust, Identity & Orchestration (7 servers, 83 tools)",
+      "Payments & Settlement (4 servers, 48 tools)",
+      "OracleNet Deal Discovery Protocol v1"
+    ],
+    "endpoint": "https://tooloracle.io/a2a/jsonrpc",
+    "http_status": 200,
+    "latency_ms": 2114
+  }
+]
