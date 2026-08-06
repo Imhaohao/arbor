@@ -66,3 +66,28 @@ assert.equal(rosterEntryFromCensus({ ...live, transport: "none", endpoint: undef
 assert.equal(rosterFromCensus([live, live]).length, 1);
 
 console.log("census-roster tests passed");
+
+// ── A2A seating ─────────────────────────────────────────────────────────────
+
+const a2aRow: CensusLike = {
+  agent_id: "peer-agent",
+  display_name: "Peer",
+  sponsor: "Peer Inc",
+  transport: "a2a",
+  endpoint: "https://peer.test/a2a",
+  verdict: "live_open",
+  abilities: ["Check Health", "Search Startups"],
+};
+const a2aEntry = rosterEntryFromCensus(a2aRow);
+assert.ok(a2aEntry, "live a2a peers must be seatable");
+assert.equal(a2aEntry.backend.type, "a2a");
+// A2A takes a natural-language turn, so mutating-tool screening does not
+// apply — the peer decides what to do with the message.
+assert.ok(
+  rosterEntryFromCensus({ ...a2aRow, abilities: ["Create Invoice"] }),
+  "a2a seating must not be blocked by tool-name screening",
+);
+assert.equal(rosterEntryFromCensus({ ...a2aRow, verdict: "dead" }), null);
+assert.equal(rosterEntryFromCensus({ ...a2aRow, endpoint: undefined }), null);
+
+console.log("a2a seating tests passed");

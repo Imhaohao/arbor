@@ -114,12 +114,35 @@ export function readOnlyAbilities(abilities: string[]): string[] {
  * management servers whose every tool mutates state.
  */
 export function rosterEntryFromCensus(row: CensusLike): RosterEntry | null {
-  if (row.transport !== "mcp" || !row.endpoint) return null;
+  if (!row.endpoint) return null;
   if (row.verdict !== "live_open" && row.verdict !== "live_keyed") return null;
+  const label = row.display_name?.trim() || row.agent_id;
+
+  // A2A peers take a natural-language turn rather than a named tool call, so
+  // there is no argument to synthesize and no mutating-tool risk to screen
+  // for: the agent decides what to do with the message.
+  if (row.transport === "a2a") {
+    return {
+      agent_id: row.agent_id,
+      display_name: label,
+      sponsor: row.sponsor || "unknown",
+      capabilities: row.abilities.slice(0, 6),
+      system_prompt: `You are ${row.agent_id}, an external A2A specialist in an Arbor hive roundtable.`,
+      cost_per_task_estimate: 0.4,
+      starting_reputation: 0.5,
+      provenance_label: `real agent-to-agent (${label} A2A endpoint, census-derived entry)`,
+      requiresEnv: row.key_env ? [row.key_env] : [],
+      backend: {
+        type: "a2a",
+        endpoint: row.endpoint,
+        bearerEnv: row.key_env,
+      },
+    };
+  }
+
+  if (row.transport !== "mcp") return null;
   const safe = readOnlyAbilities(row.abilities);
   if (safe.length === 0) return null;
-
-  const label = row.display_name?.trim() || row.agent_id;
   return {
     agent_id: row.agent_id,
     display_name: label,

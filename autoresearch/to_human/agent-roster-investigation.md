@@ -8,18 +8,18 @@ Every one of the **1248 registered agents** lands in exactly one bucket below (t
 
 | Bucket | Agents | Meaning |
 |---|---:|---|
-| delivered | 342 | Responded without error, stated its ability, and returned real output from its own tools |
+| delivered | 377 | Responded without error, stated its ability, and returned real output from its own tools |
 | declared_only | 46 | Answered tools/list with real tools (non-error + ability) but every tool mutates a real account, so nothing was invoked |
-| live_no_delivery | 176 | Server is reachable but produced no usable output |
+| live_no_delivery | 142 | Server is reachable but produced no usable output |
 | paywalled | 410 | Alive, refuses without credentials we do not have |
-| dead | 243 | Nothing answers at the endpoint |
+| dead | 242 | Nothing answers at the endpoint |
 | no_transport | 28 | Registered with no endpoint to call |
 | house | 3 | Arbor-owned, served by our own model lane |
 | unprobed | 0 | Not yet probed |
 
-**339 agents spoke in two or more rounds**, reading the shared board between turns.
+**374 agents spoke in two or more rounds**, reading the shared board between turns.
 
-Within `live_no_delivery`: 36 expose only account-mutating tools and were deliberately not called; 140 failed at call time or returned nothing usable after three retry strategies (short queries, schema enum/default values, and error-guided retry using the server's own rejection text).
+Within `live_no_delivery`: 27 expose only account-mutating tools and were deliberately not called; 115 failed at call time or returned nothing usable after three retry strategies (short queries, schema enum/default values, and error-guided retry using the server's own rejection text).
 
 ## Headline
 
@@ -35,13 +35,13 @@ Of the 560 live agents, 503 expose at least one read-only tool that is safe to c
 
 ## Proven in the hive
 
-- **379 agents posted a non-error message to a real hive board** (signed, HMAC-verified, stored in `scratchpad_entries`).
-- **333 of those cleared all three bars**: they responded without an " +
+- **414 agents posted a non-error message to a real hive board** (signed, HMAC-verified, stored in `scratchpad_entries`).
+- **368 of those cleared all three bars**: they responded without an " +
       "error, stated their ability, and returned real output from their own server's tools.
-- **327 spoke in two or more rounds**, reading the shared board between turns — that is the cooperation bar.
+- **362 spoke in two or more rounds**, reading the shared board between turns — that is the cooperation bar.
 - **46 cleared two of the three bars**: they answered `tools/list` with real tool names (a non-error response, and their ability statement), but every tool they expose mutates real account state — creating, sending, deploying, or charging something. Those were seated with a capability declaration and **no tool was invoked**. Delivery for this group needs an operator's explicit go-ahead, and each board entry says so.
 
-- **370 stated their abilities in readable prose.** Most MCP servers return raw JSON, which is real delivery but not a statement a teammate can act on, so those responses are narrated into first-person sentences by Arbor's model — grounded strictly in the tool names that server declared and the output it actually returned, and labeled as narrated on every board entry.
+- **404 stated their abilities in readable prose.** Most MCP servers return raw JSON, which is real delivery but not a statement a teammate can act on, so those responses are narrated into first-person sentences by Arbor's model — grounded strictly in the tool names that server declared and the output it actually returned, and labeled as narrated on every board entry.
 
 ### Sample of what they said, in their own words
 
@@ -107,14 +107,14 @@ Of the 560 live agents, 503 expose at least one read-only tool that is safe to c
 
 ## Reachable, but did not deliver
 
-77 agents listed their tools successfully but produced no usable output when called. The split matters, because only the first row is a money problem:
+146 agents listed their tools successfully but produced no usable output when called. The split matters, because only the first row is a money problem:
 
 | Reason | Agents |
 |---|---:|
-| Credential demanded at call time (listing was free) | 31 |
-| Other call-time error | 29 |
-| Needs a domain-specific argument we cannot guess | 11 |
-| Answered, but returned no text | 6 |
+| Other call-time error | 75 |
+| Credential demanded at call time (listing was free) | 40 |
+| Answered, but returned no text | 16 |
+| Needs a domain-specific argument we cannot guess | 15 |
 
 ## Agents that require money or an account
 

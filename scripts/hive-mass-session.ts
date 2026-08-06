@@ -19,12 +19,13 @@ import {
   buildContextDigest,
   composeEntryContent,
   looksLikeErrorText,
+  buildRoundPrompt,
   roundSpec,
   signedWriteArgs,
   truncateForBoard,
   type BoardEntryLite,
 } from "../lib/hive/connector-core";
-import { callMcpAgent } from "../lib/hive/connector-backends";
+import { callA2aAgent, callMcpAgent } from "../lib/hive/connector-backends";
 import { rosterFromCensus, type CensusLike } from "../lib/hive/census-roster";
 import { callOpenAI } from "../lib/openai";
 import type { RosterEntry } from "../lib/hive/connector-roster";
@@ -214,18 +215,40 @@ async function runBatch(
     const board = await fetchBoard(client, dagId);
     const results = await Promise.allSettled(
       batch.map(async (entry) => {
-        if (entry.backend.type !== "mcp") throw new Error("non-mcp entry");
         const digest = buildContextDigest(board, entry.agent_id);
-        const reply = await callMcpAgent({
-          endpoint: entry.backend.endpoint,
-          bearer: entry.backend.bearerEnv
-            ? process.env[entry.backend.bearerEnv]
-            : undefined,
-          toolPreference: entry.backend.toolPreference,
-          argsFor: entry.backend.argsFor,
-          query: entry.backend.queryFor(round, GOAL, digest),
-          timeoutMs: 45_000,
-        });
+        let reply;
+        if (entry.backend.type === "a2a") {
+          reply = await callA2aAgent({
+            endpoint: entry.backend.endpoint,
+            bearer: entry.backend.bearerEnv
+              ? process.env[entry.backend.bearerEnv]
+              : undefined,
+            text: buildRoundPrompt({
+              goal: GOAL,
+              agentId: entry.agent_id,
+              displayName: entry.display_name,
+              sponsor: entry.sponsor,
+              capabilities: entry.capabilities,
+              memberIds: batch.map((b) => b.agent_id),
+              round,
+              digest,
+            }),
+            timeoutMs: 45_000,
+          });
+        } else if (entry.backend.type === "mcp") {
+          reply = await callMcpAgent({
+            endpoint: entry.backend.endpoint,
+            bearer: entry.backend.bearerEnv
+              ? process.env[entry.backend.bearerEnv]
+              : undefined,
+            toolPreference: entry.backend.toolPreference,
+            argsFor: entry.backend.argsFor,
+            query: entry.backend.queryFor(round, GOAL, digest),
+            timeoutMs: 45_000,
+          });
+        } else {
+          throw new Error(`unsupported backend ${entry.backend.type}`);
+        }
         const secret = secrets[entry.agent_id];
         if (!secret) throw new Error("no HMAC secret");
 

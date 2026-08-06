@@ -22,6 +22,12 @@ export type RosterBackend =
     }
   | { type: "ollama"; model: string }
   | {
+      /** A2A JSON-RPC peer: message/send with a natural-language turn. */
+      type: "a2a";
+      endpoint: string;
+      bearerEnv?: string;
+    }
+  | {
       /** Hyperspell memory agent: real add+query per round via held key. */
       type: "hyperspell";
       queryFor: (round: number, goal: string, digest: string) => string;
