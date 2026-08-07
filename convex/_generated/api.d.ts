@@ -27,6 +27,7 @@ import type * as auctions from "../auctions.js";
 import type * as battery from "../battery.js";
 import type * as bidProbes from "../bidProbes.js";
 import type * as bids from "../bids.js";
+import type * as buyerAnalytics from "../buyerAnalytics.js";
 import type * as contextEnrichment from "../contextEnrichment.js";
 import type * as crons from "../crons.js";
 import type * as demos from "../demos.js";
@@ -103,6 +104,7 @@ declare const fullApi: ApiFromModules<{
   battery: typeof battery;
   bidProbes: typeof bidProbes;
   bids: typeof bids;
+  buyerAnalytics: typeof buyerAnalytics;
   contextEnrichment: typeof contextEnrichment;
   crons: typeof crons;
   demos: typeof demos;
