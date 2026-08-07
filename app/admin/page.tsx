@@ -9,7 +9,9 @@
  * agents that support it.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { PageShell } from "@/components/ui/PageShell";
 import { AdminInsights } from "@/components/admin/AdminInsights";
 import { PaperPlaneTilt } from "@phosphor-icons/react";
@@ -30,6 +32,75 @@ interface A2ASpecialist {
   chat_unavailable_reason?: string;
   discovered: boolean;
 }
+
+// Mirrors the `agent_readiness` rows rendered by the dashboard's readiness
+// matrix (components/dashboard/SpecialistReadiness.tsx, backed by
+// convex/agentReadiness.ts:list). We only read the fields this console needs
+// — this is the same source of truth, not a second one.
+interface AgentReadinessRow {
+  agent_id: string;
+  readiness_status?: string;
+  transport_status: string;
+  required_key_env?: string;
+  note?: string;
+}
+
+/**
+ * Same vocabulary + colour language as STATUS_STYLE in
+ * components/dashboard/SpecialistReadiness.tsx, so the two surfaces agree.
+ * "checking" (query still loading) and "unknown" (no readiness row for this
+ * agent) are additions specific to this console — neither is a real status
+ * from that table, and neither is styled as positive/green.
+ */
+const READINESS_STYLE: Record<string, string> = {
+  ready: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+  needs_key: "bg-amber-50 text-amber-700 ring-amber-600/20",
+  protocol_mismatch: "bg-orange-50 text-orange-700 ring-orange-600/20",
+  endpoint_down: "bg-rose-50 text-rose-700 ring-rose-600/20",
+  mock_only: "bg-slate-100 text-slate-600 ring-slate-500/20",
+  needs_owner_action: "bg-violet-50 text-violet-700 ring-violet-600/20",
+  unknown: "bg-slate-100 text-slate-500 ring-slate-500/20",
+  checking: "bg-slate-100 text-slate-400 ring-slate-400/20",
+};
+
+const READINESS_LABEL: Record<string, string> = {
+  needs_key: "needs key",
+  protocol_mismatch: "protocol mismatch",
+  endpoint_down: "endpoint down",
+  mock_only: "mock only",
+  needs_owner_action: "needs owner action",
+  checking: "checking",
+};
+
+function readinessLabel(status: string): string {
+  return READINESS_LABEL[status] ?? status.replace(/_/g, " ");
+}
+
+/** Readiness statuses that mean "this specialist will most likely not answer
+ * right now" — used to decide whether to show the pre-send warning. */
+const NON_RESPONSIVE_STATUSES = new Set([
+  "needs_key",
+  "protocol_mismatch",
+  "endpoint_down",
+  "mock_only",
+  "needs_owner_action",
+]);
+
+function ReadinessBadge({ status }: { status: string }) {
+  const style = READINESS_STYLE[status] ?? READINESS_STYLE.unknown;
+  return (
+    <span
+      className={`inline-flex shrink-0 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset ${style}`}
+    >
+      {readinessLabel(status)}
+    </span>
+  );
+}
+
+// Shown as a clickable suggestion in the chat pane's empty state, so a
+// first-time visitor sees what a reasonable opening message looks like.
+const DEFAULT_PROMPT_SUGGESTION =
+  "What can you help me with, and what does a typical request look like?";
 
 interface ChatTurn {
   role: "user" | "agent" | "system";
@@ -54,6 +125,27 @@ export default function AdminPage() {
   const [keyInput, setKeyInput] = useState("");
   const [savingKey, setSavingKey] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Same readiness data the dashboard's agent readiness matrix renders
+  // (convex/agentReadiness.ts:list, consumed at
+  // components/dashboard/SpecialistReadiness.tsx:105). Convex useQuery
+  // returns undefined while loading — keep that distinct from "no row found"
+  // so we never show a fake-positive badge during load.
+  const readinessRows = useQuery(api.agentReadiness.list, {}) as
+    | AgentReadinessRow[]
+    | undefined;
+  const readinessByAgent = useMemo(() => {
+    const map = new Map<string, AgentReadinessRow>();
+    for (const row of readinessRows ?? []) map.set(row.agent_id, row);
+    return map;
+  }, [readinessRows]);
+
+  function readinessStatusFor(agentId: string): string {
+    if (readinessRows === undefined) return "checking";
+    const row = readinessByAgent.get(agentId);
+    if (!row) return "unknown";
+    return row.readiness_status ?? row.transport_status ?? "unknown";
+  }
 
   useEffect(() => {
     fetch("/api/admin/a2a-chat")
@@ -87,6 +179,14 @@ export default function AdminPage() {
   const turns = turnsByAgent[selected] ?? [];
   const spec = specialists.find((s) => s.agent_id === selected);
   const canChat = Boolean(spec?.chat_ready && spec.a2a_endpoint);
+  const specReadinessStatus = spec ? readinessStatusFor(spec.agent_id) : undefined;
+  const specReadinessRow = spec ? readinessByAgent.get(spec.agent_id) : undefined;
+  // The A2A endpoint exists (canChat) but the readiness matrix says it
+  // probably won't answer. We still let the operator send — a down endpoint
+  // is a legitimate thing to probe — we just warn honestly before they type.
+  const showReadinessWarning = Boolean(
+    canChat && specReadinessStatus && NON_RESPONSIVE_STATUSES.has(specReadinessStatus),
+  );
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -219,7 +319,10 @@ export default function AdminPage() {
             {specialists.map((s) => (
               <li key={s.agent_id}>
                 <button
+                  type="button"
                   onClick={() => setSelected(s.agent_id)}
+                  aria-label={s.display_name}
+                  aria-pressed={s.agent_id === selected}
                   className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                     s.agent_id === selected
                       ? "bg-brand-700 text-white"
@@ -230,19 +333,7 @@ export default function AdminPage() {
                     <span className="min-w-0 truncate font-medium">
                       {s.display_name}
                     </span>
-                    <span
-                      className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                        s.agent_id === selected
-                          ? s.chat_ready
-                            ? "bg-white/20 text-white"
-                            : "bg-white/15 text-white/80"
-                          : s.chat_ready
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-black/5 text-ink-muted"
-                      }`}
-                    >
-                      {s.chat_ready ? "A2A" : "listed"}
-                    </span>
+                    <ReadinessBadge status={readinessStatusFor(s.agent_id)} />
                   </span>
                   <span
                     className={`block truncate text-xs ${
@@ -251,6 +342,7 @@ export default function AdminPage() {
                   >
                     {s.agent_id}
                     {s.discovered ? " (discovered)" : ""}
+                    {!s.chat_ready ? " — no direct A2A endpoint" : ""}
                   </span>
                 </button>
               </li>
@@ -280,15 +372,69 @@ export default function AdminPage() {
             )}
           </div>
 
+          {showReadinessWarning && spec && (
+            <div
+              role="alert"
+              className="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800"
+            >
+              <p className="font-medium">
+                Readiness matrix says {spec.display_name} is &quot;
+                {readinessLabel(specReadinessStatus!)}&quot;.
+              </p>
+              <p className="mt-0.5">
+                Sending a message here still makes a real call to its
+                endpoint — it will likely fail, time out, or return an
+                error.
+                {specReadinessRow?.required_key_env
+                  ? ` Missing key: ${specReadinessRow.required_key_env}.`
+                  : ""}
+              </p>
+            </div>
+          )}
+
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {turns.length === 0 && (
-              <p className="text-sm text-ink-muted">
-                {spec
-                  ? canChat
-                    ? `Send a message to ${spec.display_name}. ${spec.one_liner}`
-                    : `${spec.display_name} is on the market listing, but is not directly reachable from this A2A console. ${spec.chat_unavailable_reason ?? ""}`
-                  : "Pick a specialist on the left."}
-              </p>
+              <div className="mx-auto flex max-w-sm flex-col items-center gap-3 py-10 text-center">
+                {!spec ? (
+                  <>
+                    <p className="text-sm font-medium text-ink">
+                      Pick a specialist on the left
+                    </p>
+                    <p className="text-sm text-ink-muted">
+                      This console sends a real A2A message/send call to that
+                      specialist&apos;s live endpoint and shows its actual
+                      reply — nothing here is simulated.
+                    </p>
+                  </>
+                ) : !canChat ? (
+                  <>
+                    <p className="text-sm font-medium text-ink">
+                      {spec.display_name} has no direct A2A endpoint
+                    </p>
+                    <p className="text-sm text-ink-muted">
+                      {spec.chat_unavailable_reason ??
+                        "This specialist is listed on the market, but this console cannot message it directly."}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-ink-muted">{spec.one_liner}</p>
+                    <p className="text-xs text-ink-muted">
+                      Hitting Send makes a real message/send call to{" "}
+                      {spec.display_name}&apos;s endpoint. The reply you see
+                      here is what it actually returns.
+                    </p>
+                    <button
+                      type="button"
+                      aria-label="Use a suggested first message"
+                      onClick={() => setInput(DEFAULT_PROMPT_SUGGESTION)}
+                      className="rounded-lg border border-black/10 bg-surface-muted px-3 py-1.5 text-xs text-ink-muted transition-colors hover:bg-black/5"
+                    >
+                      Try: &quot;{DEFAULT_PROMPT_SUGGESTION}&quot;
+                    </button>
+                  </>
+                )}
+              </div>
             )}
             {turns.map((t, i) => (
               <div
