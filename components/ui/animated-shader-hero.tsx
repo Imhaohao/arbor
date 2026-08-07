@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 
 // Types for component props
 interface HeroProps {
@@ -36,6 +36,11 @@ const useShaderBackground = () => {
   const animationFrameRef = useRef<number | null>(null);
   const rendererRef = useRef<WebGLRenderer | null>(null);
   const pointersRef = useRef<PointerHandler | null>(null);
+  // WebGL2 is not universally available — older machines, VMs, locked-down
+  // corporate browsers and anyone who has disabled hardware acceleration will
+  // get a null context. Without this flag the hero threw and took the whole
+  // landing page down with it.
+  const [supported, setSupported] = useState(true);
 
   // WebGL Renderer class
   class WebGLRenderer {
@@ -62,7 +67,11 @@ void main(){gl_Position=position;}`;
     constructor(canvas: HTMLCanvasElement, scale: number) {
       this.canvas = canvas;
       this.scale = scale;
-      this.gl = canvas.getContext("webgl2")!;
+      const gl = canvas.getContext("webgl2");
+      if (!gl) {
+        throw new Error("webgl2-unavailable");
+      }
+      this.gl = gl;
       this.gl.viewport(0, 0, canvas.width * scale, canvas.height * scale);
       this.shaderSource = defaultShaderSource;
     }
@@ -326,19 +335,28 @@ void main(){gl_Position=position;}`;
     const canvas = canvasRef.current;
     const dpr = Math.max(1, 0.5 * window.devicePixelRatio);
 
-    rendererRef.current = new WebGLRenderer(canvas, dpr);
-    pointersRef.current = new PointerHandler(canvas, dpr);
+    try {
+      rendererRef.current = new WebGLRenderer(canvas, dpr);
+      pointersRef.current = new PointerHandler(canvas, dpr);
 
-    rendererRef.current.setup();
-    rendererRef.current.init();
+      rendererRef.current.setup();
+      rendererRef.current.init();
 
-    resize();
+      resize();
 
-    if (rendererRef.current.test(defaultShaderSource) === null) {
-      rendererRef.current.updateShader(defaultShaderSource);
+      if (rendererRef.current.test(defaultShaderSource) === null) {
+        rendererRef.current.updateShader(defaultShaderSource);
+      }
+
+      loop(0);
+    } catch {
+      // No WebGL2 (or shader compilation failed). Fall back to the static
+      // gradient backdrop rather than crashing the page.
+      rendererRef.current = null;
+      pointersRef.current = null;
+      setSupported(false);
+      return;
     }
-
-    loop(0);
 
     window.addEventListener("resize", resize);
 
@@ -354,7 +372,7 @@ void main(){gl_Position=position;}`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return canvasRef;
+  return { canvasRef, supported };
 };
 
 // Reusable Hero Component — palette harmonized to Arbor's brand blue.
@@ -366,7 +384,7 @@ const Hero: React.FC<HeroProps> = ({
   children,
   className = "",
 }) => {
-  const canvasRef = useShaderBackground();
+  const { canvasRef, supported } = useShaderBackground();
 
   return (
     <div
@@ -374,9 +392,28 @@ const Hero: React.FC<HeroProps> = ({
     >
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 h-full w-full touch-none object-cover"
+        aria-hidden
+        className={`absolute inset-0 h-full w-full touch-none object-cover ${
+          supported ? "" : "hidden"
+        }`}
         style={{ background: "black" }}
       />
+
+      {/* Static backdrop for browsers without WebGL2. Mirrors the shader's
+       * deep-blue palette so the hero still reads as designed instead of
+       * collapsing to flat black. */}
+      {!supported && (
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 60% at 30% 20%, #1e40af 0%, transparent 60%)," +
+              "radial-gradient(ellipse 70% 50% at 75% 70%, #1d4ed8 0%, transparent 65%)," +
+              "linear-gradient(180deg, #050b1f 0%, #0a1836 50%, #050b1f 100%)",
+          }}
+        />
+      )}
 
       {/* Readability scrim — soft radial darkening behind the centered text so
        * bright shader streaks never wash out the headline. Pointer-events off so
