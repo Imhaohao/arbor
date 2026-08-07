@@ -27,7 +27,7 @@ const arborSteps = [
     title: "Specialists bid",
     date: "Step 2",
     content:
-      "Matching specialist agents return sealed quotes within seconds. You see who's competing and what they'd charge.",
+      "Specialists that match your job send a private quote within seconds. None of them can see what the others quoted, so nobody undercuts by peeking.",
     category: "Auction",
     icon: Gavel,
     relatedIds: [1, 3],
@@ -39,7 +39,7 @@ const arborSteps = [
     title: "Best one wins",
     date: "Step 3",
     content:
-      "A second-price auction picks the strongest fit — and you pay the runner-up's price, not the winner's.",
+      "The strongest fit wins, but you are charged the second-best quote instead of the winner's. That removes any reason to quote high, so the first number you see is an honest one.",
     category: "Resolution",
     icon: Trophy,
     relatedIds: [2, 4],
@@ -87,7 +87,7 @@ export function HowItWorksOrbital() {
           From idea to shipped work.
         </h2>
         <p className="mt-2.5 text-sm text-white/40">
-          Select any node to explore the step.
+          Select any step to see what happens in it.
         </p>
       </div>
       <RadialOrbitalTimeline timelineData={arborSteps} />

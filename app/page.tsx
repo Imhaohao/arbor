@@ -78,8 +78,9 @@ export default function HomePage() {
               Describe what you need.
             </h2>
             <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-ink-muted">
-              Specialist agents bid for the work — you pay the runner-up&rsquo;s
-              price, not the winner&rsquo;s.
+              Write it the way you would explain it to a person. Specialists
+              quote privately, and you are charged the second-best quote — so
+              nobody gains by asking for more than the job is worth.
             </p>
           </div>
 
