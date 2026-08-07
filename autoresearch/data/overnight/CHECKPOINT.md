@@ -25,13 +25,13 @@ Legend: status = queued / implementing / critic-round-N / PASSED / PARKED
 |---|---|---|---|---|---|
 | 0 | Landing page CRASHED with no WebGL2 (F, found mid-run) | Opus inline | DONE, committed 5fe24ff | - | Verified by screenshot: gradient fallback renders |
 | 1 | Delivered work invisible on multi-step tasks (F) | Sonnet | implemented, committed 9ba7ccc | critic running | - |
-| 2 | Dashboard fake stats + fake recent tasks + fake user + 429 JSON review queue (F) | Sonnet | implementing | - | - |
-| 3 | Replay index: 25 identical rows, false sort claim, $0.00 (F) | Sonnet | implementing | - | - |
-| 4 | Specialist directory: 21/1233, no search (C) | Sonnet | implementing | - | - |
-| 5 | Task list: no filters, "Disputed" jargon (C) | Sonnet | implementing | - | - |
-| 6 | A2A console: uniform LISTED badge, dead empty state (C) | Sonnet | implementing | - | - |
+| 2 | Dashboard fake stats + fake recent tasks + fake user + 429 JSON review queue (F) | Sonnet | UNFIXED - agent KILLED by spend limit mid-edit | - | convex/buyerAnalytics.ts written+committed (b97f8e3) but UI never wired. HIGHEST REMAINING VALUE. |
+| 3 | Replay index: 25 identical rows, false sort claim, $0.00 (F) | Sonnet | implemented, committed ec78b16 | critic running | Verified by screenshot: contested runs now rank first, spam collapsed to +202 |
+| 4 | Specialist directory: 21/1233, no search (C) | Sonnet | done, committed 7ce810b | none - critics dead | Open: card shows Reputation 0.55 and Overall 0.91 with no explanation; stripe-payments says "1 task measured" but "Accepted 0 / Disputed 0". |
+| 5 | Task list: no filters, "Disputed" jargon (C) | Sonnet | done, committed ed2bc2c | none - critic KILLED | - |
+| 6 | A2A console (C) | Sonnet | committed e4cc0a3; ROUND 2 KILLED BEFORE STARTING | round 1 by me = REJECT | FALSE "endpoint down" warning for the loopback (answers HTTP 200). Badge says ready while subtitle says no A2A endpoint. Needs re-fix. |
 | 7 | Landing onboarding / jargon pass (B) | Opus inline | implemented, committed 190ce8b | - | - |
-| 8 | Mobile 390px sweep across all routes | TBD | queued | - | - |
+| 8 | Mobile 390px sweep across all routes | Opus inline | partial: task header clipped $ at 390px, fixed + committed eeaa6bb | - | Landing verified clean at 390px. Remaining routes pending their implementers. |
 | 9 | Dark mode | - | PARKED by scope call | - | See audit item 12: unreachable today (no toggle, 40 dark: utilities total). Deferred unless queue clears. |
 
 ## Key measured facts (do not re-derive)
@@ -93,4 +93,31 @@ Note: `.claude/worktrees/clever-northcutt-3cff48` and
 working tree at session start. Those are the user's — leave them alone.
 
 ## Commit log this run
-(none yet)
+- 5fe24ff fix(hero): survive missing WebGL2 instead of crashing the landing page
+- 190ce8b copy(landing): remove auction jargon a first-time visitor cannot parse
+- 9ba7ccc fix(task): show the delivered work on multi-step tasks
+- ec78b16 fix(replay): rank by real contention and stop claiming $0.00
+- eeaa6bb fix(task): stop the task header clipping the budget at 390px
+- e4cc0a3 feat(admin): show real per-agent readiness in the A2A console (has a noted open defect)
+
+## RUN ENDED EARLY - 2026-08-07 ~03:20
+
+The account hit its MONTHLY SPEND LIMIT. All six in-flight subagents died at
+once and no further agents could be spawned. Consequences:
+
+- The entire Phase 3 critic loop never ran. ZERO critic verdicts exist. No
+  surface in this run has been independently reviewed.
+- The blind comparison vs Codex / Cowork / OpenClaw never ran. Reference shots
+  were captured successfully and are in the scratchpad, but that scratchpad is
+  session-scoped and will not survive.
+- Item 2 (dashboard) and item 6 round 2 were left unfinished.
+
+Final tree state verified at 09:50: `npm run typecheck` exit 0, `npm test`
+exit 0. Nine commits on research/hive-vs-solo. Nothing pushed.
+
+Unchased lead from a critic that died mid-thought: it reported finding tasks
+carrying BOTH a `failed` lifecycle event AND a full deliverable, and was
+checking whether the ExecutionPanel change now renders a deliverable on a
+failed task. Neither confirmed nor refuted. Check this first.
+
+Full write-up: autoresearch/to_human/overnight-2026-08-07.md
