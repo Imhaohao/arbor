@@ -1,0 +1,75 @@
+[delivered_accepted] organic-stripe-codebase (js77ee9708yk82h8b7my2f81cx8c0e6r) status=complete elapsed=717.4s bids=0 winner=-
+
+=== Demo-reliability aggregate report ===
+
+Total tasks posted/tracked: 22
+Reached a real judged delivery (complete or disputed): 21/22 (95.5%)
+  - complete (judge accepted):  11/22 (50.0%)
+  - disputed (judge rejected):  10/22 (45.5%)
+Blocked on Stripe checkout gate (won auction, never reached execution): 0/22 (0.0%)
+Auction failed outright (no valid bids under budget): 0/22 (0.0%)
+
+Of tasks that got a winning bid at all (13/22):
+  - won by an Arbor floor/backstop agent: 4/13 (30.8%)
+  - won by a genuine specialist:          9/13 (69.2%)
+
+-- Timing --
+Time to auction outcome (won-or-failed-outright), n=21: median=252.0s, p90=458.8s
+Time to judged delivery, n=21: median=252.0s, p90=458.8s
+
+-- Outcome breakdown (by category) --
+  delivered_accepted: 11/22 (50.0%)
+      x11: (no reason recorded)
+  delivered_rejected: 10/22 (45.5%)
+      x10: (no reason recorded)
+  failed: 1/22 (4.5%)
+      x1: execution_failed (after 3 attempt(s)): partial_receipt: missing successful_tool_calls
+
+-- Per-task detail --
+  quickstart-stripe-connect [general, $2.00] -> delivered_accepted (status=complete, 458.8s, bids=0, winner=-, price_paid=-)
+      step 0: status=complete winner=nia-context 
+      step 1: status=disputed winner=nia-context 
+  quickstart-landing-page [general, $2.00] -> delivered_accepted (status=complete, 307.6s, bids=20, winner=vercel-v0, price_paid=0.82)
+  quickstart-backlog-triage [general, $2.00] -> delivered_rejected (status=disputed, 163.3s, bids=20, winner=nia-context, price_paid=0.4)
+  quickstart-tiktok-shop [general, $2.00] -> delivered_accepted (status=complete, 434.5s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=arbor-hive-backstop 
+      step 1: status=complete winner=arbor-hive-backstop 
+      step 2: status=complete winner=nia-context 
+  organic-stripe-codebase [general, $2.00] -> delivered_accepted (status=complete, 717.4s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=arbor-hive-backstop 
+      step 1: status=disputed winner=vercel-v0 
+      step 2: status=disputed winner=vercel-v0 
+  organic-youtube-short [general, $3.00] -> delivered_accepted (status=complete, 275.3s, bids=0, winner=-, price_paid=-)
+      step 0: status=complete winner=arbor-hive-backstop 
+      step 1: status=disputed winner=reacher-social 
+  organic-trip-planning [general, $2.00] -> delivered_accepted (status=complete, 131.1s, bids=20, winner=arbor-hive-backstop, price_paid=0.4)
+  organic-rubric-compare [general, $2.00] -> delivered_accepted (status=complete, 137.3s, bids=20, winner=aws-knowledge, price_paid=0.4)
+  organic-pr-review [general, $3.00] -> delivered_accepted (status=complete, 157.5s, bids=20, winner=arbor-baseline, price_paid=0.4)
+  organic-voice-narration [general, $3.00] -> delivered_rejected (status=disputed, 361.6s, bids=0, winner=-, price_paid=-)
+      step 0: status=complete winner=vercel-v0 
+      step 1: status=disputed winner=arbor-hive-backstop 
+  campaign-electrolyte-full [end-to-end-campaign, $3.00] -> delivered_rejected (status=disputed, 460.6s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=arbor-hive-backstop 
+      step 1: status=complete winner=microsoft-learn 
+      step 2: status=disputed winner=nia-context 
+  campaign-electrolyte-reacher [end-to-end-campaign, $2.50] -> delivered_rejected (status=disputed, 403.3s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=arbor-hive-backstop 
+      step 1: status=disputed winner=arbor-hive-backstop 
+      step 2: status=complete winner=reacher-social 
+  docs-convex-scheduled-fn [code-context-retrieval, $2.50] -> delivered_accepted (status=complete, 153.3s, bids=20, winner=nia-context, price_paid=0.4)
+  docs-nextjs-streaming [code-context-retrieval, $3.00] -> delivered_accepted (status=complete, 159.1s, bids=20, winner=nia-context, price_paid=0.4)
+  creator-scouting-reacher [creator-scouting, $3.00] -> delivered_rejected (status=disputed, 130.1s, bids=20, winner=arbor-hive-backstop, price_paid=0.4)
+  fx-rate-usd-eur [currency-conversion, $5.00] -> delivered_rejected (status=disputed, 129.2s, bids=20, winner=arbor-hive-backstop, price_paid=0.82)
+  fx-rate-usd-eur-plaintext [currency-conversion, $5.00] -> delivered_rejected (status=disputed, 252.0s, bids=20, winner=vercel-v0, price_paid=0.82)
+  copy-water-bottle [copywriting, $2.00] -> failed (status=failed, 126.8s, bids=20, winner=nia-context, price_paid=0.4)
+  market-discovery-summary [market discovery, $2.00] -> delivered_rejected (status=disputed, 125.1s, bids=20, winner=openzeppelin-contracts, price_paid=0.4)
+  research-nextjs-brief [research, $4.00] -> delivered_rejected (status=disputed, 425.8s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=arbor-hive-backstop 
+      step 1: status=complete winner=vercel-v0 
+  startup-launch-plan-electrolyte [startup-launch-plan, $3.00] -> delivered_accepted (status=complete, 395.9s, bids=0, winner=-, price_paid=-)
+      step 0: status=disputed winner=reacher-social 
+      step 1: status=disputed winner=reacher-social 
+      step 2: status=disputed winner=reacher-social 
+  multistep-debate-curriculum [multi-step-engineering, $4.00] -> delivered_rejected (status=disputed, 158.0s, bids=20, winner=codebase-explainer, price_paid=0.4)
+
+Full results written to /Users/yanzihao/Documents/miyohacks/scripts/data/post-receipt-fix-22.json

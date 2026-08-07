@@ -52,28 +52,52 @@ still see audit tasks as ordinary tasks in the auction.
 - Stock media module (`lib/stock/*`): not wired into any runtime path at all
   (only `scripts/render-video.ts` uses it) — integration before UI.
 
-## Demo run-sheet (measured 2026-08-06, capped roster)
+## Demo run-sheet (measured 2026-08-06, post receipt fix)
 
-The flow works on the Azure lane. Measured over 22 realistic buyer tasks with
-`ARBOR_MAX_SOLICITED_AGENTS=40`: 11/22 reach a judged deliverable, median
-128s, 0 auctions fail outright, and 85.7% of wins go to a genuine specialist
-rather than an Arbor floor agent.
+The flow works end to end on the Azure lane. Latest full 22-task batch with
+`ARBOR_MAX_SOLICITED_AGENTS=40` (`scripts/data/post-receipt-fix-22.json`):
 
-Demo these four. All are single-step, accepted by the judge, and land in
-about two minutes:
+| | Uncapped | + roster cap | + receipt fix |
+|---|---|---|---|
+| Reached a judged delivery | 9/22 | 11/22 | **21/22 (95.5%)** |
+| Judge accepted | 5/22 | 5/22 | **11/22 (50%)** |
+| Hard failures | — | 4/22 | **1/22** |
+| Blocked on a failed child | — | 6/22 | **0** |
+| Timed out incomplete | 12/22 | 1/22 | **0** |
+| Auction failed outright | — | 0/22 | **0/22** |
 
-| Task | Winner | Time |
+Median time to judged delivery rose 128s -> 252s. That is the expected cost
+of the fix, not a regression: tasks that used to die at step 0 now execute to
+completion, so the median covers full multi-step chains instead of early
+failures.
+
+**Compound tasks now work** — the earlier "do not demo a multi-step task"
+warning is obsolete. Five multi-step tasks delivered accepted this run
+(`quickstart-stripe-connect`, `quickstart-tiktok-shop`,
+`organic-stripe-codebase`, `organic-youtube-short`,
+`startup-launch-plan-electrolyte`), though they take 4-12 min end to end, so
+prefer a single-step task if the demo is time-boxed.
+
+Fastest single-step tasks accepted in BOTH the last two runs — the safest
+picks, ~2 min each:
+
+| Task | Winner (varies) | Time |
 |---|---|---|
-| `copy-water-bottle` (copywriting) | reacher-social | 111s |
-| `organic-pr-review` | arbor-baseline | 116s |
-| `campaign-electrolyte-full` | reacher-social | 128s |
-| `organic-trip-planning` | reacher-social | 132s |
+| `organic-trip-planning` | arbor-hive-backstop | 131s |
+| `organic-pr-review` | arbor-baseline | 158s |
 
-Prompts are in `scripts/demo-reliability.ts`. Re-measure any time with:
-`npx tsx scripts/demo-reliability.ts --timeout-ms 600000`
+Also accepted this run, all previously failing: `organic-rubric-compare`
+(137s, aws-knowledge), `docs-convex-scheduled-fn` (153s, nia-context),
+`docs-nextjs-streaming` (159s, nia-context).
 
-Do NOT demo a compound/multi-step task. Child auctions run sequentially at
-~2 min each, and 6/22 parents ended `blocked_on_failed_child`.
+Winners are decided by a live auction and shift between runs — do not promise
+a specific agent on stage. `copy-water-bottle` was on the previous run-sheet
+and failed this run when nia-context outbid reacher-social and then made no
+successful tool calls.
+
+Prompts are in `scripts/demo-reliability.ts`. Re-measure with:
+`npx tsx scripts/demo-reliability.ts`
+Single task: `npx tsx scripts/demo-reliability.ts --only organic-pr-review`
 
 ## Known-bad agents
 
@@ -87,13 +111,21 @@ Do NOT demo a compound/multi-step task. Child auctions run sequentially at
   three failed tasks: 3/3 judged, 0 receipt failures, and the MCP agent
   `twilio-docs` ran `execution_started -> execution_complete ->
   judge_verdict -> settled`.
+  Confirmed on the full batch: nia-context now wins and completes, taking
+  `docs-convex-scheduled-fn` (accepted, 153s) and `docs-nextjs-streaming`
+  (accepted, 159s) — the exact tasks it previously lost — plus two compound
+  steps. `aws-knowledge` and `microsoft-learn` also delivered.
 - `openzeppelin-contracts` won an auction with no registered runner at all
-  ("No specialist runner registered"). A discovered specialist can bid
-  without being executable — still open, worth a registry-level guard.
+  ("No specialist runner registered"). It delivered normally in the latest
+  run, so this is intermittent rather than fixed — a discovered specialist
+  can still bid without being executable. Worth a registry-level guard.
+- The one remaining hard failure is the receipt rule working as designed:
+  nia-context won `copy-water-bottle` (a copywriting task, not its
+  specialty), made zero successful tool calls, and was failed with
+  `partial_receipt: missing successful_tool_calls` rather than being paid for
+  unproven work.
 
-Note the 11/22 figure in the run-sheet above predates the receipt fix and is
-now a floor, not a current measurement — MCP winners that previously failed
-outright can now settle. Re-run the harness for a current number.
+The run-sheet above is the post-fix measurement — no longer a stale floor.
 
 ## Verification caveats
 
