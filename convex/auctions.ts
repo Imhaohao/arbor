@@ -15,6 +15,7 @@ import {
 } from "../lib/specialists/registry";
 import { capOpenRoster } from "../lib/auction-roster";
 import { receiptShortfall } from "../lib/receipt-rule";
+import { specialistConfigFromCatalog } from "../lib/specialists/catalog-config";
 import { makeMockSpecialist } from "../lib/specialists/base";
 import { MCP_CATALOG } from "../lib/specialists/catalog";
 import type {
@@ -601,23 +602,7 @@ export const solicitBids = internalAction({
     const catalogConfigs: SpecialistConfig[] = MCP_CATALOG.filter(
       (c) => !taken.has(c.agent_id),
     ).map((c) => {
-      const cfg: SpecialistConfig = {
-        agent_id: c.agent_id,
-        display_name: c.display_name,
-        sponsor: c.sponsor,
-        capabilities: c.capabilities,
-        system_prompt: `You are ${c.display_name}, an MCP-equipped specialist for ${c.sponsor}. Your remote tools cover: ${c.capabilities.join(", ")}. ${c.one_liner} Treat the user's goal on its own terms — never translate it into another domain. Decline cleanly when the goal is outside what your tools can do.`,
-        cost_baseline: c.cost_baseline,
-        starting_reputation: 0.55,
-        one_liner: c.one_liner,
-        mcp_endpoint: c.mcp_endpoint,
-        mcp_api_key_env: c.mcp_api_key_env,
-        homepage_url: c.homepage_url,
-        discovered: true,
-        discovery_source: "catalog",
-        discovered_for: "auto-enrolled from catalog",
-        tier: "mcp-forwarding",
-      };
+      const cfg = specialistConfigFromCatalog(c);
       registerDiscoveredSpecialist(cfg);
       return cfg;
     });
@@ -1271,6 +1256,23 @@ export const execute = internalAction({
         registerDiscoveredSpecialist(
           specialistConfigFromPersisted(discoveredEntry),
         );
+      } else {
+        // Catalog agents are auto-enrolled as bidders by solicitBids but are
+        // never persisted to discovered_specialists — their registration is
+        // module-scope state that lives and dies with the Convex isolate.
+        // solicitBids and this action are separate invocations, so when
+        // execution landed on a cold isolate a catalog agent that had just
+        // legitimately won threw "No specialist runner registered".
+        // Intermittent by nature: a warm isolate still had the registration.
+        // Observed 2026-08-06 with openzeppelin-contracts.
+        const catalogEntry = MCP_CATALOG.find(
+          (c) => c.agent_id === winner.agent_id,
+        );
+        if (catalogEntry) {
+          registerDiscoveredSpecialist(
+            specialistConfigFromCatalog(catalogEntry),
+          );
+        }
       }
       const runner = getRunner(winner.agent_id as AgentId);
       const toolRecorder = makeToolCallRecorder(ctx, args.task_id, winner.agent_id);

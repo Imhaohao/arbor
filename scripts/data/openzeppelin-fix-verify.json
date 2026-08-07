@@ -1,0 +1,100 @@
+{
+  "run_at": "2026-08-07T06:37:53.076Z",
+  "posted_by": "demo-reliability:web",
+  "bid_window_seconds_assumed": 90,
+  "total": 3,
+  "judged_total": 3,
+  "delivered_accepted": 1,
+  "delivered_rejected": 2,
+  "payment_blocked": 0,
+  "auction_failed_no_bids": 0,
+  "winners_total": 2,
+  "winners_floor_agent": 2,
+  "auction_outcome_elapsed_ms": [
+    248266,
+    125844,
+    116307
+  ],
+  "delivered_elapsed_ms": [
+    248266,
+    125844,
+    116307
+  ],
+  "runs": [
+    {
+      "label": "docs-convex-scheduled-fn",
+      "task_type": "code-context-retrieval",
+      "max_budget": 2.5,
+      "prompt_len": 153,
+      "task_id": "js7cjxn2jxas0ggjcj7jqt35v98c1thj",
+      "posted_at": 1786084424226,
+      "deadline": 1786085024226,
+      "done": true,
+      "timed_out": false,
+      "terminal_at": 1786084672492,
+      "elapsed_ms": 248266,
+      "final_status": "complete",
+      "category": "delivered_accepted",
+      "bids_received": 0,
+      "bids_declined": 0,
+      "judge_verdict": "accept",
+      "judge_quality_score": 0.74,
+      "children": [
+        {
+          "step_index": 0,
+          "status": "disputed",
+          "winner_agent_id": "arbor-hive-backstop"
+        },
+        {
+          "step_index": 1,
+          "status": "disputed",
+          "winner_agent_id": "reacher-social"
+        }
+      ]
+    },
+    {
+      "label": "docs-nextjs-streaming",
+      "task_type": "code-context-retrieval",
+      "max_budget": 3,
+      "prompt_len": 139,
+      "task_id": "js7ah3zg98prmvnyzwrndbh8zs8c18hm",
+      "posted_at": 1786084428629,
+      "deadline": 1786085028629,
+      "done": true,
+      "timed_out": false,
+      "terminal_at": 1786084554473,
+      "elapsed_ms": 125844,
+      "final_status": "disputed",
+      "category": "delivered_rejected",
+      "bids_received": 20,
+      "bids_declined": 38,
+      "winner_agent_id": "arbor-hive-backstop",
+      "winner_is_floor_agent": true,
+      "price_paid": 0.82,
+      "judge_verdict": "reject",
+      "judge_quality_score": 0.62
+    },
+    {
+      "label": "market-discovery-summary",
+      "task_type": "market discovery",
+      "max_budget": 2,
+      "prompt_len": 118,
+      "task_id": "js774h6pczw14xr6g2v3z8ejh58c1qz3",
+      "posted_at": 1786084432778,
+      "deadline": 1786085032778,
+      "done": true,
+      "timed_out": false,
+      "terminal_at": 1786084549085,
+      "elapsed_ms": 116307,
+      "final_status": "disputed",
+      "category": "delivered_rejected",
+      "bids_received": 20,
+      "bids_declined": 38,
+      "winner_agent_id": "arbor-hive-backstop",
+      "winner_is_floor_agent": true,
+      "price_paid": 0.82,
+      "judge_verdict": "reject",
+      "judge_quality_score": 0.32
+    }
+  ]
+}
