@@ -178,10 +178,34 @@ export function ExecutionPanel({ task, events, toolCalls, probes }: Props) {
     started && !completed && !failed ? started.timestamp : undefined,
   );
 
-  if (!started) return null;
+  const result = isResult(task.result) ? task.result : undefined;
+  const hasDeliverable = !!result && result.text.trim().length > 0;
+
+  // Multi-step parents never emit execution_started — their lifecycle is
+  // task_posted -> plan_decided -> step_started (once per child) ->
+  // execution_complete (from the synthesizer, once every child settles) ->
+  // judge_verdict. Gating on `started` alone hid every finished multi-step
+  // deliverable behind a null render. Render whenever there is any evidence
+  // execution actually happened: a started/completed/failed event, or a
+  // result the task is already holding.
+  if (!started && !completed && !failed && !hasDeliverable) return null;
+
+  const eventAgentId = (event: LifecycleEventDoc | undefined) =>
+    (event?.payload as { agent_id?: string } | undefined)?.agent_id;
 
   const agentId =
-    (started.payload as { agent_id?: string }).agent_id ?? "winner";
+    eventAgentId(failed) ??
+    eventAgentId(completed) ??
+    eventAgentId(started) ??
+    result?.agent_id ??
+    "winner";
+
+  // A multi-step parent's result merges every plan step's deliverable — it
+  // isn't one specialist's raw output, so attribute it as a synthesis
+  // instead of pointing at the internal "synthesizer" agent id.
+  const isSynthesized =
+    (Array.isArray(task.task_plan) && task.task_plan.length >= 2) ||
+    agentId === "synthesizer";
 
   if (failed) {
     const reason =
@@ -200,7 +224,9 @@ export function ExecutionPanel({ task, events, toolCalls, probes }: Props) {
     );
   }
 
-  if (!completed) {
+  if (!completed && !hasDeliverable) {
+    // Only "started" can be true here — multi-step parents never set it, so
+    // they never reach this branch. This is the single-step task mid-run.
     // Real-MCP specialists (Reacher, Nia) take longer than soft ones because
     // they make external HTTP calls. Surface that expectation in the status.
     const isMcpForwarder =
@@ -250,25 +276,38 @@ export function ExecutionPanel({ task, events, toolCalls, probes }: Props) {
     );
   }
 
-  const text = isResult(task.result)
-    ? task.result.text
+  const text = result
+    ? result.text
     : task.result
       ? JSON.stringify(task.result, null, 2)
       : "";
-  const artifact = isResult(task.result) ? task.result.artifact : undefined;
-  const provenance = isResult(task.result) ? task.result.provenance : undefined;
+  const artifact = result?.artifact;
+  const provenance = result?.provenance;
 
   return (
     <Card className="animate-fade-up">
       <CardHeader
-        title="Execution complete"
+        title={isSynthesized ? "Final deliverable" : "Execution complete"}
         meta={
-          <span className="flex items-center gap-2">
-            <TierBadge provenance={provenance} />
-            By <span className="font-mono text-ink">{agentId}</span>
-          </span>
+          isSynthesized ? (
+            <Pill tone="success">
+              Combined from {task.task_plan?.length ?? 0} steps
+            </Pill>
+          ) : (
+            <span className="flex items-center gap-2">
+              <TierBadge provenance={provenance} />
+              By <span className="font-mono text-ink">{agentId}</span>
+            </span>
+          )
         }
       />
+      {isSynthesized ? (
+        <p className="mb-4 text-sm text-ink-muted">
+          This is the final answer to your request. It combines the work from
+          every step of the plan above into one deliverable, not the raw
+          output of a single specialist.
+        </p>
+      ) : null}
       {artifact?.kind === "campaign_launch" ? (
         <LaunchProduct artifact={artifact} />
       ) : text ? (
@@ -276,15 +315,19 @@ export function ExecutionPanel({ task, events, toolCalls, probes }: Props) {
       ) : (
         <p className="text-sm text-ink-muted">No output captured</p>
       )}
-      <ProofSummary provenance={provenance} toolCalls={toolCalls} />
-      <div className="mt-5">
-        <ProbeReceiptPanel
-          probes={probes}
-          toolCalls={toolCalls}
-          provenance={provenance}
-          winnerAgentId={agentId}
-        />
-      </div>
+      {isSynthesized ? null : (
+        <>
+          <ProofSummary provenance={provenance} toolCalls={toolCalls} />
+          <div className="mt-5">
+            <ProbeReceiptPanel
+              probes={probes}
+              toolCalls={toolCalls}
+              provenance={provenance}
+              winnerAgentId={agentId}
+            />
+          </div>
+        </>
+      )}
     </Card>
   );
 }
