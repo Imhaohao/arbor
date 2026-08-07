@@ -146,7 +146,31 @@ export const replay = query({
   },
 });
 
-// PUBLIC: index of recent DAGs, ranked so the contested ones surface first.
+// How far back this index looks when ranking by contention. Bounded reads are
+// the point of this file, so this stays a fixed window rather than a full
+// table scan; at today's data scale (a few hundred DAGs, ~100 evaluations)
+// this window covers the entire history, but if the tables outgrow it a
+// denormalized reject count on hive_dags would be the next step rather than
+// widening these numbers indefinitely.
+const DAG_SCAN_WINDOW = 400;
+const EVAL_SCAN_WINDOW = 4000;
+
+// A replay is a record of a finished run. A DAG still planning/running/
+// evaluating has nothing settled yet to play back.
+const TERMINAL_STATUSES = new Set(["complete", "failed", "escalated"]);
+
+// PUBLIC: index of recorded DAGs, ranked so the most-contested ones surface
+// first.
+//
+// Two things broke that promise before this rewrite. First, the query took
+// only the most recent `limit` DAGs and sorted *that window* by rejects — in
+// this deployment the most recent DAGs are ~200 near-identical zero-reject
+// roundtable smoke runs, so the sort had nothing to work with and the result
+// was plain recency order wearing a contention-sort trenchcoat. Second, the
+// same goal text repeats hundreds of times, so a page of "recent" rows was
+// one row copy-pasted. This version ranks across a bounded window of actual
+// history and collapses duplicate-goal rows to one (carrying a repeat count)
+// so distinct runs make it onto the page instead of getting buried.
 export const recentReplays = query({
   args: { limit: v.optional(v.number()) },
   returns: v.array(
@@ -158,24 +182,80 @@ export const recentReplays = query({
       nodeCount: v.number(),
       accepts: v.number(),
       rejects: v.number(),
-      spend: v.number(),
+      // null means no node on this DAG ever recorded a cost — unknown, not
+      // free. Summing missing costs as 0 would report "$0.00" for work that
+      // was simply never metered, which is a false zero-cost claim.
+      spend: v.union(v.number(), v.null()),
+      // How many DAGs in the scanned window share this exact goal text.
+      // >1 means this row stands in for a cluster of collapsed duplicates.
+      goalRepeatCount: v.number(),
     }),
   ),
   handler: async (ctx, args) => {
     const limit = Math.min(args.limit ?? 25, 50);
-    const dags = await ctx.db.query("hive_dags").order("desc").take(limit);
+
+    const dags = (
+      await ctx.db.query("hive_dags").order("desc").take(DAG_SCAN_WINDOW)
+    ).filter((d) => TERMINAL_STATUSES.has(d.status));
+
+    // hive_evaluations has no index on verdict or a dag-agnostic scope, so one
+    // bounded scan grouped in memory beats issuing an indexed by_dag query per
+    // candidate DAG — the table is small (under a thousand rows today) and
+    // this reads it once instead of once per DAG.
+    const evaluations = await ctx.db
+      .query("hive_evaluations")
+      .order("desc")
+      .take(EVAL_SCAN_WINDOW);
+    const verdictsByDag = new Map<
+      string,
+      { accepts: number; rejects: number }
+    >();
+    for (const e of evaluations) {
+      if (!e.node_id) continue;
+      const bucket = verdictsByDag.get(e.dag_id) ?? { accepts: 0, rejects: 0 };
+      if (e.verdict === "accept") bucket.accepts += 1;
+      else bucket.rejects += 1;
+      verdictsByDag.set(e.dag_id, bucket);
+    }
+
+    const goalRepeatCounts = new Map<string, number>();
+    for (const dag of dags) {
+      goalRepeatCounts.set(dag.goal, (goalRepeatCounts.get(dag.goal) ?? 0) + 1);
+    }
+
+    const ranked = dags
+      .map((dag) => {
+        const verdicts = verdictsByDag.get(dag._id) ?? {
+          accepts: 0,
+          rejects: 0,
+        };
+        return { dag, ...verdicts };
+      })
+      // Most-contested first, by raw reject count rather than a ratio: a DAG
+      // with 11 rejects out of 12 verdicts is more contested than one with 1
+      // reject out of 1, even though the latter has the higher rate.
+      .sort(
+        (a, b) => b.rejects - a.rejects || b.dag.created_at - a.dag.created_at,
+      );
+
+    const seenGoals = new Set<string>();
+    const picked: typeof ranked = [];
+    for (const candidate of ranked) {
+      if (seenGoals.has(candidate.dag.goal)) continue;
+      seenGoals.add(candidate.dag.goal);
+      picked.push(candidate);
+      if (picked.length >= limit) break;
+    }
 
     const rows = [];
-    for (const dag of dags) {
+    for (const { dag, accepts, rejects } of picked) {
       const nodes = await ctx.db
         .query("hive_nodes")
         .withIndex("by_dag", (q) => q.eq("dag_id", dag._id))
         .take(100);
-      const evaluations = await ctx.db
-        .query("hive_evaluations")
-        .withIndex("by_dag", (q) => q.eq("dag_id", dag._id))
-        .take(300);
-      const scored = evaluations.filter((e) => e.node_id);
+      const knownCosts = nodes
+        .map((n) => n.cost_paid)
+        .filter((c): c is number => c !== undefined);
 
       rows.push({
         dag_id: dag._id,
@@ -183,13 +263,16 @@ export const recentReplays = query({
         status: dag.status,
         created_at: dag.created_at,
         nodeCount: nodes.length,
-        accepts: scored.filter((e) => e.verdict === "accept").length,
-        rejects: scored.filter((e) => e.verdict === "reject").length,
-        spend: nodes.reduce((sum, n) => sum + (n.cost_paid ?? 0), 0),
+        accepts,
+        rejects,
+        spend:
+          knownCosts.length > 0
+            ? knownCosts.reduce((sum, c) => sum + c, 0)
+            : null,
+        goalRepeatCount: goalRepeatCounts.get(dag.goal) ?? 1,
       });
     }
 
-    // Most-contested first: a replay index sorted by recency buries the evidence.
-    return rows.sort((a, b) => b.rejects - a.rejects || b.created_at - a.created_at);
+    return rows;
   },
 });
