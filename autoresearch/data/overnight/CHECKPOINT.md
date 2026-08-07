@@ -23,13 +23,14 @@ Legend: status = queued / implementing / critic-round-N / PASSED / PARKED
 
 | # | Item | Owner model | Status | Critic round | Verdict / blocking reasons |
 |---|---|---|---|---|---|
-| 1 | Delivered work invisible on multi-step tasks (F) | Sonnet | implementing | - | - |
+| 0 | Landing page CRASHED with no WebGL2 (F, found mid-run) | Opus inline | DONE, committed 5fe24ff | - | Verified by screenshot: gradient fallback renders |
+| 1 | Delivered work invisible on multi-step tasks (F) | Sonnet | implemented, committed 9ba7ccc | critic running | - |
 | 2 | Dashboard fake stats + fake recent tasks + fake user + 429 JSON review queue (F) | Sonnet | implementing | - | - |
 | 3 | Replay index: 25 identical rows, false sort claim, $0.00 (F) | Sonnet | implementing | - | - |
 | 4 | Specialist directory: 21/1233, no search (C) | Sonnet | implementing | - | - |
 | 5 | Task list: no filters, "Disputed" jargon (C) | Sonnet | implementing | - | - |
 | 6 | A2A console: uniform LISTED badge, dead empty state (C) | Sonnet | implementing | - | - |
-| 7 | Landing onboarding / jargon pass (B) | Opus inline | queued | - | - |
+| 7 | Landing onboarding / jargon pass (B) | Opus inline | implemented, committed 190ce8b | - | - |
 | 8 | Mobile 390px sweep across all routes | TBD | queued | - | - |
 | 9 | Dark mode | - | PARKED by scope call | - | See audit item 12: unreachable today (no toggle, 40 dark: utilities total). Deferred unless queue clears. |
 
@@ -51,6 +52,28 @@ Legend: status = queued / implementing / critic-round-N / PASSED / PARKED
   agents at this table" roundtable goal, all complete, all null spend.
 - Reputation sparklines on /agents DO render — recharts animates in after the
   screenshot fires. Do not report them as dead charts.
+
+## Screenshot harness (IMPORTANT — use this, not raw headless Chrome)
+
+`/private/tmp/claude-501/-Users-yanzihao-Documents-miyohacks/5a9cec11-3a72-4422-8dbf-18eb92b47fb7/scratchpad/shot.mjs`
+
+    cd <scratchpad> && node shot.mjs "<url>" out.png 1440 1000 "" true
+
+puppeteer-core is installed IN THE SCRATCHPAD ONLY (repo package.json is
+untouched). It waits for Convex websocket data and for shimmer skeletons to
+clear before capturing.
+
+Do NOT use `chrome --headless --virtual-time-budget` for any Convex-backed
+page: virtual time fast-forwards past the websocket, so every capture comes
+back as a "Loading tasks..." skeleton. I wasted a set of before-shots on this.
+It is fine for the static landing page only.
+
+`position: fixed` elements (the "See latest" pill) appear mid-page in fullPage
+screenshots. That is a capture artifact, not a layout bug.
+
+## Competitor reference shots for the blind comparison
+`<scratchpad>/refs/codex.png`, `refs/cowork.png`, `refs/openclaw.png` —
+captured 02:29 from openai.com/codex, claude.com/cowork, openclaw.ai.
 
 ## Browser pane gotcha (confirmed again this run)
 Screenshots of a scrolled page come back corrupted — huge white voids with the
