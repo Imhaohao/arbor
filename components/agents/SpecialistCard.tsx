@@ -7,7 +7,12 @@ import { api } from "@/convex/_generated/api";
 import { ReputationChart } from "./ReputationChart";
 import { formatMoney, formatScore, cn } from "@/lib/utils";
 import type { SpecialistConfig } from "@/lib/types";
-import { CheckCircle, Plug, ShieldWarning } from "@phosphor-icons/react";
+import {
+  Broadcast,
+  CheckCircle,
+  Plug,
+  ShieldWarning,
+} from "@phosphor-icons/react";
 
 interface LiveAgent {
   agent_id: string;
@@ -77,6 +82,17 @@ export function SpecialistCard({
 
   const hasMcpEndpoint = !!spec.mcp_endpoint;
   const mcpConnected = hasMcpEndpoint && !!spec.is_verified;
+  const hasA2aEndpoint = !hasMcpEndpoint && !!spec.a2a_endpoint;
+  // True only for the plain fallback the directory builds from a bare live
+  // roster row — no hand-authored config and no catalog entry exist for it,
+  // so we genuinely don't know its transport. Distinct from an intentional
+  // "Soft" (mock/model-backed) specialist so we never claim knowledge we
+  // don't have in either direction.
+  const isDirectoryOnly =
+    !hasMcpEndpoint &&
+    !hasA2aEndpoint &&
+    spec.discovered === true &&
+    !spec.discovery_source;
 
   return (
     <Card>
@@ -99,7 +115,21 @@ export function SpecialistCard({
                 Auth needed
               </Pill>
             )}
-            {!hasMcpEndpoint && (
+            {hasA2aEndpoint && (
+              <Pill tone="info" title={`A2A endpoint: ${spec.a2a_endpoint}`}>
+                <Broadcast size={11} weight="fill" />
+                A2A
+              </Pill>
+            )}
+            {isDirectoryOnly && (
+              <Pill
+                tone="neutral"
+                title="Listed in the network directory; no integration details on file yet."
+              >
+                Directory only
+              </Pill>
+            )}
+            {!hasMcpEndpoint && !hasA2aEndpoint && !isDirectoryOnly && (
               <Pill tone="neutral">
                 <Plug size={11} />
                 Soft
@@ -160,13 +190,20 @@ export function SpecialistCard({
       />
 
       <div className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-4 text-xs">
-        <Stat label="Completed" value={String(completed)} />
-        <Stat label="Disputes" value={String(disputes)} />
+        <Stat label="Accepted" value={String(completed)} />
+        <Stat label="Disputed" value={String(disputes)} />
         <Stat
           label="Dispute rate"
           value={total === 0 ? "—" : `${disputeRate.toFixed(0)}%`}
           danger={disputeRate >= 25}
         />
+        {total > 0 && (
+          <p className="col-span-3 text-[10px] text-ink-subtle">
+            Every judged task ends as either accepted or disputed — {completed}{" "}
+            accepted and {disputes} disputed out of {total} judged task
+            {total === 1 ? "" : "s"} total.
+          </p>
+        )}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-1.5">
