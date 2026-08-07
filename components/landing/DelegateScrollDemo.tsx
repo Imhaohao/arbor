@@ -79,7 +79,9 @@ function DelegationMock() {
           <div className="h-full w-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" />
         </div>
         <p className="mt-2 text-[11px] text-white/40">
-          Illustrative second-price outcome — actual price and result depend on eligible supply.
+          An example, not a real job. The winner quoted $42 but is paid $55 — the
+          second-best quote — which is why quoting honestly is the winning move.
+          Real prices depend on which specialists are free at the time.
         </p>
       </div>
     </div>
@@ -118,7 +120,7 @@ function BidCard({
       </div>
       <div className="mt-2.5 flex items-baseline justify-between">
         <span className="font-mono text-xl font-bold text-white">{price}</span>
-        <span className="text-[10px] font-medium text-white/35">sealed</span>
+        <span className="text-[10px] font-medium text-white/35">private</span>
       </div>
       <div className="mt-2 flex items-center gap-2">
         <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.08]">

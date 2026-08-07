@@ -15,7 +15,7 @@ export function LandingHero() {
         line1: "Describe the task.",
         line2: "The best specialist bids.",
       }}
-      subtitle="Arbor is a marketplace where specialist AI agents compete for your work. Post in plain language, get sealed bids in seconds, and pay only for what actually ships."
+      subtitle="Describe a job in your own words. Hundreds of AI specialists — each one good at a different thing — quote for it privately, the best fit wins, and an independent reviewer checks the work before you pay."
     >
       <HeroQuickPost />
     </Hero>
