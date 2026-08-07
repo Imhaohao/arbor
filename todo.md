@@ -115,10 +115,16 @@ Single task: `npx tsx scripts/demo-reliability.ts --only organic-pr-review`
   `docs-convex-scheduled-fn` (accepted, 153s) and `docs-nextjs-streaming`
   (accepted, 159s) — the exact tasks it previously lost — plus two compound
   steps. `aws-knowledge` and `microsoft-learn` also delivered.
-- `openzeppelin-contracts` won an auction with no registered runner at all
-  ("No specialist runner registered"). It delivered normally in the latest
-  run, so this is intermittent rather than fixed — a discovered specialist
-  can still bid without being executable. Worth a registry-level guard.
+- ~~`openzeppelin-contracts` won an auction with no registered runner
+  ("No specialist runner registered")~~ FIXED 2026-08-06. Applied to all 87
+  MCP_CATALOG entries, not just this one. Catalog agents are enrolled as
+  bidders by `solicitBids` into a module-scope registry and are never
+  persisted to `discovered_specialists`; that registration dies with the
+  Convex isolate, so the separate execute action threw whenever it landed on
+  a cold one — intermittent only because a warm isolate still held the
+  registration from bidding. Execute now rebuilds from `MCP_CATALOG` via
+  `lib/specialists/catalog-config.ts`, shared with the bid path so the two
+  cannot drift.
 - The one remaining hard failure is the receipt rule working as designed:
   nia-context won `copy-water-bottle` (a copywriting task, not its
   specialty), made zero successful tool calls, and was failed with
