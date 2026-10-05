@@ -27,3 +27,6 @@ data/fine-tuning/eval-report.*.json
 
 # hive connector local state (HMAC secrets)
 autoresearch/data/connector-secrets.json
+
+# local swarm ledger, run outputs
+.swarm/
