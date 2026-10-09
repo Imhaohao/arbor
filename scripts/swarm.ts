@@ -7,6 +7,8 @@
 //   npm run swarm -- code "task" --check "npm test" [--workers a,b] [--count 3]
 //   npm run swarm -- stats                                   # win rates + cooldowns
 //   npm run swarm -- clean [runId]                           # remove worktrees
+//   npm run swarm -- research --repo ~/autoresearch-mlx --agents codex,cursor:grok-4.7-high,gemini
+//                                                            # autoresearch lab on a shared board
 //
 // Workers are `backend[:model]`, e.g. claude, codex, cursor:grok-4.7-medium,
 // opencode:google/gemini-3-flash-preview, ollama:qwen2.5-coder:7b.
@@ -21,6 +23,7 @@ import {
   workerStatsRows,
   type RunSummary,
 } from "../lib/swarm/orchestrate";
+import { runResearch } from "../lib/swarm/research";
 import { DEFAULT_POOL, parseWorker, parseWorkerList } from "../lib/swarm/worker-core";
 
 const ROOT = resolve(__dirname, "..");
@@ -142,7 +145,24 @@ function clean(flags: Flags): void {
   console.log(`Removed ${removed} worktree(s).`);
 }
 
-const COMMANDS: Record<string, (flags: Flags) => void | Promise<void>> = { doctor, ask, code, stats, clean };
+async function research(flags: Flags): Promise<void> {
+  const repo = flags.values.get("repo");
+  const agents = flags.values.get("agents");
+  if (!repo || !agents) throw new Error("usage: swarm research --repo <autoresearch checkout> --agents a,b,c");
+  const max = flags.values.get("max");
+  await runResearch({
+    repo: resolve(repo.replace(/^~(?=$|\/)/, process.env.HOME ?? "~")),
+    agents: parseWorkerList(agents),
+    branch: flags.values.get("branch") || "autoresearch/board",
+    queueDepth: numberFlag(flags, "queue", 2),
+    proposeTimeoutMs: numberFlag(flags, "propose-timeout-min", 15) * MINUTE,
+    trainTimeoutMs: numberFlag(flags, "train-timeout-min", 15) * MINUTE,
+    maxExperiments: max === undefined ? undefined : numberFlag(flags, "max", 1),
+    log: (line) => console.log(`${new Date().toISOString().slice(11, 19)} ${line}`),
+  });
+}
+
+const COMMANDS: Record<string, (flags: Flags) => void | Promise<void>> = { doctor, ask, code, stats, clean, research };
 
 async function main(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2));

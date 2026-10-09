@@ -3,6 +3,7 @@
 // judge sees anonymous letters, never model names, and is drawn from a model
 // family that wrote none of the finalists so it cannot favour its own work.
 
+import { jsonObjectsIn } from "./json-reply";
 import { familyOf, supportsMode, type Family, type WorkerSpec } from "./worker-core";
 
 export interface Candidate {
@@ -92,32 +93,10 @@ export interface Verdict {
   reason: string;
 }
 
-// Judges quote code in their reasons ("uses \p{M}"), so a verdict can hold
-// braces of its own; find objects by trying JSON.parse, not by regex.
 const VERDICT_SEARCH_CHARS = 4000;
 
-function parseObjectAt(text: string, start: number): unknown {
-  for (let end = text.indexOf("}", start); end !== -1; end = text.indexOf("}", end + 1)) {
-    try {
-      return JSON.parse(text.slice(start, end + 1));
-    } catch {
-      // not closed yet; try the next brace
-    }
-  }
-  return undefined;
-}
-
-function jsonObjectsIn(text: string): unknown[] {
-  const objects: unknown[] = [];
-  for (let start = text.indexOf("{"); start !== -1; start = text.indexOf("{", start + 1)) {
-    const parsed = parseObjectAt(text, start);
-    if (parsed && typeof parsed === "object") objects.push(parsed);
-  }
-  return objects;
-}
-
 export function parseVerdict(text: string, labels: readonly string[]): Verdict | undefined {
-  const objects = jsonObjectsIn(text.slice(-VERDICT_SEARCH_CHARS)) as Array<{ winner?: unknown; reason?: unknown }>;
+  const objects = jsonObjectsIn(text.slice(-VERDICT_SEARCH_CHARS));
   for (const parsed of objects.reverse()) {
     const label = String(parsed.winner ?? "").trim().toUpperCase();
     if (labels.includes(label)) return { label, reason: String(parsed.reason ?? "").trim() };

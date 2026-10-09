@@ -40,6 +40,7 @@ import {
   buildInvocation,
   familyOf,
   needsScratchCwdForAsk,
+  withoutNpmBinDirs,
   parseWorkerOutput,
   supportsMode,
   type Invocation,
@@ -82,7 +83,7 @@ export function runProcess(invocation: Invocation, cwd: string, timeoutMs: numbe
   return new Promise((resolve) => {
     const child = spawn(invocation.bin, invocation.args, {
       cwd,
-      env: { ...process.env, ...invocation.env },
+      env: { ...process.env, PATH: withoutNpmBinDirs(process.env.PATH ?? ""), ...invocation.env },
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stdout = "";
@@ -106,7 +107,7 @@ export function runProcess(invocation: Invocation, cwd: string, timeoutMs: numbe
 }
 
 function git(cwd: string, args: string[]): string {
-  return execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).trim();
+  return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 }).trim();
 }
 
 // ── codex lean home ─────────────────────────────────────────────────────────

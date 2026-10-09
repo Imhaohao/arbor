@@ -40,7 +40,7 @@ export interface WorkerStats {
 
 export const SUBSCRIPTION_WINDOW_MS = 5 * 60 * 60 * 1000;
 
-const COOLDOWN_MS: Partial<Record<FailureKind, number>> = {
+export const COOLDOWN_MS: Partial<Record<FailureKind, number>> = {
   rate_limit: 30 * 60 * 1000,
   auth: 60 * 60 * 1000,
 };

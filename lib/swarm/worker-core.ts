@@ -2,7 +2,7 @@
 // command-line and output-parsing decision lives here so it can be tested
 // without spawning anything.
 
-export type Backend = "claude" | "codex" | "cursor" | "opencode" | "ollama";
+export type Backend = "claude" | "codex" | "cursor" | "gemini" | "opencode" | "ollama";
 export type Mode = "ask" | "code";
 export type Family = "anthropic" | "openai" | "xai" | "google" | "local" | "other";
 export type FailureKind = "auth" | "rate_limit" | "timeout" | "empty" | "other";
@@ -32,7 +32,7 @@ export interface WorkerOutput {
   failure?: FailureKind;
 }
 
-const BACKENDS: readonly Backend[] = ["claude", "codex", "cursor", "opencode", "ollama"];
+const BACKENDS: readonly Backend[] = ["claude", "codex", "cursor", "gemini", "opencode", "ollama"];
 
 export const DEFAULT_POOL: readonly string[] = [
   "claude",
@@ -75,6 +75,7 @@ const BACKEND_FAMILY: Record<Backend, Family> = {
   claude: "anthropic",
   codex: "openai",
   cursor: "other",
+  gemini: "google",
   opencode: "other",
   ollama: "local",
 };
@@ -146,6 +147,20 @@ const INVOCATION_BUILDERS: Record<Backend, InvocationBuilder> = {
       prompt,
     ],
   }),
+  // auto_edit approves file edits only; shell commands stay unapproved, so a
+  // headless Gemini cannot launch long jobs. plan is Gemini's read-only mode.
+  gemini: (spec, mode, prompt) => ({
+    bin: "gemini",
+    args: [
+      "-p",
+      prompt,
+      "-o",
+      "json",
+      "--approval-mode",
+      mode === "code" ? "auto_edit" : "plan",
+      ...modelFlag("-m", spec.model),
+    ],
+  }),
   opencode: (spec, _mode, prompt) => ({
     bin: "opencode",
     args: ["run", ...modelFlag("-m", spec.model), prompt],
@@ -168,6 +183,19 @@ export function buildInvocation(
     throw new Error(`${spec.label} cannot run in ${mode} mode`);
   }
   return INVOCATION_BUILDERS[spec.backend](spec, mode, prompt, context);
+}
+
+// npm run / npx prepend every ancestor's node_modules/.bin to PATH. A stray
+// package that happens to share a CLI's name (compute-box has an unrelated
+// `codex` in ~/node_modules) then shadows the real tool, so workers resolve
+// binaries the way the user's own shell would.
+const NPM_INJECTED_PATH_ENTRY = /\/node_modules\/\.bin\/?$|\/@npmcli\/run-script\/lib\/node-gyp-bin\/?$/;
+
+export function withoutNpmBinDirs(path: string): string {
+  return path
+    .split(":")
+    .filter((entry) => entry && !NPM_INJECTED_PATH_ENTRY.test(entry))
+    .join(":");
 }
 
 const ANSI_PATTERN = /\u001b\[[0-9;?]*[ -/]*[@-~]/g;
@@ -208,6 +236,32 @@ function claudeOutput(result: ProcessResult): WorkerOutput {
   return text ? { ok: true, text } : { ok: false, text, failure: "empty" };
 }
 
+interface GeminiJsonResult {
+  response?: unknown;
+  error?: { message?: unknown } | unknown;
+}
+
+function parseWholeJson(stdout: string): GeminiJsonResult | undefined {
+  try {
+    return JSON.parse(stdout.trim()) as GeminiJsonResult;
+  } catch {
+    return undefined;
+  }
+}
+
+function geminiErrorText(error: unknown): string {
+  if (error && typeof error === "object" && "message" in error) return String(error.message);
+  return String(error);
+}
+
+function geminiOutput(result: ProcessResult): WorkerOutput {
+  const parsed = parseWholeJson(result.stdout);
+  if (!parsed) return failed(`${result.stderr}\n${result.stdout}`);
+  if (parsed.error) return failed(geminiErrorText(parsed.error));
+  const text = String(parsed.response ?? "").trim();
+  return text ? { ok: true, text } : { ok: false, text, failure: "empty" };
+}
+
 function failed(diagnostic: string): WorkerOutput {
   const text = stripAnsi(diagnostic).trim().slice(-2000);
   return { ok: false, text, failure: classifyFailure(text) };
@@ -221,5 +275,6 @@ function plainOutput(result: ProcessResult): WorkerOutput {
 
 export function parseWorkerOutput(backend: Backend, result: ProcessResult): WorkerOutput {
   if (result.timedOut) return { ok: false, text: "", failure: "timeout" };
-  return backend === "claude" ? claudeOutput(result) : plainOutput(result);
+  if (backend === "claude") return claudeOutput(result);
+  return backend === "gemini" ? geminiOutput(result) : plainOutput(result);
 }

@@ -7,6 +7,7 @@ import {
   parseWorkerList,
   parseWorkerOutput,
   supportsMode,
+  withoutNpmBinDirs,
   type ProcessResult,
   type WorkerSpec,
 } from "./worker-core";
@@ -26,6 +27,25 @@ import {
   preselect,
   type Candidate,
 } from "./select-core";
+import { jsonObjectsIn, lastJsonWith } from "./json-reply";
+import {
+  BASELINE_AUTHOR,
+  MAX_BENCH_MS,
+  RESULTS_TSV_HEADER,
+  abandonUnfinished,
+  benchMs,
+  judgeRun,
+  newBoard,
+  nextAuthor,
+  nextExperimentId,
+  parseProposal,
+  parseTrainingSummary,
+  renderBoard,
+  researchPrompt,
+  resultsTsvRow,
+  type Board,
+  type Experiment,
+} from "./board-core";
 
 // ── worker-core: parsing ────────────────────────────────────────────────────
 
@@ -39,7 +59,7 @@ assert.equal(bareClaude.backend, "claude");
 assert.equal(bareClaude.model, undefined);
 assert.equal(parseWorker("claude:").model, undefined);
 assert.equal(parseWorker("  codex  ").label, "codex");
-assert.throws(() => parseWorker("gemini"), /unknown worker backend "gemini"/);
+assert.throws(() => parseWorker("antigravity"), /unknown worker backend "antigravity"/);
 
 const listed = parseWorkerList(" claude , ,codex,, cursor:grok-4.7-medium ,");
 assert.deepEqual(
@@ -670,5 +690,491 @@ assert.deepEqual(parseVerdict('{"reason":"order {swapped}","winner":"A"}', LABEL
   label: "A",
   reason: "order {swapped}",
 });
+
+// ── json-reply: jsonObjectsIn ───────────────────────────────────────────────
+
+assert.deepEqual(jsonObjectsIn('Here you go: {"a":1} and then, later, {"b":"two"}. Done.'), [
+  { a: 1 },
+  { b: "two" },
+]);
+assert.deepEqual(jsonObjectsIn("no braces here"), []);
+assert.deepEqual(jsonObjectsIn(""), []);
+assert.deepEqual(jsonObjectsIn("[1, 2, 3] and 42 and 3.14"), []);
+assert.deepEqual(jsonObjectsIn('[1, 2, 3] then 42 then {"ok":true}'), [{ ok: true }]);
+assert.deepEqual(jsonObjectsIn('{ not json } then {"ok":true}'), [{ ok: true }]);
+
+const braceInString = jsonObjectsIn('{"reason":"uses \\\\p{M} for accents","winner":"B"}');
+assert.equal(braceInString.length, 1);
+assert.equal(braceInString[0].reason, "uses \\p{M} for accents");
+assert.equal(braceInString[0].winner, "B");
+
+// ── json-reply: lastJsonWith ────────────────────────────────────────────────
+
+const multiObjectReply = 'first {"a":1} middle {"a":2,"b":"x"} tail {"c":3}';
+assert.deepEqual(lastJsonWith(multiObjectReply, "a"), { a: 2, b: "x" });
+assert.deepEqual(lastJsonWith(multiObjectReply, "b"), { a: 2, b: "x" });
+assert.deepEqual(lastJsonWith(multiObjectReply, "c"), { c: 3 });
+assert.equal(lastJsonWith(multiObjectReply, "missing"), undefined);
+assert.equal(lastJsonWith("no json at all", "a"), undefined);
+assert.equal(lastJsonWith("", "a"), undefined);
+
+const buriedObject = '{"k":1}' + "x".repeat(5000 - '{"k":1}'.length);
+assert.equal(buriedObject.length, 5000);
+assert.deepEqual(jsonObjectsIn(buriedObject), [{ k: 1 }]);
+assert.equal(lastJsonWith(buriedObject, "k"), undefined);
+
+const objectAtTailEnd = "x".repeat(5000) + '{"k":1}';
+assert.deepEqual(lastJsonWith(objectAtTailEnd, "k"), { k: 1 });
+
+const objectFillingTail = '{"k":1}' + "x".repeat(4000 - '{"k":1}'.length);
+assert.equal(objectFillingTail.length, 4000);
+assert.deepEqual(lastJsonWith(objectFillingTail, "k"), { k: 1 });
+assert.equal(lastJsonWith(objectFillingTail + "y", "k"), undefined);
+
+// ── worker-core: gemini parsing ─────────────────────────────────────────────
+
+const bareGemini = parseWorker("gemini");
+assert.equal(bareGemini.backend, "gemini");
+assert.equal(bareGemini.model, undefined);
+assert.equal(bareGemini.label, "gemini");
+assert.equal(familyOf(bareGemini), "google");
+
+const proGemini = parseWorker("gemini:gemini-3-pro");
+assert.equal(proGemini.backend, "gemini");
+assert.equal(proGemini.model, "gemini-3-pro");
+assert.equal(proGemini.label, "gemini:gemini-3-pro");
+assert.equal(familyOf(proGemini), "google");
+
+assert.equal(supportsMode(bareGemini, "code"), true);
+assert.equal(supportsMode(bareGemini, "ask"), true);
+
+// ── worker-core: gemini invocations ─────────────────────────────────────────
+
+const geminiCode = buildInvocation(bareGemini, "code", "fix it", CONTEXT);
+assert.equal(geminiCode.bin, "gemini");
+assert.equal(argAfter(geminiCode.args, "-p"), "fix it");
+assert.equal(argAfter(geminiCode.args, "-o"), "json");
+assert.equal(argAfter(geminiCode.args, "--approval-mode"), "auto_edit");
+assert.equal(geminiCode.args.includes("-m"), false);
+assert.equal(geminiCode.env, undefined);
+
+const geminiAsk = buildInvocation(bareGemini, "ask", "what is it", CONTEXT);
+assert.equal(argAfter(geminiAsk.args, "-p"), "what is it");
+assert.equal(argAfter(geminiAsk.args, "-o"), "json");
+assert.equal(argAfter(geminiAsk.args, "--approval-mode"), "plan");
+assert.equal(geminiAsk.args.includes("-m"), false);
+
+const geminiAskModel = buildInvocation(proGemini, "ask", "p", CONTEXT);
+assert.equal(argAfter(geminiAskModel.args, "-m"), "gemini-3-pro");
+assert.equal(argAfter(geminiAskModel.args, "--approval-mode"), "plan");
+
+const geminiCodeModel = buildInvocation(proGemini, "code", "p", CONTEXT);
+assert.equal(argAfter(geminiCodeModel.args, "-m"), "gemini-3-pro");
+assert.equal(argAfter(geminiCodeModel.args, "--approval-mode"), "auto_edit");
+
+// ── worker-core: gemini output parsing ──────────────────────────────────────
+
+assert.deepEqual(
+  parseWorkerOutput("gemini", processResult({ stdout: '{"response":"hello","stats":{}}' })),
+  { ok: true, text: "hello" },
+);
+
+const geminiPadded = parseWorkerOutput(
+  "gemini",
+  processResult({ stdout: '{"response":"  padded  \\n"}\n' }),
+);
+assert.equal(geminiPadded.ok, true);
+assert.equal(geminiPadded.text, "padded");
+
+const geminiQuota = parseWorkerOutput(
+  "gemini",
+  processResult({ code: 1, stdout: '{"error":{"message":"Quota exceeded"}}' }),
+);
+assert.equal(geminiQuota.ok, false);
+assert.equal(geminiQuota.failure, "rate_limit");
+assert.equal(geminiQuota.text, "Quota exceeded");
+
+const geminiStringError = parseWorkerOutput(
+  "gemini",
+  processResult({ code: 1, stdout: '{"error":"Please log in again"}' }),
+);
+assert.equal(geminiStringError.ok, false);
+assert.equal(geminiStringError.failure, "auth");
+
+const geminiNotJson = parseWorkerOutput(
+  "gemini",
+  processResult({ code: 1, stdout: "Segmentation fault" }),
+);
+assert.equal(geminiNotJson.ok, false);
+assert.equal(geminiNotJson.failure, "other");
+assert.equal(geminiNotJson.text, "Segmentation fault");
+
+const geminiNotJsonRateLimited = parseWorkerOutput(
+  "gemini",
+  processResult({ code: 1, stdout: "", stderr: "Error: 429 Too Many Requests" }),
+);
+assert.equal(geminiNotJsonRateLimited.ok, false);
+assert.equal(geminiNotJsonRateLimited.failure, "rate_limit");
+
+const geminiEmptyResponse = parseWorkerOutput("gemini", processResult({ stdout: '{"response":""}' }));
+assert.equal(geminiEmptyResponse.ok, false);
+assert.equal(geminiEmptyResponse.failure, "empty");
+assert.equal(
+  parseWorkerOutput("gemini", processResult({ stdout: '{"stats":{}}' })).failure,
+  "empty",
+);
+
+assert.deepEqual(parseWorkerOutput("gemini", processResult({ timedOut: true, code: null })), {
+  ok: false,
+  text: "",
+  failure: "timeout",
+});
+assert.equal(
+  parseWorkerOutput("gemini", processResult({ timedOut: true, stdout: '{"response":"late"}' })).failure,
+  "timeout",
+);
+
+// ── board-core: helpers ─────────────────────────────────────────────────────
+
+function boardExperiment(
+  overrides: Partial<Experiment> & Pick<Experiment, "id" | "author">,
+): Experiment {
+  return {
+    hypothesis: "raise the learning rate",
+    status: "kept",
+    proposedAt: NOW,
+    ...overrides,
+  };
+}
+
+function boardWith(experiments: Experiment[], notes: Board["notes"] = []): Board {
+  return { ...newBoard("autoresearch/board", "abc123"), experiments, notes };
+}
+
+// ── board-core: newBoard and nextExperimentId ───────────────────────────────
+
+const freshBoard = newBoard("autoresearch/board", "abc123");
+assert.equal(freshBoard.branch, "autoresearch/board");
+assert.equal(freshBoard.best.commit, "abc123");
+assert.equal(freshBoard.best.valBpb, null);
+assert.deepEqual(freshBoard.experiments, []);
+assert.deepEqual(freshBoard.notes, []);
+
+const growingBoard = newBoard("autoresearch/board", "abc123");
+assert.equal(nextExperimentId(growingBoard), "e001");
+growingBoard.experiments.push(boardExperiment({ id: "e001", author: "claude" }));
+assert.equal(nextExperimentId(growingBoard), "e002");
+
+const manyExperiments = Array.from({ length: 99 }, (_, index) =>
+  boardExperiment({ id: `e${index + 1}`, author: "claude" }),
+);
+assert.equal(nextExperimentId(boardWith(manyExperiments)), "e100");
+
+// ── board-core: abandonUnfinished ───────────────────────────────────────────
+
+const unfinishedBoard = boardWith([
+  boardExperiment({ id: "e001", author: "claude", status: "kept", valBpb: 1.6 }),
+  boardExperiment({
+    id: "e002",
+    author: "codex",
+    status: "discarded",
+    valBpb: 1.7,
+    bestBefore: 1.6,
+    detail: "worse than the best",
+  }),
+  boardExperiment({ id: "e003", author: "claude", status: "running" }),
+  boardExperiment({ id: "e004", author: "codex", status: "queued" }),
+  boardExperiment({ id: "e005", author: "claude", status: "crashed", detail: "out of memory" }),
+]);
+const unfinishedSnapshot = structuredClone(unfinishedBoard);
+const afterRestart = abandonUnfinished(unfinishedBoard);
+
+assert.deepEqual(
+  afterRestart.experiments.map((experiment) => experiment.status),
+  ["kept", "discarded", "abandoned", "abandoned", "crashed"],
+);
+assert.equal(afterRestart.experiments[2].detail, "lab restarted before it ran");
+assert.equal(afterRestart.experiments[3].detail, "lab restarted before it ran");
+assert.equal(afterRestart.experiments[2].id, "e003");
+assert.deepEqual(afterRestart.experiments[0], unfinishedBoard.experiments[0]);
+assert.deepEqual(afterRestart.experiments[1], unfinishedBoard.experiments[1]);
+assert.deepEqual(afterRestart.experiments[4], unfinishedBoard.experiments[4]);
+assert.deepEqual(afterRestart.best, unfinishedBoard.best);
+assert.equal(afterRestart.branch, unfinishedBoard.branch);
+assert.notEqual(afterRestart, unfinishedBoard);
+assert.deepEqual(unfinishedBoard, unfinishedSnapshot, "abandonUnfinished must not mutate its input");
+assert.equal(unfinishedBoard.experiments[2].status, "running");
+assert.equal(unfinishedBoard.experiments[3].status, "queued");
+
+// ── board-core: nextAuthor ──────────────────────────────────────────────────
+
+const AUTHORS = ["claude", "codex", "cursor:grok-4.7-medium"];
+const turnsBoard = boardWith([
+  boardExperiment({ id: "e001", author: "claude" }),
+  boardExperiment({ id: "e002", author: "claude" }),
+  boardExperiment({ id: "e003", author: "codex" }),
+]);
+
+assert.equal(nextAuthor(turnsBoard, AUTHORS, new Set()), "cursor:grok-4.7-medium");
+assert.equal(nextAuthor(turnsBoard, AUTHORS, new Set(["cursor:grok-4.7-medium"])), "codex");
+assert.equal(
+  nextAuthor(turnsBoard, AUTHORS, new Set(["cursor:grok-4.7-medium", "codex"])),
+  "claude",
+);
+assert.equal(nextAuthor(turnsBoard, AUTHORS, new Set(AUTHORS)), undefined);
+assert.equal(nextAuthor(turnsBoard, [], new Set()), undefined);
+assert.equal(nextAuthor(freshBoard, AUTHORS, new Set()), "claude");
+
+const baselineOnlyBoard = boardWith([
+  boardExperiment({ id: "e001", author: BASELINE_AUTHOR }),
+  boardExperiment({ id: "e002", author: BASELINE_AUTHOR }),
+  boardExperiment({ id: "e003", author: BASELINE_AUTHOR }),
+]);
+assert.equal(nextAuthor(baselineOnlyBoard, ["claude", "codex"], new Set()), "claude");
+
+const baselineAndCodexBoard = boardWith([
+  boardExperiment({ id: "e001", author: BASELINE_AUTHOR }),
+  boardExperiment({ id: "e002", author: BASELINE_AUTHOR }),
+  boardExperiment({ id: "e003", author: BASELINE_AUTHOR }),
+  boardExperiment({ id: "e004", author: "codex" }),
+]);
+assert.equal(nextAuthor(baselineAndCodexBoard, ["codex", "claude"], new Set()), "claude");
+assert.equal(nextAuthor(baselineAndCodexBoard, ["claude", "codex"], new Set(["claude"])), "codex");
+
+// ── board-core: parseTrainingSummary ────────────────────────────────────────
+
+const finishedLog = [
+  "step 00001 | loss 9.8 | val_bpb: 9",
+  "---",
+  "val_bpb:          1.633895",
+  "training_seconds: 300.1",
+  "peak_vram_mb:     8600.2",
+].join("\n");
+const finishedSummary = parseTrainingSummary(finishedLog);
+assert.equal(finishedSummary.valBpb, 1.633895);
+assert.equal(finishedSummary.peakMemoryGb, 8.4);
+
+assert.equal(parseTrainingSummary("peak_vram_mb: 24576").peakMemoryGb, 24);
+
+const logWithoutSummary = parseTrainingSummary("Traceback (most recent call last):\nOutOfMemoryError");
+assert.equal(logWithoutSummary.valBpb, undefined);
+assert.equal(logWithoutSummary.peakMemoryGb, undefined);
+assert.equal(parseTrainingSummary("").valBpb, undefined);
+
+const midLineOnly = parseTrainingSummary("step 00001 | val_bpb: 9\nstep 00002 | peak_vram_mb: 500");
+assert.equal(midLineOnly.valBpb, undefined);
+assert.equal(midLineOnly.peakMemoryGb, undefined);
+
+assert.equal(parseTrainingSummary("step 00001 | val_bpb: 9\nval_bpb: 1.5\n").valBpb, 1.5);
+assert.equal(parseTrainingSummary("val_bpb: nan").valBpb, undefined);
+
+// ── board-core: judgeRun ────────────────────────────────────────────────────
+
+assert.equal(judgeRun(1.6, undefined), "crashed");
+assert.equal(judgeRun(null, undefined), "crashed");
+assert.equal(judgeRun(1.6, 0), "crashed");
+assert.equal(judgeRun(null, 0), "crashed");
+assert.equal(judgeRun(null, 1.7), "kept");
+assert.equal(judgeRun(1.6, 1.59), "kept");
+assert.equal(judgeRun(1.6, 1.6), "discarded");
+assert.equal(judgeRun(1.6, 1.61), "discarded");
+
+// ── board-core: resultsTsvRow ───────────────────────────────────────────────
+
+const keptRow = resultsTsvRow(
+  "abcdef1234567890",
+  boardExperiment({
+    id: "e001",
+    author: "claude",
+    hypothesis: "raise LR to 0.04",
+    status: "kept",
+    valBpb: 1.5,
+    peakMemoryGb: 8.4,
+  }),
+);
+assert.equal(keptRow, "abcdef1\t1.500000\t8.4\tkeep\tclaude: raise LR to 0.04");
+assert.equal(keptRow.split("\t").length, 5);
+assert.equal(RESULTS_TSV_HEADER.split("\t").length, 5);
+
+const statusCases: Array<[Experiment["status"], string]> = [
+  ["kept", "keep"],
+  ["discarded", "discard"],
+  ["crashed", "crash"],
+];
+for (const [status, expected] of statusCases) {
+  const row = resultsTsvRow("abcdef1234", boardExperiment({ id: "e001", author: "codex", status }));
+  assert.equal(row.split("\t")[3], expected, `tsv status for ${status}`);
+}
+
+assert.equal(
+  resultsTsvRow("abcdef1234", boardExperiment({ id: "e002", author: "codex", status: "crashed" })),
+  "abcdef1\t0.000000\t0.0\tcrash\tcodex: raise the learning rate",
+);
+assert.equal(
+  resultsTsvRow("abc", boardExperiment({ id: "e003", author: "codex", valBpb: 1.2 })).split("\t")[0],
+  "abc",
+);
+assert.equal(
+  resultsTsvRow("abc", boardExperiment({ id: "e003", author: "codex", valBpb: 1.2 })).split("\t")[1],
+  "1.200000",
+);
+assert.equal(
+  resultsTsvRow("abc", boardExperiment({ id: "e003", author: "codex", valBpb: 1.633895 })).split("\t")[1],
+  "1.633895",
+);
+
+const messyRow = resultsTsvRow(
+  "abcdef1234",
+  boardExperiment({
+    id: "e004",
+    author: "claude",
+    hypothesis: "tab\there\nnewline\n\ndouble",
+    valBpb: 1.5,
+  }),
+);
+assert.equal(messyRow.split("\t").length, 5);
+assert.equal(messyRow.includes("\n"), false);
+assert.equal(messyRow.split("\t")[4], "claude: tab here newline double");
+
+// ── board-core: renderBoard ─────────────────────────────────────────────────
+
+const emptyRendered = renderBoard(freshBoard);
+assert.ok(emptyRendered.includes("No baseline yet"));
+assert.ok(emptyRendered.includes("nothing yet"));
+assert.ok(emptyRendered.includes("- none yet"));
+assert.equal(emptyRendered.includes("Best so far"), false);
+
+const renderedWithBest = renderBoard({
+  branch: "autoresearch/board",
+  best: { commit: "abcdef1234", valBpb: 1.5, experiment: "e000" },
+  experiments: [
+    boardExperiment({
+      id: "e001",
+      author: "codex",
+      hypothesis: "gate a | b",
+      status: "discarded",
+      valBpb: 1.51,
+      bestBefore: 1.5,
+    }),
+  ],
+  notes: [],
+});
+assert.equal(renderedWithBest.includes("No baseline yet"), false);
+assert.equal(renderedWithBest.includes("nothing yet"), false);
+assert.ok(renderedWithBest.includes("Best so far: val_bpb 1.5000 (e000, commit abcdef1)"));
+const discardedRow = "| e001 | codex | discarded | 1.5100 | +0.0100 | gate a / b |";
+assert.ok(renderedWithBest.includes(discardedRow));
+assert.equal(discardedRow.split("|").length - 1, 7);
+assert.equal(renderedWithBest.includes("a | b"), false);
+
+const improvedRow = renderBoard(
+  boardWith([
+    boardExperiment({ id: "e001", author: "claude", valBpb: 1.49, bestBefore: 1.5 }),
+    boardExperiment({ id: "e002", author: "codex", status: "discarded", valBpb: 1.5, bestBefore: 1.5 }),
+  ]),
+);
+assert.ok(improvedRow.includes("| e001 | claude | kept | 1.4900 | -0.0100 | raise the learning rate |"));
+assert.ok(improvedRow.includes("| e002 | codex | discarded | 1.5000 | +0.0000 | raise the learning rate |"));
+
+const abandonedRender = renderBoard(
+  boardWith([
+    boardExperiment({
+      id: "e003",
+      author: "claude",
+      hypothesis: "h",
+      status: "abandoned",
+      detail: "lab restarted | before it ran",
+    }),
+  ]),
+);
+assert.ok(abandonedRender.includes("| e003 | claude | abandoned |  |  | h (lab restarted / before it ran) |"));
+
+const baselineNamed = renderBoard({
+  ...freshBoard,
+  best: { commit: "abcdef1234", valBpb: 1.6384 },
+});
+assert.ok(baselineNamed.includes("(baseline, commit abcdef1)"));
+
+const manyNotes = Array.from({ length: 35 }, (_, index) => ({
+  at: NOW,
+  author: "claude",
+  text: `lesson-${String(index + 1).padStart(2, "0")}`,
+}));
+const renderedManyNotes = renderBoard(boardWith([], manyNotes));
+assert.equal(renderedManyNotes.includes("lesson-05"), false);
+assert.ok(renderedManyNotes.includes("- claude: lesson-06"));
+assert.ok(renderedManyNotes.includes("- claude: lesson-35"));
+assert.equal(renderedManyNotes.split("\n").filter((line) => line.startsWith("- claude: ")).length, 30);
+assert.equal(renderedManyNotes.includes("none yet"), false);
+
+// ── board-core: researchPrompt ──────────────────────────────────────────────
+
+const promptForCodex = researchPrompt("codex", "# Research board\nBOARD-MARKER", "1x H100 80GB");
+assert.ok(promptForCodex.includes("You are codex"));
+assert.ok(promptForCodex.includes("(1x H100 80GB)"));
+assert.ok(promptForCodex.includes("BOARD-MARKER"));
+assert.ok(promptForCodex.includes("Do not run training"));
+assert.ok(promptForCodex.includes('"hypothesis"'));
+assert.ok(promptForCodex.includes('"note"'));
+assert.ok(
+  promptForCodex.indexOf("BOARD-MARKER") < promptForCodex.indexOf("end your reply with one line of JSON"),
+);
+
+// ── board-core: parseProposal ───────────────────────────────────────────────
+
+assert.deepEqual(
+  parseProposal(
+    'Raised the LR.\n{"hypothesis":"warm up LR over 100 steps","note":"warmup helped in e002"}',
+  ),
+  { hypothesis: "warm up LR over 100 steps", note: "warmup helped in e002" },
+);
+
+const emptyNote = parseProposal('done\n{"hypothesis":"drop weight decay","note":""}');
+assert.equal(emptyNote.hypothesis, "drop weight decay");
+assert.equal(emptyNote.note, undefined);
+assert.equal(parseProposal('{"hypothesis":"no note key"}').note, undefined);
+assert.equal(parseProposal('{"hypothesis":"  padded  ","note":"  spaced  "}').hypothesis, "padded");
+assert.equal(parseProposal('{"hypothesis":"  padded  ","note":"  spaced  "}').note, "spaced");
+
+const proposalAfterCode = parseProposal('edited `if cond { y }` in train.py\n{"hypothesis":"h","note":"n"}');
+assert.deepEqual(proposalAfterCode, { hypothesis: "h", note: "n" });
+
+const longReply = "x".repeat(300);
+const longFallback = parseProposal(longReply);
+assert.equal(longFallback.hypothesis, "x".repeat(200));
+assert.equal(longFallback.note, undefined);
+
+assert.equal(parseProposal("  I tried a bigger batch.  ").hypothesis, "I tried a bigger batch.");
+assert.equal(parseProposal("").hypothesis, "(no description given)");
+assert.equal(parseProposal("   \n ").hypothesis, "(no description given)");
+assert.equal(parseProposal("").note, undefined);
+
+// ── worker-core: PATH as the user's shell sees it ───────────────────────────
+
+// The PATH npx built on compute-box, where ~/node_modules/.bin held an
+// unrelated `codex` package that shadowed /opt/homebrew/bin/codex.
+const npxPath = [
+  "/Users/yanzihao/arbor-lab/node_modules/.bin",
+  "/Users/yanzihao/node_modules/.bin",
+  "/Users/node_modules/.bin",
+  "/node_modules/.bin",
+  "/opt/homebrew/lib/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin",
+  "/Users/yanzihao/.local/bin",
+  "/opt/homebrew/bin",
+  "/usr/bin",
+].join(":");
+assert.equal(withoutNpmBinDirs(npxPath), "/Users/yanzihao/.local/bin:/opt/homebrew/bin:/usr/bin");
+assert.equal(withoutNpmBinDirs("/usr/bin::/bin"), "/usr/bin:/bin");
+assert.equal(withoutNpmBinDirs("/opt/node_modules_tools/bin:/usr/bin"), "/opt/node_modules_tools/bin:/usr/bin");
+
+// ── board-core: benching agents that keep failing ───────────────────────────
+
+assert.equal(benchMs("other", 1), 60 * 1000);
+assert.equal(benchMs("empty", 3), 4 * 60 * 1000);
+assert.equal(benchMs("no_change", 2), 2 * 60 * 1000);
+assert.equal(benchMs("rate_limit", 1), 30 * 60 * 1000);
+assert.equal(benchMs("rate_limit", 2), MAX_BENCH_MS);
+assert.equal(benchMs("other", 50), MAX_BENCH_MS);
+assert.equal(benchMs("other", 0), 60 * 1000);
 
 console.log("swarm-core tests passed");
