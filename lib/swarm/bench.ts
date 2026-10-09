@@ -138,7 +138,7 @@ export function parseUsage(backend: Backend, result: CliOutput): Usage {
   return USAGE_PARSERS[backend]?.(result) ?? {};
 }
 
-const RETRYABLE = new Set(["rate_limit", "timeout", "other"]);
+const RETRYABLE = new Set(["rate_limit", "other"]);
 const RETRY_DELAYS_MS = [30_000, 120_000];
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
