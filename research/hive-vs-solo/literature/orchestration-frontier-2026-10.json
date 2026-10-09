@@ -1,0 +1,259 @@
+{
+  "question": "State of the art in multi-agent LLM orchestration and agent \"hiveminds\" as of October 2026, focused on one question: under what conditions, and with which specific techniques, can a team of smaller/cheaper models (e.g. Claude Haiku/Sonnet-class, Gemini Flash, Grok, DeepSeek, open-weight 7-70B models) match or beat a single frontier model (Claude Opus 5.x, GPT-6-Astra, Fable 5 class) on verifiable tasks, especially code generation graded by hidden tests? Cover: (1) Sakana Fugu / Fugu-Ultra (arXiv:2606.21228) and the Conductor/TRINITY line: exact method (learned router vs multi-agent workflow), agent pool, benchmarks, reported numbers, harnesses, and independent critiques or reproductions; (2) other 2025-2026 orchestration systems and results: Mixture-of-Agents and successors, AB-MCTS/TreeQuest, learned routers (RouteLLM-style), test-time scaling via generate-verify-select (CodeT, AlphaCode-style clustering, execution-based voting, self-repair), multi-agent debate and its failure modes, swarm/hivemind or shared-blackboard architectures, evolutionary program search (AlphaEvolve, ShinkaEvolve); (3) the evidence on when ensembles help vs hurt: co-failure ceilings, correlated errors, 'scaling agent systems' coordination regimes, verifier availability; (4) cost-matched comparisons: small-model ensembles vs frontier solo at equal dollars or tokens; (5) evaluation pitfalls and reward hacking in multi-agent benchmarks: contamination, test leakage, weak graders, LLM-judge bias, cherry-picked tasks, and recommended protocols for a rigorous pre-registered small-team-vs-frontier experiment. Prefer primary sources (arXiv, official tech reports, benchmark repos); flag vendor self-reported numbers. Output should end with concrete, ranked technique recommendations for building a small-model team that maximizes hidden-test pass rate on fresh competitive-programming-style problems.",
+  "summary": "None of the verified sources show that a team of small or cheap models beats a single frontier model on fresh code problems graded by hidden tests at equal cost. The strongest systems in this space depend on frontier workers or on a reliable scorer. Sakana's Fugu is a learned orchestrator, meaning a small model trained to pick and coordinate other models. Its worker pool, though, is frontier models (Gemini-3.1-Pro, Claude-Opus-4.8, GPT-5.5), so its headline numbers say nothing about small-model teams, and no one has independently reproduced them. The verified gains for search over many candidates come with conditions. AB-MCTS lifts ARC-AGI-2 coverage from 23% to 27.5% (one model) and to over 30% (several models), but only on any-of-250-attempts scoring and only with a scorer guiding the search. MARTI-MARS\u00b2 reports that two 32B models reach 77.7% on LiveCodeBench v6, but that result relies on best-of-60 search, is not cost-matched, and still loses to Gemini 3 Pro and Flash. The evidence on when teams hurt is consistent: every multi-agent setup lost 39-70% to a single agent on sequential planning (PlanCraft), and independent parallel attempts help newer frontier models less and less. Practical implication for the harness: build around execution-based verification and a strong final-answer selector. Use different model families for diversity. Pre-register the cost and token budget. Score only on held-out hidden tests from problems published after every model's training cutoff. Treat \"small team beats Opus 5.5 / Astra / Fugu\" as a hypothesis the experiment must test, not one the literature already supports.",
+  "findings": [
+    {
+      "claim": "Sakana Fugu is a learned orchestrator, not a fixed workflow. A small language model is trained to put together and coordinate agents from a pool. Base Fugu is trained with supervised fine-tuning followed by sep-CMA-ES (an evolution-style optimizer) and picks one worker per query. Fugu-Ultra builds on the Conductor line, writes natural-language workflows of up to 5 steps, and is trained with GRPO (a reinforcement learning method). Its lineage is TRINITY (~0.6B) and Conductor (~7B), but the parameter count of the shipped models is not disclosed.",
+      "confidence": "high",
+      "sources": [
+        "https://sakana.ai/fugu-beta/",
+        "https://sakana.ai/fugu-release/",
+        "https://arxiv.org/abs/2606.21228"
+      ],
+      "evidence": "Vote 3-0 on two claims. Sakana's beta post says Fugu 'learns to dynamically assemble agents from a pool and coordinate them' instead of following prescribed roles or workflows. The release post says it is 'built on learned orchestration rather than fixed workflows'. Technical report arXiv:2606.21228 (v2, 23 Jun 2026) gives the training details. All of this is vendor self-description. No ablation against a hand-built pipeline was found."
+    },
+    {
+      "claim": "Fugu's headline results come from orchestrating a pool of frontier models, not small or cheap ones. They therefore give no evidence that small-model teams can beat frontier models. Only the orchestrator is 'small'. Sakana's claim that fugu-ultra leads on LiveCodeBench v6 (93.2 vs 92.4 for Opus 4.6 max) was refuted by the verification panel (1-2), and all Fugu benchmark numbers are vendor-reported and unreproduced.",
+      "confidence": "high",
+      "sources": [
+        "https://sakana.ai/fugu-beta/",
+        "https://arxiv.org/abs/2606.21228",
+        "https://sakana.ai/fugu-release/"
+      ],
+      "evidence": "Vote 3-0. The beta post says 'a diverse pool of powerful models' and 'pools of frontier foundation models'. The technical report says the Fugu-Ultra training pool 'includes Gemini-3.1-Pro, Claude-Opus-4.8, and GPT-5.5'. A search of the report for Haiku, Flash, Sonnet, Grok, DeepSeek and Kimi found no small workers. Open models are listed only as future plans. Any claim to 'beat Fugu' with small models therefore has to be measured directly in a harness, because no published small-pool Fugu number exists to compare against."
+    },
+    {
+      "claim": "AB-MCTS (adaptive branching tree search, from Sakana and published at NeurIPS 2025 as a spotlight) beats plain repeated sampling when a scorer guides it, and adding more model families helps a little more. On the 120-task ARC-AGI-2 public set with 250 generations per task, repeated sampling with o4-mini reached 23%. Single-model AB-MCTS reached 27.5%. Multi-LLM AB-MCTS (o4-mini plus Gemini-2.5-Pro plus DeepSeek-R1-0528) reached over 30%. These are oracle Pass@250 numbers, meaning a task counts as solved if any of the 250 attempts is correct. With a rule-based selector at Pass@2 the paper reports 19.2%.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/html/2503.04412v5"
+      ],
+      "evidence": "Vote 3-0 on two claims. Appendix D.2 numbers are identical across v3, v4 and v5. Caveats: 27.5% vs over 30% is a difference of about 4 tasks out of 120, with no confidence intervals or seeds. The workers are reasoning models, not Haiku-class models. A reward from the demonstration examples guided the search. The refuted claim (0-3) that this proves selection rather than generation is the bottleneck should not be repeated. Only the raw 19.2% Pass@2 figure is supported."
+    },
+    {
+      "claim": "Search-based orchestration is only as good as its scorer. The AB-MCTS authors say the method 'assumes the existence of a reliable score evaluator', and building one can be hard. TreeQuest, Sakana's open-source library (Apache-2.0), packages AB-MCTS-A, AB-MCTS-M and a Multi-LLM mode. In that mode each LLM is a separate generation action chosen by the search, using Thompson sampling in the paper. TreeQuest has no correctness signal of its own: the user's function must return a (state, score) pair with the score in [0,1].",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/html/2503.04412v5",
+        "https://github.com/SakanaAI/treequest"
+      ],
+      "evidence": "Vote 3-0 on four claims. The Limitations section of the paper contains the quote. Section 3.1 says hidden tests may be inaccessible, so a surrogate is used, such as the fraction of public tests passed. The README says 'Scores are expected to be normalized to the [0, 1] range'. types.py defines GenerateFnType -> Tuple[NodeStateT, float]. ranker.py only sorts the scores the user supplies. For a small-model team, TreeQuest is a ready-made search engine, and the scorer you plug in (public-test execution, generated tests, or a learned reward model) decides how well it works."
+    },
+    {
+      "claim": "Scoring code only on public tests produces false positives. The MARTI-MARS\u00b2 authors call this 'reward hacking': solutions that pass the few public tests but fail the hidden private tests. Their fix is a reward model, initialized from Skywork-Reward-V2-Qwen3-8B, that predicts the probability a solution passes the private tests. It is used to choose among candidates that pass the public tests. Its measured benefit is small: Pass@1 changes of -0.3 to +0.6, and AUC (how well it ranks good above bad solutions) of 79.3 vs 73.0 for the base model.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/pdf/2602.07848"
+      ],
+      "evidence": "Vote 3-0. Section 2.3.2 of the paper (Feb 2026, ACL 2026). This bears directly on harness design. Any orchestrator scored on public tests will overfit them, so the final grade must use hidden tests the team never sees, and those tests must not leak into the scorer or the prompts."
+    },
+    {
+      "claim": "The best result for small open models on code found so far comes from MARTI-MARS\u00b2. Two collaborating 32B models (Nemotron-32B plus Qwen3-32B, trained with multi-agent reinforcement learning) score 77.7% on LiveCodeBench v6, against 72.6% for GPT-5.1. The same figure shows Gemini 3 Pro at 83.4% and Gemini 3 Flash at 78.3%, both higher. The 77.7% is best-of-60 search guided by public tests and a reward model, the baselines appear to be single passes, and the comparison is not cost-matched.",
+      "confidence": "medium",
+      "sources": [
+        "https://arxiv.org/pdf/2602.07848"
+      ],
+      "evidence": "Vote 3-0 that the paper reports this, but the number is self-reported, appears only in Figure 1, has no table or confidence intervals, and has no independent reproduction. With about 175 tasks the standard error is about 3.1 percentage points, so the 5.1-point gap over GPT-5.1 is about 1.6 standard errors. Some baselines look inconsistent (GPT-5.2 at 69.1 is below GPT-5.1). Training used 8xH200 per agent. It shows that search-plus-verification with mid-size models can get close to frontier-class scores. It does not show that they beat the current frontier."
+    },
+    {
+      "claim": "Multi-agent coordination can badly hurt tasks that need steps done in strict order. In Google Research's controlled study (180 configurations in v1, 260 in v3), every multi-agent architecture scored 39-70% below a single agent on PlanCraft (single-agent mean 0.568): Independent 0.170 (-70%), Centralized 0.282 (-50%), Decentralized 0.332 (-41%), Hybrid 0.346 (-39%). The same study found large gains on a task that splits into parallel parts (Finance-Agent).",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/abs/2512.08296v2",
+        "https://research.google/blog/towards-a-science-of-scaling-agent-systems-when-and-why-agent-systems-work/"
+      ],
+      "evidence": "Vote 3-0 on two claims; the result is unchanged in v3 (Apr 2026). Scope limits: it rests on one benchmark of about 100 Minecraft crafting tasks, uses matched token budgets and untuned prompts, and has no independent replication. Several neighbouring claims from this paper were refuted by the panel: the 45% saturation threshold, the 17.2x vs 4.4x error amplification, and the SWE-bench Verified result. Do not cite those. For competitive programming, avoid splitting one solution across agents that pass steps back and forth. Use parallel independent attempts with a verifier instead."
+    },
+    {
+      "claim": "For frontier models, splitting a fixed token budget into 10 independent attempts (oracle pass@10) helps far less on stateful tool-using benchmarks than on knowledge benchmarks. Averaged pass@1 to pass@10: SWE-Bench Pro 0.673 to 0.701, TerminalBench 0.657 to 0.720, FrontierMath 0.625 to 0.653, against HLE 0.417 to 0.606 and HealthBench 0.501 to 0.784. The gain shrinks with model release date on all five benchmarks. On FrontierMath, GPT-5.2, Opus 4.6 and GPT-5.4 each scored lower at pass@10 than at pass@1.",
+      "confidence": "medium",
+      "sources": [
+        "https://arxiv.org/pdf/2606.17930"
+      ],
+      "evidence": "Vote 3-0 on two claims, from a single UK AISI preprint (v3, Jul 2026). Caveats: the FrontierMath subset is only 12 tasks, and each benchmark has only 6 OpenAI and Anthropic models. The trend correlations are not significant (p=0.056 to 0.469 for n=6). It uses one ReAct scaffold with no verifier or selector. It tests no small models. It suggests the frontier baseline gets stronger the more budget it is given, so a fair harness must give the frontier solo the same dollar or token budget, not one cheap call."
+    },
+    {
+      "claim": "In a cost-unmatched comparison on an older math benchmark, an ensemble of open-weight models tied one frontier model. The DASE ensemble (3x GPT-OSS-120B plus 2x Qwen3-Next-80B-A3B) scored 84.5% on AIME 2010-2023 (N=261), equal to Opus 4.6 Standard at 84.5% (McNemar test p=1.000, 95% CI about +/-5 points). It used about 14 inferences per problem and about 6x the latency. The author explicitly declines to claim DASE beats the strongest single-call models. They cite Grok 4.1 Fast at about 94% on AIME at about $0.005 per question, taken from an external leaderboard.",
+      "confidence": "low",
+      "sources": [
+        "https://arxiv.org/pdf/2605.04236"
+      ],
+      "evidence": "The parity claim passed 2-1 and the author's concession 3-0. The source is a single-author preprint that has not been peer reviewed. The comparison model is probably the weakest Opus setting. The AIME problems are old, so they are probably in the training data. The tie is pooled across seeds. On the full AIME-300 set, DASE was ahead by +2.3 points, which was not significant (p=0.477). The paper's own concession shows that a cheap single frontier-class model can beat an expensive small ensemble, so cost-matched baselines are required."
+    },
+    {
+      "claim": "Ranked techniques for a small-model team aiming at the hidden-test pass rate on fresh competitive-programming problems. These are inferred from the verified evidence above, not tested end to end by any single source. (1) Execution-based generate-then-verify. Sample many candidate programs from several model families and run them in a sandbox. Score them on public tests plus model-generated tests, and keep the hidden tests unseen by every component. (2) Adaptive tree search over candidates (AB-MCTS through TreeQuest, Multi-LLM mode). Each model family is an action the search picks between, so the budget flows to whichever model is succeeding on that problem. (3) A strong final-answer selector, because oracle coverage overstates what you can actually submit. Use execution agreement or clustering by behavior, possibly a learned reward model of 'passes private tests', and report Pass@1 or Pass@2 rather than Pass@k. (4) Model-family diversity in the pool, to reduce failures that all models share. (5) Avoid sequential hand-offs between agents and debate without a verifier, given the PlanCraft degradation. Use parallel independent attempts with repair loops that run the code.",
+      "confidence": "medium",
+      "sources": [
+        "https://arxiv.org/html/2503.04412v5",
+        "https://github.com/SakanaAI/treequest",
+        "https://arxiv.org/pdf/2602.07848",
+        "https://arxiv.org/abs/2512.08296v2",
+        "https://arxiv.org/pdf/2606.17930"
+      ],
+      "evidence": "This synthesis combines the confirmed findings. Search guided by a verifier beat repeated sampling (AB-MCTS). Multi-LLM search beat single-LLM search. Overfitting to public tests is a documented failure. Coordination without a verifier hurt sequential tasks. Independent restarts give less to newer frontier models, so a small team's main lever is the verifier and selector, not raw sample count. No verified source runs this exact recipe against Opus 5.x, GPT-6-Astra or Fugu at matched cost. That comparison is what the harness must measure."
+    }
+  ],
+  "caveats": "Coverage limit: 50 extracted claims were never verified because of the 25-claim cap, so this report is not exhaustive over the sources fetched. Large parts of the research question have no surviving verified claim: Mixture-of-Agents and its successors, RouteLLM-style routers, CodeT and AlphaCode-style clustering, self-repair, failure modes of multi-agent debate, blackboard and hivemind architectures, AlphaEvolve and ShinkaEvolve, contamination studies, and protocols for bias in LLM judges. No verified source evaluates Claude Opus 5.x, GPT-6-Astra or Fable 5. The newest frontier models covered are Opus 4.6 and 4.8, GPT-5.4 and 5.5, and Gemini 3.x. Vendor and self-reported numbers include all Fugu benchmarks (the LiveCodeBench v6 lead was refuted), MARTI-MARS\u00b2 77.7%, and DASE. Most 'beats frontier' numbers use oracle Pass@k or best-of-N search against single-pass baselines and are not cost-matched. Samples are small throughout: ARC-AGI-2 has 120 tasks, LiveCodeBench v6 about 175, PlanCraft about 100, the FrontierMath subset 12, and the AISI study 6 models. The panel refuted several popular secondary claims from the Google scaling-agents paper: the 45% saturation threshold, 17.2x error amplification, the SWE-bench Verified result, and the 80.9% Finance-Agent figure. Do not reuse them. All findings are as of October 2026, and frontier releases move quickly. Nothing here proves the user's target hypothesis that small models beat Opus 5.5, Astra or Fugu. That must come from a pre-registered harness run with hidden tests on post-cutoff problems, matched dollar and token budgets for the frontier solo baseline, Pass@1 or Pass@2 submission metrics, multiple seeds, and paired significance tests.",
+  "openQuestions": [
+    "At equal dollars or tokens, does a heterogeneous small-model team (Haiku, Flash, Grok, DeepSeek) with execution-based verification beat a frontier solo model given the same budget on competitive-programming problems published after every model's training cutoff, measured by Pass@1 on hidden tests?",
+    "How well does a learned orchestrator in the Fugu, Conductor or TRINITY style do when its worker pool is limited to small or cheap models? Does it beat untrained search such as AB-MCTS with the same pool?",
+    "How large is the gap between oracle coverage (Pass@k) and deployable selection (Pass@1 or Pass@2) for small-model teams on code, and which selector (execution clustering, generated tests, learned private-test reward model) closes the most of it without overfitting public tests?",
+    "How correlated are failures across small model families on hard problems? Is there a ceiling of problems no small model solves, which would cap any ensemble below the frontier no matter how it is orchestrated?"
+  ],
+  "refuted": [
+    {
+      "claim": "In Sakana's own table, fugu-ultra scores 93.2 on LCBv6 (LiveCodeBench v6), against 92.4 for Opus 4.6 (max), 92.1 for GPT 5.4 (high) and 90.3 for Gemini 3.1 (high). That is a lead of 0.8 points over the best single model listed.",
+      "vote": "1-2",
+      "source": "https://sakana.ai/fugu-beta/"
+    },
+    {
+      "claim": "The multi-LLM ARC-AGI-2 gain is largely not realised when a rule-based selector must pick a final answer: Pass@2 selection reached 19.2%, more than 10 percentage points below the roughly 30% Pass@250 rate. This shows candidate generation is not the bottleneck; choosing the answer to submit is.",
+      "vote": "0-3",
+      "source": "https://arxiv.org/html/2503.04412v5"
+    },
+    {
+      "claim": "In the paper's controlled evaluation (Finance-Agent, BrowseComp-Plus, PlanCraft, Workbench; 180 configurations across three LLM families), multi-agent coordination gave diminishing or negative returns once the single-agent baseline exceeded roughly 45%. These are not code-generation benchmarks, so the threshold is not shown to transfer to hidden-test competitive programming.",
+      "vote": "1-2",
+      "source": "https://arxiv.org/abs/2512.08296v2"
+    },
+    {
+      "claim": "Error amplification depends on coordination topology: independent (no-communication) multi-agent systems amplified errors 17.2x, versus 4.4x for centralized coordination. This is relevant to the risk of correlated or compounding errors in ensembles that lack a verifier or orchestrator.",
+      "vote": "0-3",
+      "source": "https://arxiv.org/abs/2512.08296v2"
+    },
+    {
+      "claim": "On SWE-bench Verified, the paper's multi-agent architectures all scored slightly below its single-agent baseline (single-agent mean 0.522). This is the only code-generation benchmark in the study that bears on the question.",
+      "vote": "0-3",
+      "source": "https://arxiv.org/pdf/2512.08296"
+    },
+    {
+      "claim": "The paper reports a capability-saturation threshold. On tasks where the single-agent baseline already exceeds 45% accuracy, adding agents gave negative returns. It also says most models it tested already sit above that 45% baseline.",
+      "vote": "0-3",
+      "source": "https://arxiv.org/pdf/2512.08296"
+    },
+    {
+      "claim": "On the parallelizable Finance-Agent benchmark, centralized multi-agent coordination improved performance by 80.9% over a single agent, so the benefit of multi-agent teams depends heavily on whether the task decomposes into parallel parts.",
+      "vote": "1-2",
+      "source": "https://research.google/blog/towards-a-science-of-scaling-agent-systems-when-and-why-agent-systems-work/"
+    },
+    {
+      "claim": "Multi-agent setups without an orchestrator amplified errors by up to 17.2x, while centralized setups with an orchestrator held amplification to 4.4x, which suggests unverified independent ensembles compound mistakes more than orchestrated ones.",
+      "vote": "0-3",
+      "source": "https://research.google/blog/towards-a-science-of-scaling-agent-systems-when-and-why-agent-systems-work/"
+    }
+  ],
+  "unverified": [],
+  "sources": [
+    {
+      "url": "https://sakana.ai/fugu-beta/",
+      "quality": "primary",
+      "angle": "Primary: Sakana Fugu and the Conductor/TRINITY line",
+      "claimCount": 5
+    },
+    {
+      "url": "https://the-decoder.com/sakana-ais-fugu-orchestrates-multiple-llms-to-match-anthropics-fable-and-mythos-benchmarks/",
+      "quality": "secondary",
+      "angle": "Primary: Sakana Fugu and the Conductor/TRINITY line",
+      "claimCount": 5
+    },
+    {
+      "url": "https://aicybr.com/blog/sakana-fugu-max-ultra-v2-orchestration-pricing-api",
+      "quality": "secondary",
+      "angle": "Primary: Sakana Fugu and the Conductor/TRINITY line",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/html/2503.04412v5",
+      "quality": "primary",
+      "angle": "Technical: search, verify, and evolve techniques for code",
+      "claimCount": 5
+    },
+    {
+      "url": "https://github.com/SakanaAI/treequest",
+      "quality": "primary",
+      "angle": "Technical: search, verify, and evolve techniques for code",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/pdf/2602.07848",
+      "quality": "primary",
+      "angle": "Technical: search, verify, and evolve techniques for code",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/abs/2512.08296v2",
+      "quality": "primary",
+      "angle": "Contrarian: when multi-agent systems hurt",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/pdf/2512.08296",
+      "quality": "primary",
+      "angle": "Contrarian: when multi-agent systems hurt",
+      "claimCount": 5
+    },
+    {
+      "url": "https://research.google/blog/towards-a-science-of-scaling-agent-systems-when-and-why-agent-systems-work/",
+      "quality": "primary",
+      "angle": "Contrarian: when multi-agent systems hurt",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/pdf/2606.17930",
+      "quality": "primary",
+      "angle": "Cost-matched comparisons and learned routing",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/pdf/2605.04236",
+      "quality": "primary",
+      "angle": "Cost-matched comparisons and learned routing",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/html/2511.07885v2",
+      "quality": "primary",
+      "angle": "Cost-matched comparisons and learned routing",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/pdf/2511.21654",
+      "quality": "primary",
+      "angle": "Evaluation integrity and reward hacking",
+      "claimCount": 5
+    },
+    {
+      "url": "https://cursor.com/blog/reward-hacking-coding-benchmarks",
+      "quality": "primary",
+      "angle": "Evaluation integrity and reward hacking",
+      "claimCount": 5
+    },
+    {
+      "url": "https://www.greaterwrong.com/posts/qJYMbrabcQqCZ7iqm/impossiblebench-measuring-reward-hacking-in-llm-coding-1",
+      "quality": "primary",
+      "angle": "Evaluation integrity and reward hacking",
+      "claimCount": 5
+    }
+  ],
+  "models": {
+    "scope": "opus",
+    "search": "sonnet",
+    "fetch": "sonnet",
+    "verify": "sonnet",
+    "synthesize": "opus"
+  },
+  "stats": {
+    "angles": 5,
+    "sourcesFetched": 15,
+    "claimsExtracted": 75,
+    "claimsVerified": 25,
+    "claimsNotVerified": 50,
+    "confirmed": 17,
+    "killed": 8,
+    "unverified": 0,
+    "afterSynthesis": 10,
+    "urlDupes": 0,
+    "budgetDropped": 11,
+    "agentCalls": 97
+  }
+}
