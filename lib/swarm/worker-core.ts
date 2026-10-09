@@ -2,7 +2,7 @@
 // command-line and output-parsing decision lives here so it can be tested
 // without spawning anything.
 
-export type Backend = "claude" | "codex" | "cursor" | "gemini" | "opencode" | "ollama";
+export type Backend = "claude" | "codex" | "cursor" | "gemini" | "antigravity" | "opencode" | "ollama";
 export type Mode = "ask" | "code";
 export type Family = "anthropic" | "openai" | "xai" | "google" | "local" | "other";
 export type FailureKind = "auth" | "rate_limit" | "timeout" | "empty" | "other";
@@ -32,7 +32,7 @@ export interface WorkerOutput {
   failure?: FailureKind;
 }
 
-const BACKENDS: readonly Backend[] = ["claude", "codex", "cursor", "gemini", "opencode", "ollama"];
+const BACKENDS: readonly Backend[] = ["claude", "codex", "cursor", "gemini", "antigravity", "opencode", "ollama"];
 
 export const DEFAULT_POOL: readonly string[] = [
   "claude",
@@ -76,6 +76,7 @@ const BACKEND_FAMILY: Record<Backend, Family> = {
   codex: "openai",
   cursor: "other",
   gemini: "google",
+  antigravity: "google",
   opencode: "other",
   ollama: "local",
 };
@@ -161,6 +162,22 @@ const INVOCATION_BUILDERS: Record<Backend, InvocationBuilder> = {
       ...modelFlag("-m", spec.model),
     ],
   }),
+  // Antigravity (agy) replaced Gemini CLI for personal Google plans. It also
+  // serves Claude and GPT-OSS models, so familyOf reads the model name.
+  // accept-edits approves file edits only; plan is its read-only mode. Flags
+  // go before -p because agy takes the argument after -p as the prompt.
+  antigravity: (spec, mode, prompt) => ({
+    bin: "agy",
+    args: [
+      "--output-format",
+      "json",
+      "--mode",
+      mode === "code" ? "accept-edits" : "plan",
+      ...modelFlag("--model", spec.model),
+      "-p",
+      prompt,
+    ],
+  }),
   opencode: (spec, _mode, prompt) => ({
     bin: "opencode",
     args: ["run", ...modelFlag("-m", spec.model), prompt],
@@ -236,6 +253,9 @@ function claudeOutput(result: ProcessResult): WorkerOutput {
   return text ? { ok: true, text } : { ok: false, text, failure: "empty" };
 }
 
+// Gemini CLI and Antigravity both print {"response": ..., "error": ...}.
+const RESPONSE_JSON_BACKENDS: ReadonlySet<Backend> = new Set(["gemini", "antigravity"]);
+
 interface GeminiJsonResult {
   response?: unknown;
   error?: { message?: unknown } | unknown;
@@ -276,5 +296,5 @@ function plainOutput(result: ProcessResult): WorkerOutput {
 export function parseWorkerOutput(backend: Backend, result: ProcessResult): WorkerOutput {
   if (result.timedOut) return { ok: false, text: "", failure: "timeout" };
   if (backend === "claude") return claudeOutput(result);
-  return backend === "gemini" ? geminiOutput(result) : plainOutput(result);
+  return RESPONSE_JSON_BACKENDS.has(backend) ? geminiOutput(result) : plainOutput(result);
 }

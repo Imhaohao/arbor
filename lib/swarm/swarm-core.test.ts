@@ -59,7 +59,7 @@ assert.equal(bareClaude.backend, "claude");
 assert.equal(bareClaude.model, undefined);
 assert.equal(parseWorker("claude:").model, undefined);
 assert.equal(parseWorker("  codex  ").label, "codex");
-assert.throws(() => parseWorker("antigravity"), /unknown worker backend "antigravity"/);
+assert.throws(() => parseWorker("windsurf"), /unknown worker backend "windsurf"/);
 
 const listed = parseWorkerList(" claude , ,codex,, cursor:grok-4.7-medium ,");
 assert.deepEqual(
@@ -833,6 +833,40 @@ assert.equal(
   parseWorkerOutput("gemini", processResult({ timedOut: true, stdout: '{"response":"late"}' })).failure,
   "timeout",
 );
+
+// ── worker-core: antigravity (agy) ──────────────────────────────────────────
+
+const bareAntigravity = parseWorker("antigravity");
+assert.equal(bareAntigravity.backend, "antigravity");
+assert.equal(familyOf(bareAntigravity), "google");
+assert.equal(familyOf(parseWorker("antigravity:claude-opus-4-6-thinking")), "anthropic");
+assert.equal(familyOf(parseWorker("antigravity:gpt-oss-120b-medium")), "openai");
+
+const antigravityCode = buildInvocation(bareAntigravity, "code", "fix it", CONTEXT);
+assert.equal(antigravityCode.bin, "agy");
+assert.equal(argAfter(antigravityCode.args, "--output-format"), "json");
+assert.equal(argAfter(antigravityCode.args, "--mode"), "accept-edits");
+assert.equal(antigravityCode.args.includes("--model"), false);
+assert.deepEqual(antigravityCode.args.slice(-2), ["-p", "fix it"]);
+
+const antigravityAsk = buildInvocation(parseWorker("antigravity:gemini-3.1-pro-high"), "ask", "why", CONTEXT);
+assert.equal(argAfter(antigravityAsk.args, "--mode"), "plan");
+assert.equal(argAfter(antigravityAsk.args, "--model"), "gemini-3.1-pro-high");
+assert.deepEqual(antigravityAsk.args.slice(-2), ["-p", "why"]);
+
+assert.deepEqual(
+  parseWorkerOutput(
+    "antigravity",
+    processResult({ stdout: '{"conversation_id":"c","status":"SUCCESS","response":"done\\n","num_turns":1}' }),
+  ),
+  { ok: true, text: "done" },
+);
+const antigravityError = parseWorkerOutput(
+  "antigravity",
+  processResult({ code: 1, stdout: '{"status":"ERROR","response":"","error":"Please log in to continue"}' }),
+);
+assert.equal(antigravityError.ok, false);
+assert.equal(antigravityError.failure, "auth");
 
 // ── board-core: helpers ─────────────────────────────────────────────────────
 
