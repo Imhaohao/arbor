@@ -82,6 +82,12 @@ function git(cwd: string, args: string[]): string {
   return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 }).trim();
 }
 
+// A diff must keep its trailing whitespace: a hunk whose last context line
+// is blank ends in " \n", and trimming it leaves a corrupt patch.
+function trainDiff(worktree: string): string {
+  return execFileSync("git", ["diff", "--", "train.py"], { cwd: worktree, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 });
+}
+
 function hardwareLabel(): string {
   return `${cpus()[0]?.model ?? "unknown chip"}, ${Math.round(totalmem() / 2 ** 30)} GB unified memory`;
 }
@@ -256,7 +262,7 @@ class Lab {
       if (agent.backend === "codex") syncCodexAuth(swarmPaths(this.options.repo));
       const output = parseWorkerOutput(agent.backend, result);
       if (!output.ok) return this.agentFailed(agent, output.failure ?? "other", output.text);
-      this.acceptProposal(agent, output.text, git(worktree, ["diff", "--", "train.py"]), result.secs);
+      this.acceptProposal(agent, output.text, trainDiff(worktree), result.secs);
     } finally {
       closeWorktree(this.options.repo, worktree);
     }
@@ -278,14 +284,14 @@ class Lab {
   private acceptProposal(agent: WorkerSpec, reply: string, patch: string, secs: number): void {
     const proposal = parseProposal(reply);
     if (proposal.note) this.board.notes.push({ at: Date.now(), author: agent.label, text: proposal.note });
-    if (!patch) {
+    if (!patch.trim()) {
       this.board.notes.push({ at: Date.now(), author: "lab", text: `${agent.label} proposed "${proposal.hypothesis}" but did not change train.py` });
       this.bench(agent, "no_change");
       saveBoard(this.paths, this.board);
       return;
     }
     this.failureStreak.delete(agent.label);
-    const experiment = this.enqueue(agent.label, proposal.hypothesis, `${patch}\n`);
+    const experiment = this.enqueue(agent.label, proposal.hypothesis, patch);
     this.options.log(`  queued ${experiment.id} from ${agent.label} after ${secs}s: ${proposal.hypothesis}`);
   }
 
