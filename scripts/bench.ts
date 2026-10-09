@@ -20,6 +20,7 @@ import {
   hiveAttempt,
   loadTasks,
   newSeed,
+  prepareTeamTools,
   readResults,
   routerAttempt,
   soloAttempt,
@@ -124,10 +125,13 @@ async function runTask(config: BenchConfig, taskId: string, split: string, roste
   const [task] = loadTasks(config.bank, [taskId]);
   log(`task ${taskId} (${task.title}): solving`);
   const soloSpecs = [...SMALL_TEAM, ...FRONTIER].map(parseWorker);
-  const solos = await Promise.all(soloSpecs.map((spec) => soloAttempt(config, spec, task)));
+  const [solos, tools] = await Promise.all([
+    Promise.all(soloSpecs.map((spec) => soloAttempt(config, spec, task))),
+    prepareTeamTools(config, task, TESTERS.map(parseWorker)),
+  ]);
   const small = solos.filter((solo) => SMALL_TEAM.includes(solo.label));
-  log(`task ${taskId}: team selecting`);
-  const hive = await hiveAttempt(config, task, small, TESTERS.map(parseWorker), parseWorker(REPAIRER));
+  log(`task ${taskId}: team selecting (${tools.team.expectations.filter((value) => value !== undefined).length} trusted inputs from ${tools.testers.length} testers)`);
+  const hive = await hiveAttempt(config, task, small, tools, parseWorker(REPAIRER));
   const router = roster ? await routerAttempt(config, task, small, parseWorker(CONDUCTOR), roster) : undefined;
   const seed = newSeed();
   const arms: Record<string, ArmRecord> = {};
@@ -172,6 +176,36 @@ function armCost(arm: ArmRecord | undefined): { usd: number; usdCovered: number;
   return { usd: priced.reduce((total, call) => total + (call.costUsd ?? 0), 0), usdCovered: priced.length, calls: calls.length };
 }
 
+const PRIMARY = ["claude:claude-opus-5-5", "codex:gpt-6-astra", "router"];
+
+/** Holm step-down adjustment for the pre-registered primary comparisons. */
+export function holmAdjusted(pValues: readonly number[]): number[] {
+  const order = pValues.map((p, index) => ({ p, index })).sort((a, b) => a.p - b.p);
+  const adjusted = new Array<number>(pValues.length);
+  let running = 0;
+  order.forEach(({ p, index }, rank) => {
+    running = Math.max(running, Math.min(1, p * (pValues.length - rank)));
+    adjusted[index] = running;
+  });
+  return adjusted;
+}
+
+function bestDevMember(outDir: string): string | undefined {
+  const dev = readResults(join(outDir, "results-dev.jsonl"));
+  if (dev.length === 0) return undefined;
+  const rate = (label: string) => dev.filter((row) => (row.arms as Record<string, ArmRecord>)[label]?.grade.passed).length;
+  return [...SMALL_TEAM].sort((a, b) => rate(b) - rate(a))[0];
+}
+
+function byAuthorTopic(rows: ReadonlyArray<Record<string, unknown>>, arms: readonly string[]) {
+  const groups = new Map<string, Array<Record<string, unknown>>>();
+  for (const row of rows) {
+    const key = String(row.task).split("-")[0];
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+  return Object.fromEntries([...groups].map(([key, group]) => [key, Object.fromEntries(arms.map((arm) => [arm, `${group.filter((row) => (row.arms as Record<string, ArmRecord>)[arm]?.grade.passed).length}/${group.length}`]))]));
+}
+
 function report(flags: Flags): void {
   const outDir = required(flags, "out");
   const splitName = flags.values.get("split") ?? "test";
@@ -189,7 +223,20 @@ function report(flags: Flags): void {
   const comparisons = Object.fromEntries(
     [...FRONTIER, "router", ...SMALL_TEAM].map((other) => [`hive vs ${other}`, pairedComparison(solved("hive"), solved(other))]),
   );
-  const summary = { split: splitName, tasks: rows.length, excludedForOracleConflicts: rows.length - valid.length, oracleAnySmall: anySmall.filter(Boolean).length, table, comparisons };
+  const holm = holmAdjusted(PRIMARY.map((other) => comparisons[`hive vs ${other}`].pOneSided));
+  const primary = PRIMARY.map((other, index) => ({ comparison: `hive vs ${other}`, ...comparisons[`hive vs ${other}`], pHolm: holm[index], verdict: comparisons[`hive vs ${other}`].pOneSided < 0.05 && comparisons[`hive vs ${other}`].diff > 0 ? "hive beats it" : "not shown" }));
+  const bestSmall = bestDevMember(outDir);
+  const summary = {
+    split: splitName,
+    tasks: rows.length,
+    excludedForOracleConflicts: rows.length - valid.length,
+    oracleAnySmall: anySmall.filter(Boolean).length,
+    table,
+    primary,
+    bestDevSmall: bestSmall ? { member: bestSmall, ...pairedComparison(solved("hive"), solved(bestSmall)) } : undefined,
+    byAuthor: byAuthorTopic(valid, armNames),
+    comparisons,
+  };
   writeFileSync(join(outDir, `report-${splitName}.json`), `${JSON.stringify(summary, null, 2)}\n`);
   console.log(JSON.stringify(summary, null, 2));
 }

@@ -62,7 +62,7 @@ class Limiter {
   }
 }
 
-const BACKEND_CAPACITY: Record<Backend, number> = { claude: 4, codex: 2, cursor: 2, gemini: 2, antigravity: 3, opencode: 2, ollama: 1 };
+const BACKEND_CAPACITY: Record<Backend, number> = { claude: 6, codex: 2, cursor: 3, gemini: 2, antigravity: 3, opencode: 2, ollama: 3 };
 const limiters = new Map<Backend, Limiter>();
 const limiterFor = (backend: Backend) => limiters.get(backend) ?? limiters.set(backend, new Limiter(BACKEND_CAPACITY[backend])).get(backend)!;
 const sandboxLimiter = new Limiter(6);
@@ -326,6 +326,22 @@ interface TeamEvidence {
   expectations: (string | undefined)[];
 }
 
+export interface TeamTools {
+  testers: string[];
+  team: TeamEvidence;
+  calls: CallRecord[];
+}
+
+/** Test tools depend only on the statement, so they are built while members solve. */
+export async function prepareTeamTools(config: BenchConfig, task: PublicTask, testers: readonly WorkerSpec[]): Promise<TeamTools> {
+  const calls: CallRecord[] = [];
+  const kits = await buildTesters(config, task, testers, calls);
+  const smallInputs = await generateInputs(config, kits, "small", SMALL_INPUTS_PER_TESTER);
+  const largeInputs = await generateInputs(config, kits, "large", LARGE_INPUTS_PER_TESTER);
+  const bruteRuns = await Promise.all(kits.map((kit) => callHelper(config, kit.code, "brute", smallInputs, HELPER_SECONDS)));
+  return { testers: kits.map((kit) => kit.label), team: { smallInputs, largeInputs, expectations: trustedExpectations(bruteRuns) }, calls };
+}
+
 async function evaluate(config: BenchConfig, task: PublicTask, label: string, code: string, examplesPassed: boolean, team: TeamEvidence) {
   const smallRuns = await runPrograms(config, code, team.smallInputs, task.time_limit_s);
   const largeRuns = await runPrograms(config, code, team.largeInputs, task.time_limit_s);
@@ -365,20 +381,16 @@ export async function hiveAttempt(
   config: BenchConfig,
   task: PublicTask,
   candidates: readonly SoloResult[],
-  testers: readonly WorkerSpec[],
+  tools: TeamTools,
   repairer: WorkerSpec,
   repairRounds = 2,
 ): Promise<HiveResult> {
-  const calls: CallRecord[] = [];
-  const kits = await buildTesters(config, task, testers, calls);
-  const smallInputs = await generateInputs(config, kits, "small", SMALL_INPUTS_PER_TESTER);
-  const largeInputs = await generateInputs(config, kits, "large", LARGE_INPUTS_PER_TESTER);
-  const bruteRuns = await Promise.all(kits.map((kit) => callHelper(config, kit.code, "brute", smallInputs, HELPER_SECONDS)));
-  const team: TeamEvidence = { smallInputs, largeInputs, expectations: trustedExpectations(bruteRuns) };
+  const calls: CallRecord[] = [...tools.calls];
+  const team = tools.team;
   const withCode = candidates.filter((candidate) => candidate.code);
   const evaluated = await Promise.all(withCode.map((candidate) => evaluate(config, task, candidate.label, candidate.code!, candidate.examplesPassed, team)));
   const ranking = rankCandidates(withClusterSizes(evaluated.map((item) => item.evidence), evaluated.map((item) => item.signature)));
-  const base = { testers: kits.map((kit) => kit.label), trustedInputs: team.expectations.filter((value) => value !== undefined).length, calls };
+  const base = { testers: tools.testers, trustedInputs: team.expectations.filter((value) => value !== undefined).length, calls };
   let best = ranking[0];
   if (!best) return { ...base, repaired: false, ranking };
   const bestIndex = evaluated.findIndex((item) => item.evidence.label === best.label);
