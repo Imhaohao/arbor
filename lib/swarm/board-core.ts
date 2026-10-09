@@ -207,7 +207,7 @@ export function renderBoard(board: Board): string {
   ].join("\n");
 }
 
-export function researchPrompt(author: string, boardMarkdown: string, hardware: string): string {
+export function researchPrompt(author: string, boardMarkdown: string, hardware: string, toolNote?: string): string {
   return [
     `You are ${author}, one of several AI researchers taking turns on one shared GPU (${hardware}).`,
     "Together you are trying to get the lowest val_bpb (validation bits per byte; lower is better) from train.py within a fixed 5-minute training budget on this machine.",
@@ -217,10 +217,11 @@ export function researchPrompt(author: string, boardMarkdown: string, hardware: 
       "- Propose ONE experiment that no one has tried or queued. Build on what was kept, learn from what was discarded or crashed, and follow up on near-misses rather than repeating them.",
       "- Edit only train.py in the current directory. Do not modify prepare.py and do not add dependencies.",
       "- Do not run training or any other long command. The lab runs your change and posts the result to the board.",
-      "- If the board has a research direction from the lead, choose your experiment from it, preferring anything addressed to you, unless the results give you a concrete reason not to.",
+      "- If the board has a research direction from the lead, choose your experiment from it, preferring anything addressed to you, unless the results give you a concrete reason not to. Skip any item that is already queued or running on the board; take the next unclaimed one.",
       "- Simpler is better: a small readable change beats a hack for a tiny gain.",
       "- For background you may read README.md, prepare.py and program.md (ignore program.md's git and logging steps; the lab handles those).",
     ].join("\n"),
+    ...(toolNote ? [toolNote] : []),
     boardMarkdown,
     'When you have finished editing, end your reply with one line of JSON: {"hypothesis":"<one sentence: what you changed and why it should lower val_bpb>","note":"<a lesson for teammates, or empty>"}',
   ].join("\n\n");

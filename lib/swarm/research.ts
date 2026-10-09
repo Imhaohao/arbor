@@ -30,7 +30,7 @@ import {
   type Experiment,
 } from "./board-core";
 import { ensureCodexHome, runProcess, swarmPaths, syncCodexAuth, type Log } from "./orchestrate";
-import { buildInvocation, parseWorkerOutput, type FailureKind, type WorkerSpec } from "./worker-core";
+import { buildInvocation, headlessToolNote, parseWorkerOutput, type FailureKind, type WorkerSpec } from "./worker-core";
 
 export interface ResearchAgent {
   spec: WorkerSpec;
@@ -250,7 +250,7 @@ class Lab {
     const worktree = openWorktree(this.options.repo, this.board.best.commit, `propose-${agent.label.replace(/[^a-zA-Z0-9._-]+/g, "_")}`);
     try {
       this.options.log(`  ${agent.label} is reading the board and editing train.py`);
-      const prompt = researchPrompt(agent.label, renderBoard(this.board), hardwareLabel());
+      const prompt = researchPrompt(agent.label, renderBoard(this.board), hardwareLabel(), headlessToolNote(agent.backend));
       const invocation = buildInvocation(agent, "code", prompt, { codexHome: swarmPaths(this.options.repo).codexHome });
       const result = await runProcess(invocation, worktree, this.options.proposeTimeoutMs);
       if (agent.backend === "codex") syncCodexAuth(swarmPaths(this.options.repo));

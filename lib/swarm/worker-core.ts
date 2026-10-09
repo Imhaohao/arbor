@@ -190,6 +190,17 @@ const INVOCATION_BUILDERS: Record<Backend, InvocationBuilder> = {
   }),
 };
 
+// Headless agy auto-denies shell commands and then ends the turn with an
+// empty reply, so a prompt that leaves shell use open loses the whole turn.
+const HEADLESS_TOOL_NOTES: Partial<Record<Backend, string>> = {
+  antigravity:
+    "Shell commands are disabled in this session: any command you try is denied and ends your turn with no reply. Read files with your file-viewing tool and edit them with your file-editing tool.",
+};
+
+export function headlessToolNote(backend: Backend): string | undefined {
+  return HEADLESS_TOOL_NOTES[backend];
+}
+
 export function buildInvocation(
   spec: WorkerSpec,
   mode: Mode,
@@ -279,7 +290,8 @@ function geminiOutput(result: ProcessResult): WorkerOutput {
   if (!parsed) return failed(`${result.stderr}\n${result.stdout}`);
   if (parsed.error) return failed(geminiErrorText(parsed.error));
   const text = String(parsed.response ?? "").trim();
-  return text ? { ok: true, text } : { ok: false, text, failure: "empty" };
+  if (text) return { ok: true, text };
+  return { ok: false, text: stripAnsi(result.stderr).trim().slice(-2000), failure: "empty" };
 }
 
 function failed(diagnostic: string): WorkerOutput {

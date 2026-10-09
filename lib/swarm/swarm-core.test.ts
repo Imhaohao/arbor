@@ -3,6 +3,7 @@ import {
   buildInvocation,
   classifyFailure,
   familyOf,
+  headlessToolNote,
   parseWorker,
   parseWorkerList,
   parseWorkerOutput,
@@ -866,6 +867,21 @@ assert.deepEqual(
   ),
   { ok: true, text: "done" },
 );
+const antigravityDenied = parseWorkerOutput(
+  "antigravity",
+  processResult({
+    stdout: '{"status":"SUCCESS","response":"","denied_actions":[{"action":"command"}]}',
+    stderr: "jetski: no output produced — a tool required the \"command\" permission",
+  }),
+);
+assert.equal(antigravityDenied.ok, false);
+assert.equal(antigravityDenied.failure, "empty");
+assert.match(antigravityDenied.text, /required the "command" permission/);
+assert.match(headlessToolNote("antigravity") ?? "", /Shell commands are disabled/);
+assert.equal(headlessToolNote("codex"), undefined);
+assert.match(researchPrompt("antigravity", "# board", "M1 Pro", headlessToolNote("antigravity")), /Shell commands are disabled/);
+assert.equal(researchPrompt("codex", "# board", "M1 Pro").includes("Shell commands are disabled"), false);
+
 const antigravityError = parseWorkerOutput(
   "antigravity",
   processResult({ code: 1, stdout: '{"status":"ERROR","response":"","error":"Please log in to continue"}' }),
@@ -1053,6 +1069,7 @@ assert.match(agendaRendered, /## Research direction from the lead \(codex:gpt-6-
 assert.ok(agendaRendered.indexOf("Research direction") < agendaRendered.indexOf("## Experiments"));
 assert.equal(renderBoard(twoJudged).includes("Research direction"), false);
 assert.match(researchPrompt("antigravity", agendaRendered, "M1 Pro"), /research direction from the lead/);
+assert.match(researchPrompt("antigravity", agendaRendered, "M1 Pro"), /Skip any item that is already queued or running/);
 
 const lead = leadPrompt("codex:gpt-6-astra", agendaRendered, "M1 Pro");
 assert.match(lead, /You are codex:gpt-6-astra, the research lead/);
