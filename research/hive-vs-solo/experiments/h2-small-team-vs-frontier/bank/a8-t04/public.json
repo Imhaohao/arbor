@@ -1,0 +1,29 @@
+{
+  "id": "a8-t04",
+  "title": "Lattice Points in a Zonotope",
+  "topic": [
+    "geometry",
+    "lattice points",
+    "pick theorem",
+    "angular sort",
+    "exact arithmetic"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Lattice Points in a Zonotope\n\nYou are given `n` integer vectors `v_1, ..., v_n` in the plane, `v_i = (x_i, y_i)`. Consider the set\n\n`Z = { t_1 * v_1 + t_2 * v_2 + ... + t_n * v_n : 0 <= t_i <= 1 for every i }`\n\nof all points obtained by walking along each vector for a fraction between `0` and `1` of its length and adding up the displacements. This set is a convex polygon, possibly degenerate: if all vectors are parallel to one line it is a segment, and if all vectors are zero it is a single point.\n\nCount the points with integer coordinates that belong to `Z`, including the points on its boundary. Because the answer can be huge, print it modulo `998244353`.\n\nVectors may be zero, may repeat, and may be parallel or antiparallel to each other.\n\n## Input\n\nThe first line contains an integer `n`. Each of the next `n` lines contains two integers `x_i` and `y_i`.\n\n## Output\n\nPrint one integer: the number of integer points in `Z`, modulo `998244353`.\n\n## Constraints\n\n- `1 <= n <= 200000`\n- `-10^9 <= x_i, y_i <= 10^9`\n\n## Examples\n\nInput\n```\n2\n1 0\n0 1\n```\nOutput\n```\n4\n```\n\nThe set `Z` is the unit square with corners `(0, 0)`, `(1, 0)`, `(0, 1)` and `(1, 1)`.\n\nInput\n```\n4\n3 1\n1 2\n-2 5\n4 -3\n```\nOutput\n```\n74\n```\n\nInput\n```\n3\n2 4\n-1 -2\n0 0\n```\nOutput\n```\n4\n```\n\nHere `Z` is the segment from `(-1, -2)` to `(2, 4)`, which contains the integer points `(-1, -2)`, `(0, 0)`, `(1, 2)` and `(2, 4)`.\n",
+  "examples": [
+    {
+      "input": "2\n1 0\n0 1\n",
+      "output": "4\n"
+    },
+    {
+      "input": "4\n3 1\n1 2\n-2 5\n4 -3\n",
+      "output": "74\n"
+    },
+    {
+      "input": "3\n2 4\n-1 -2\n0 0\n",
+      "output": "4\n"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "a8-t03",
+  "title": "Submask Nim",
+  "topic": [
+    "impartial games",
+    "sprague-grundy",
+    "bitwise",
+    "pattern finding"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Submask Nim\n\nThere are `n` piles of stones. Pile `i` currently holds `x_i` stones and has a fixed integer mask `m_i` that never changes. Two players move alternately. In one move a player picks a pile `i` and removes `d` stones from it, where `d` is an integer with `1 <= d <= (number of stones currently in pile i)` and every bit that is set in the binary representation of `d` is also set in the binary representation of `m_i` (that is, `d AND m_i = d`, where `AND` is the bitwise and). A player who cannot move loses.\n\nFor example, with `m_i = 5 = 101` in binary, the allowed values of `d` are `1`, `4` and `5` (as long as the pile holds enough stones). A pile whose mask is `0` never allows a move.\n\nA move is described by the pair `(i, d)`. Count the moves `(i, d)` of the first player after which the second player loses when both players play optimally from then on (the winning first moves). If the first player has no winning move, print `0`.\n\n## Input\n\nThe first line contains an integer `n`. Each of the next `n` lines contains two integers `x_i` and `m_i`.\n\n## Output\n\nPrint one integer: the number of winning first moves.\n\n## Constraints\n\n- `1 <= n <= 50000`\n- `0 <= x_i <= 10^9`\n- `0 <= m_i < 2^30`\n\n## Examples\n\nInput\n```\n1\n5 5\n```\nOutput\n```\n1\n```\n\nThe pile holds `5` stones and the allowed removals are `1`, `4` and `5`. Removing `5` leaves nothing, so the second player loses. Removing `1` leaves `4` stones, from which the opponent removes `4` and wins. Removing `4` leaves `1` stone, which the opponent removes and wins.\n\nInput\n```\n2\n5 5\n5 5\n```\nOutput\n```\n0\n```\n\nInput\n```\n3\n13 11\n6 7\n9 5\n```\nOutput\n```\n3\n```\n",
+  "examples": [
+    {
+      "input": "1\n5 5\n",
+      "output": "1\n"
+    },
+    {
+      "input": "2\n5 5\n5 5\n",
+      "output": "0\n"
+    },
+    {
+      "input": "3\n13 11\n6 7\n9 5\n",
+      "output": "3\n"
+    }
+  ]
+}

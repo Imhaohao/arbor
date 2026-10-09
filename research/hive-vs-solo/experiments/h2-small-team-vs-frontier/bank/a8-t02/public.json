@@ -1,0 +1,28 @@
+{
+  "id": "a8-t02",
+  "title": "Three-Stone Chop",
+  "topic": [
+    "impartial games",
+    "sprague-grundy",
+    "periodicity",
+    "counting"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Three-Stone Chop\n\nThere are `n` rows of stones on a table. The `i`-th row consists of `L_i` stones standing next to each other in a line. Two players move alternately. In one move a player chooses one row and does exactly one of the following:\n\n- If the row has exactly `1` or exactly `2` stones, the player removes the whole row.\n- If the row has at least `4` stones, the player removes three stones that are adjacent in the row. The stones to the left of the removed block stay together as one row and the stones to the right of the removed block stay together as another row. A part that contains no stones simply does not exist, so the row is replaced by zero, one or two shorter rows.\n\nA row with exactly `3` stones allows no move. A player who cannot move loses.\n\nRows are distinguishable by their position in the input. Two moves are different if they use different rows, or if they remove different blocks of three adjacent stones from the same row. Removing a whole row of `1` or `2` stones counts as one move.\n\nCount the moves of the first player after which the second player loses when both players play optimally from then on (the winning first moves). Because the answer can be large, print it modulo `998244353`. If the first player has no winning move, print `0`.\n\n## Input\n\nThe first line contains an integer `n`. The second line contains `n` integers `L_1, L_2, ..., L_n`.\n\n## Output\n\nPrint one integer: the number of winning first moves modulo `998244353`.\n\n## Constraints\n\n- `1 <= n <= 200000`\n- `1 <= L_i <= 10^18`\n\n## Examples\n\nInput\n```\n1\n5\n```\nOutput\n```\n1\n```\n\nThe row of `5` stones has three possible moves, which leave rows `(2)`, `(1, 1)` and `(2)`. The opponent wins from `(2)` by removing it, and the opponent loses from `(1, 1)`, so exactly one move wins.\n\nInput\n```\n3\n5 7 9\n```\nOutput\n```\n5\n```\n\nInput\n```\n4\n3 9 11 14\n```\nOutput\n```\n4\n```\n",
+  "examples": [
+    {
+      "input": "1\n5\n",
+      "output": "1\n"
+    },
+    {
+      "input": "3\n5 7 9\n",
+      "output": "5\n"
+    },
+    {
+      "input": "4\n3 9 11 14\n",
+      "output": "4\n"
+    }
+  ]
+}

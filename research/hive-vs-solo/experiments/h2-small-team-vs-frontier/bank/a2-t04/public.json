@@ -1,0 +1,28 @@
+{
+  "id": "a2-t04",
+  "title": "Golden Edges",
+  "topic": [
+    "trees",
+    "rerooting",
+    "matching",
+    "dp"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Golden Edges\n\nYou are given a tree with `n` vertices numbered `1..n`. The `i`-th edge joins vertices `u_i` and `v_i` and has a positive weight `w_i`.\n\nA *matching* is a set of edges in which no two edges share an endpoint. The weight of a matching is the sum of the weights of its edges; the empty matching has weight `0`. A matching is *optimal* if its weight is the largest possible among all matchings of the tree.\n\nCall an edge *golden* if it belongs to at least one optimal matching. Find all golden edges.\n\n## Input\n\nThe first line contains the integer `n`.\n\nEach of the next `n - 1` lines contains three integers `u_i v_i w_i`, describing edge number `i` (edges are numbered from `1` in input order).\n\n## Output\n\nPrint two lines. The first line contains the number `c` of golden edges. The second line contains the numbers of the golden edges in increasing order, separated by single spaces; if `c = 0` print an empty second line.\n\n## Constraints\n\n- `1 <= n <= 150000`\n- `1 <= w_i <= 10^9`\n- The given edges form a tree.\n\n## Examples\n\nExample 1\n\nInput\n```\n4\n1 2 5\n2 3 5\n3 4 5\n```\n\nOutput\n```\n2\n1 3\n```\n\nExample 2\n\nInput\n```\n5\n1 2 3\n1 3 4\n1 4 1\n4 5 4\n```\n\nOutput\n```\n2\n2 4\n```\n\nExample 3\n\nInput\n```\n7\n1 2 2\n2 3 3\n2 4 1\n4 5 4\n4 6 1\n1 7 5\n```\n\nOutput\n```\n3\n2 4 6\n```\n\n",
+  "examples": [
+    {
+      "input": "4\n1 2 5\n2 3 5\n3 4 5\n",
+      "output": "2\n1 3\n"
+    },
+    {
+      "input": "5\n1 2 3\n1 3 4\n1 4 1\n4 5 4\n",
+      "output": "2\n2 4\n"
+    },
+    {
+      "input": "7\n1 2 2\n2 3 3\n2 4 1\n4 5 4\n4 6 1\n1 7 5\n",
+      "output": "3\n2 4 6\n"
+    }
+  ]
+}

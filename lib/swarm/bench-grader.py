@@ -254,40 +254,48 @@ def openssl(args, data):
     return subprocess.run(["openssl", "enc", "-aes-256-cbc", "-pbkdf2", *args], input=data, capture_output=True, check=True).stdout
 
 
-def seal(staging, bank, key):
-    os.makedirs(bank, exist_ok=True)
-    manifest = {"tasks": [], "rejected": []}
+SEAL_WORKERS = 6
+
+
+def staged_tasks(staging):
     for author in sorted(os.listdir(staging)):
         author_dir = os.path.join(staging, author)
         if not os.path.isdir(author_dir):
             continue
         for task in sorted(os.listdir(author_dir)):
             task_dir = os.path.join(author_dir, task)
-            if not os.path.isdir(task_dir):
-                continue
-            task_id = f"{author}-{task}"
-            report = validate_isolated(task_dir)
-            if not report["ok"]:
-                manifest["rejected"].append({"id": task_id, "problems": report["problems"]})
-                continue
-            meta = json.load(open(os.path.join(task_dir, "meta.json")))
-            time_limit_s = round(max(MIN_TIME_LIMIT_S, TIME_LIMIT_FACTOR * report["ref_large_secs"]), 2)
-            out_dir = os.path.join(bank, task_id)
-            os.makedirs(out_dir, exist_ok=True)
-            public = {
-                "id": task_id,
-                "title": meta.get("title", task_id),
-                "topic": meta.get("topic", []),
-                "author": meta.get("author", "unknown"),
-                "checker": report["checker"],
-                "time_limit_s": time_limit_s,
-                "statement": open(os.path.join(task_dir, "statement.md")).read(),
-                "examples": json.load(open(os.path.join(task_dir, "examples.json"))),
-            }
-            json.dump(public, open(os.path.join(out_dir, "public.json"), "w"), indent=2)
-            plain = tar_bytes(task_dir, ORACLE_FILES)
-            open(os.path.join(out_dir, "sealed.bin"), "wb").write(openssl(["-salt", "-pass", f"file:{key}"], plain))
-            manifest["tasks"].append({"id": task_id, "oracle_sha256": hashlib.sha256(plain).hexdigest(), "time_limit_s": time_limit_s})
+            if os.path.isdir(task_dir):
+                yield f"{author}-{task}", task_dir
+
+
+def seal(staging, bank, key):
+    os.makedirs(bank, exist_ok=True)
+    manifest = {"tasks": [], "rejected": []}
+    tasks = list(staged_tasks(staging))
+    with ThreadPoolExecutor(SEAL_WORKERS) as pool:
+        reports = list(pool.map(lambda item: validate_isolated(item[1]), tasks))
+    for (task_id, task_dir), report in zip(tasks, reports):
+        if not report["ok"]:
+            manifest["rejected"].append({"id": task_id, "problems": report["problems"]})
+            continue
+        meta = json.load(open(os.path.join(task_dir, "meta.json")))
+        time_limit_s = round(max(MIN_TIME_LIMIT_S, TIME_LIMIT_FACTOR * report["ref_large_secs"]), 2)
+        out_dir = os.path.join(bank, task_id)
+        os.makedirs(out_dir, exist_ok=True)
+        public = {
+            "id": task_id,
+            "title": meta.get("title", task_id),
+            "topic": meta.get("topic", []),
+            "author": meta.get("author", "unknown"),
+            "checker": report["checker"],
+            "time_limit_s": time_limit_s,
+            "statement": open(os.path.join(task_dir, "statement.md")).read(),
+            "examples": json.load(open(os.path.join(task_dir, "examples.json"))),
+        }
+        json.dump(public, open(os.path.join(out_dir, "public.json"), "w"), indent=2)
+        plain = tar_bytes(task_dir, ORACLE_FILES)
+        open(os.path.join(out_dir, "sealed.bin"), "wb").write(openssl(["-salt", "-pass", f"file:{key}"], plain))
+        manifest["tasks"].append({"id": task_id, "oracle_sha256": hashlib.sha256(plain).hexdigest(), "time_limit_s": time_limit_s})
     json.dump(manifest, open(os.path.join(bank, "manifest.json"), "w"), indent=2)
     return {"sealed": len(manifest["tasks"]), "rejected": manifest["rejected"]}
 

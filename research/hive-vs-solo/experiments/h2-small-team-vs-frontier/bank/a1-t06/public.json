@@ -1,0 +1,28 @@
+{
+  "id": "a1-t06",
+  "title": "Sticker Album",
+  "topic": [
+    "probability dp",
+    "subset counting by size and sum",
+    "min-max inclusion-exclusion",
+    "knapsack counting"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Sticker Album\n\nA collector wants stickers of m different types, numbered 1 to m. Every time she buys a pack, it contains exactly one sticker, and the sticker is of type i with probability w_i / W, where W = w_1 + ... + w_m. Purchases are independent of each other.\n\nShe stops buying packs as soon as she owns stickers of at least k different types. Let E be the expected number of packs she buys.\n\nE is a rational number. Print E modulo 998244353, that is, if E = p / q in lowest terms, print the integer x in [0, 998244352] with x * q = p (mod 998244353). It is guaranteed that q is not divisible by 998244353 under the given constraints.\n\n## Input\n\nThe first line contains two integers m and k.\n\nThe second line contains m integers w_1, w_2, ..., w_m.\n\n## Output\n\nPrint one integer: the expected number of packs, modulo 998244353.\n\n## Constraints\n\n- 1 <= k <= m <= 100.\n- 1 <= w_i <= 25.\n\n## Examples\n\n### Example 1\n\nInput\n\n```\n1 1\n7\n```\n\nOutput\n\n```\n1\n```\n\n### Example 2\n\nInput\n\n```\n2 2\n1 1\n```\n\nOutput\n\n```\n3\n```\n\n### Example 3\n\nInput\n\n```\n3 2\n1 2 3\n```\n\nOutput\n\n```\n99824438\n```\n",
+  "examples": [
+    {
+      "input": "1 1\n7\n",
+      "output": "1\n"
+    },
+    {
+      "input": "2 2\n1 1\n",
+      "output": "3\n"
+    },
+    {
+      "input": "3 2\n1 2 3\n",
+      "output": "99824438\n"
+    }
+  ]
+}

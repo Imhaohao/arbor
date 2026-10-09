@@ -1,0 +1,29 @@
+{
+  "id": "a4-t01",
+  "title": "Squarefree Climbs",
+  "topic": [
+    "combinatorics",
+    "inclusion-exclusion",
+    "number theory",
+    "generating functions",
+    "modular arithmetic"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Squarefree Climbs\n\nA positive integer is *squarefree* if no square of a prime divides it (so 1, 6 and 30 are squarefree, while 4 and 12 are not).\n\nLet N > 1 be an integer. A **climb** of N is a sequence of integers\n\n    1 = x_0, x_1, x_2, ..., x_k = N,   k >= 1,\n\nsuch that for every j from 1 to k, x_{j-1} divides x_j and the ratio x_j / x_{j-1} is a squarefree integer strictly greater than 1. Two climbs are different if they differ in length or in at least one term. The length k is not fixed: climbs of every length count.\n\nYou are not given N directly. Its prime factorization is described by groups: for each j from 1 to D, the factorization of N contains exactly c_j distinct primes whose exponent in N is e_j. The exponents e_1, ..., e_D are pairwise distinct. The identity of the primes does not influence the answer, only these exponents and counts.\n\nCompute the number of climbs of N, modulo 998244353.\n\n## Input\n\nThe first line contains an integer D.\nEach of the next D lines contains two integers e_j and c_j.\n\n## Output\n\nPrint one integer: the number of climbs of N modulo 998244353.\n\n## Constraints\n\n- 1 <= D <= 10\n- 1 <= e_j <= 40, and the e_j are pairwise distinct\n- 1 <= c_j\n- e_1*c_1 + e_2*c_2 + ... + e_D*c_D <= 60000 (this is the total number of prime factors of N counted with multiplicity)\n\n## Examples\n\nInput\n```\n1\n1 2\n```\nOutput\n```\n3\n```\n\nInput\n```\n1\n2 1\n```\nOutput\n```\n1\n```\n\nInput\n```\n2\n2 1\n1 1\n```\nOutput\n```\n5\n```\n\n## Notes\n\nIn the first example N = p*q for two distinct primes. The climbs are 1, pq; 1, p, pq; and 1, q, pq. In the second example N = p^2. The only climb is 1, p, p^2, because the ratio p^2 is not squarefree.\n",
+  "examples": [
+    {
+      "input": "1\n1 2\n",
+      "output": "3\n"
+    },
+    {
+      "input": "1\n2 1\n",
+      "output": "1\n"
+    },
+    {
+      "input": "2\n2 1\n1 1\n",
+      "output": "5\n"
+    }
+  ]
+}

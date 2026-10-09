@@ -1,0 +1,27 @@
+{
+  "id": "a1-t04",
+  "title": "Whisper Network",
+  "topic": [
+    "dp on trees",
+    "rerooting",
+    "greedy ordering with dp"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.19,
+  "statement": "# Whisper Network\n\nA village consists of n houses connected by n - 1 two-way footpaths so that there is exactly one simple route between any two houses (the paths form a tree).\n\nA rumor starts at one house r at time 0. A person who knows the rumor spreads it by phone to neighbors, under these rules:\n\n- A person can only call a house that is directly connected to theirs by a footpath and whose owner does not know the rumor yet.\n- A call takes exactly one unit of time, and a person makes one call at a time. A person who learns the rumor at time t calls neighbors back to back, starting at time t: if they call u_1, u_2, ..., u_j in this order, then u_i learns the rumor at time t + i.\n- Each person chooses the order of their calls so that everybody learns the rumor as early as possible.\n\nSince the paths form a tree, every house other than r is informed by exactly one neighbor, so the order in which each person calls the not-yet-informed neighbors is the only thing to decide. Let T(r) be the smallest possible time at which every house knows the rumor if the rumor starts at house r. If there is only one house, T(r) = 0.\n\nFor every house r from 1 to n, compute T(r).\n\n## Input\n\nThe first line contains the integer n.\n\nEach of the next n - 1 lines contains two integers u and v, describing a footpath between houses u and v.\n\n## Output\n\nPrint n integers on one line separated by single spaces: T(1), T(2), ..., T(n).\n\n## Constraints\n\n- 1 <= n <= 200000.\n- 1 <= u, v <= n, and the footpaths form a tree.\n\n## Examples\n\n### Example 1\n\nInput\n\n```\n1\n```\n\nOutput\n\n```\n0\n```\n\n### Example 2\n\nInput\n\n```\n5\n1 2\n1 3\n1 4\n4 5\n```\n\nOutput\n\n```\n3 3 3 3 4\n```\n\n### Example 3\n\nInput\n\n```\n7\n1 2\n2 3\n3 4\n4 5\n3 6\n3 7\n```\n\nOutput\n\n```\n5 4 4 4 5 4 4\n```\n",
+  "examples": [
+    {
+      "input": "1\n",
+      "output": "0\n"
+    },
+    {
+      "input": "5\n1 2\n1 3\n1 4\n4 5\n",
+      "output": "3 3 3 3 4\n"
+    },
+    {
+      "input": "7\n1 2\n2 3\n3 4\n4 5\n3 6\n3 7\n",
+      "output": "5 4 4 4 5 4 4\n"
+    }
+  ]
+}

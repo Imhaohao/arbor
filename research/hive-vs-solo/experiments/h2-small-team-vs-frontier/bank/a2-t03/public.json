@@ -1,0 +1,27 @@
+{
+  "id": "a2-t03",
+  "title": "Single Hub Removal",
+  "topic": [
+    "graphs",
+    "bipartite",
+    "dfs tree"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Single Hub Removal\n\nA network consists of `n` stations and `m` cables. Cable `i` connects stations `a_i` and `b_i`. No cable connects a station to itself, and no two cables connect the same pair of stations. The network may consist of several disconnected parts.\n\nA network is *two-colourable* if every station can be painted red or blue so that the two ends of every cable have different colours. A network with no stations, or with stations but no cables, is two-colourable.\n\nA technician may unplug exactly one station. Unplugging a station removes the station and every cable attached to it; all other stations and cables stay. Count the stations whose removal leaves a two-colourable network, and list them.\n\n## Input\n\nThe first line contains two integers `n` and `m`.\n\nEach of the next `m` lines contains two integers `a_i b_i`.\n\n## Output\n\nPrint two lines. The first line contains the number `c` of stations whose removal leaves a two-colourable network. The second line contains those `c` station numbers in increasing order, separated by single spaces; if `c = 0` print an empty second line.\n\n## Constraints\n\n- `1 <= n <= 200000`, `0 <= m <= 200000`\n- `1 <= a_i, b_i <= n`, `a_i != b_i`, no pair of stations appears twice\n\n## Examples\n\nExample 1\n\nInput\n```\n5 5\n1 2\n2 3\n3 1\n3 4\n4 5\n```\n\nOutput\n```\n3\n1 2 3\n```\n\nExample 2\n\nInput\n```\n6 6\n1 2\n2 3\n3 4\n4 5\n5 6\n6 1\n```\n\nOutput\n```\n6\n1 2 3 4 5 6\n```\n\nExample 3\n\nInput\n```\n7 8\n1 2\n2 3\n3 1\n4 5\n5 6\n6 4\n6 7\n2 7\n```\n\nOutput\n```\n0\n```\n\n",
+  "examples": [
+    {
+      "input": "5 5\n1 2\n2 3\n3 1\n3 4\n4 5\n",
+      "output": "3\n1 2 3\n"
+    },
+    {
+      "input": "6 6\n1 2\n2 3\n3 4\n4 5\n5 6\n6 1\n",
+      "output": "6\n1 2 3 4 5 6\n"
+    },
+    {
+      "input": "7 8\n1 2\n2 3\n3 1\n4 5\n5 6\n6 4\n6 7\n2 7\n",
+      "output": "0\n"
+    }
+  ]
+}

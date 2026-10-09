@@ -1,0 +1,28 @@
+{
+  "id": "a3-t01",
+  "title": "Cancel One Order",
+  "topic": [
+    "scheduling",
+    "sorting by a non-obvious key",
+    "flow shop",
+    "prefix/suffix maxima"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Cancel One Order\n\nA glass workshop has two machines. Machine A cuts a pane, then the pane spends some time in a cooling rack, then machine B polishes it. Each machine handles one pane at a time, and a pane that is being cut or polished cannot be interrupted.\n\nThere are `n` orders. Order `i` needs `a_i` minutes on machine A, then rests for exactly `l_i` minutes in the rack (the rack holds any number of panes and the rest starts the moment cutting ends), then needs `b_i` minutes on machine B.\n\nThe workshop picks an order of the orders, and both machines process the orders in that same order. Machine A starts at time 0 and runs its jobs back to back without pauses. Machine B starts each order at the earliest moment when machine B is free and that order's rest has finished. The makespan is the moment machine B finishes its last order.\n\nBefore work starts, exactly one order must be cancelled. The remaining `n - 1` orders are processed in the best possible order. Over all choices of the cancelled order and all orders of the rest, find the smallest possible makespan. If `n = 1`, the single order is cancelled and the makespan is 0.\n\n## Input\n\nThe first line contains an integer `n`. Each of the next `n` lines contains three integers `a_i`, `l_i`, `b_i`.\n\n## Output\n\nPrint one integer: the minimum makespan.\n\n## Constraints\n\n- `1 <= n <= 200000`\n- `1 <= a_i <= 10^9`\n- `0 <= l_i <= 10^9`\n- `1 <= b_i <= 10^9`\n\n## Examples\n\nInput\n```\n3\n2 1 3\n4 0 1\n1 5 2\n```\nOutput\n```\n7\n```\n\nInput\n```\n1\n5 5 5\n```\nOutput\n```\n0\n```\n\nInput\n```\n4\n3 2 2\n2 4 5\n6 0 1\n1 1 7\n```\nOutput\n```\n12\n```\n\n## Notes\n\nIn the first example, cancelling the third order leaves orders 1 and 2. Processing order 1 then order 2 gives: A cuts order 1 during [0, 2] and order 2 during [2, 6]; B polishes order 1 during [3, 6] and order 2 during [6, 7]. The makespan is 7.\n",
+  "examples": [
+    {
+      "input": "3\n2 1 3\n4 0 1\n1 5 2\n",
+      "output": "7\n"
+    },
+    {
+      "input": "1\n5 5 5\n",
+      "output": "0\n"
+    },
+    {
+      "input": "4\n3 2 2\n2 4 5\n6 0 1\n1 1 7\n",
+      "output": "12\n"
+    }
+  ]
+}

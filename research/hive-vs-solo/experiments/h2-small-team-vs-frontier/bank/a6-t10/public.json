@@ -1,0 +1,28 @@
+{
+  "id": "a6-t10",
+  "title": "Out of Stock",
+  "topic": [
+    "segment tree descent",
+    "offline sweep",
+    "k-th most recent occurrence",
+    "generalized mex"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Out of Stock\n\nA warehouse handles product types `1..V`. On each of `n` consecutive days one crate arrives, and crate `i` contains product type `a_i`. A customer who is served from the deliveries of days `l..r` needs at least `c_v` crates of every product type `v`. The requirement `c_v` depends only on the type and is the same for all customers.\n\nFor each customer `l`, `r`, find the smallest product type `v` (`1 <= v <= V`) for which fewer than `c_v` crates arrived on days `l, l+1, ..., r`. If every type has at least `c_v` crates in that period, print `V + 1`.\n\n## Input\n\nThe first line contains three integers `n`, `V`, `q`.\n\nThe second line contains `V` integers `c_1, ..., c_V`.\n\nThe third line contains `n` integers `a_1, ..., a_n`.\n\nEach of the next `q` lines contains two integers `l` and `r`.\n\n## Output\n\nPrint `q` lines. Line `i` contains the answer to the `i`-th customer.\n\n## Constraints\n\n- `1 <= n, q <= 200000`\n- `1 <= V <= 200000`\n- `1 <= c_v <= 200000`\n- `1 <= a_i <= V`\n- `1 <= l <= r <= n`\n\n## Examples\n\nIn the first example, `V = 4` and the requirements are `c = [1, 2, 1, 1]`. For the first customer (days `2..6`) the crates are `2 1 2 3 1`, which contain product 1 twice, product 2 twice, product 3 once and product 4 not at all, so the smallest short type is 4. For the second customer (days `1..4`) the crates are `1 2 1 2`, where products 1 and 2 are fine but product 3 is missing, so the answer is 3. For the fifth customer (days `1..3`) the crates are `1 2 1`, where product 2 appears once but is required twice, so the answer is 2.\n\nExample 1\n\nInput\n\n```\n8 4 6\n1 2 1 1\n1 2 1 2 3 1 4 2\n2 6\n1 4\n1 8\n5 8\n1 3\n6 6\n```\n\nOutput\n\n```\n4\n3\n5\n2\n2\n2\n```\n\nExample 2\n\nInput\n\n```\n6 3 5\n1 1 2\n1 2 3 3 2 1\n1 6\n1 4\n1 3\n2 5\n3 3\n```\n\nOutput\n\n```\n4\n4\n3\n1\n1\n```\n\nExample 3\n\nInput\n\n```\n10 5 5\n2 1 3 1 1\n1 2 3 4 5 1 2 3 4 5\n1 10\n1 9\n3 7\n2 10\n5 5\n```\n\nOutput\n\n```\n3\n3\n1\n1\n1\n```\n\n",
+  "examples": [
+    {
+      "input": "8 4 6\n1 2 1 1\n1 2 1 2 3 1 4 2\n2 6\n1 4\n1 8\n5 8\n1 3\n6 6\n",
+      "output": "4\n3\n5\n2\n2\n2\n"
+    },
+    {
+      "input": "6 3 5\n1 1 2\n1 2 3 3 2 1\n1 6\n1 4\n1 3\n2 5\n3 3\n",
+      "output": "4\n4\n3\n1\n1\n"
+    },
+    {
+      "input": "10 5 5\n2 1 3 1 1\n1 2 3 4 5 1 2 3 4 5\n1 10\n1 9\n3 7\n2 10\n5 5\n",
+      "output": "3\n3\n1\n1\n1\n"
+    }
+  ]
+}

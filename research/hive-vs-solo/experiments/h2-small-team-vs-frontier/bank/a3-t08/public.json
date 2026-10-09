@@ -1,0 +1,28 @@
+{
+  "id": "a3-t08",
+  "title": "Rush Printer",
+  "topic": [
+    "binary search on the answer",
+    "priority queue",
+    "scheduling with deadlines",
+    "exchange argument"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.94,
+  "statement": "# Rush Printer\n\nA copy shop has one printer and `n` print jobs. Job `i` has `p_i` pages and must be completely printed by minute `d_i` to count as delivered. The printer prints at an integer speed of `s` pages per minute (you choose `s >= 1`; the speed is the same for the whole day). It prints one job at a time, never interrupts a job, never idles between the jobs it prints, and starts at minute 0. A job of `p_i` pages takes exactly `p_i / s` minutes, which need not be an integer.\n\nJobs that you decide not to print simply do not take any printer time; they are not delivered. Choose which jobs to print and in what order.\n\nThe shop promises that at least `K` jobs are delivered on time. Find the smallest integer speed `s` for which this is possible.\n\n## Input\n\nThe first line contains `n` and `K`. Each of the next `n` lines contains `p_i` and `d_i`.\n\n## Output\n\nPrint the smallest integer `s >= 1` such that at least `K` jobs can be delivered on time.\n\n## Constraints\n\n- `1 <= K <= n <= 100000`\n- `1 <= p_i <= 10^6`\n- `1 <= d_i <= 10^9`\n\nA sufficiently large speed always exists, so the answer is always defined. The answer can be larger than 32 bits.\n\n## Examples\n\nInput\n```\n3 2\n5 5\n2 5\n2 6\n```\nOutput\n```\n1\n```\n\nInput\n```\n3 3\n6 2\n4 3\n2 10\n```\nOutput\n```\n4\n```\n\nInput\n```\n5 3\n8 4\n3 4\n3 5\n4 5\n20 6\n```\nOutput\n```\n2\n```\n\n## Notes\n\nIn the first example, speed 1 delivers jobs 2 and 3: printing job 2 takes 2 minutes (done at minute 2, deadline 5) and printing job 3 takes 2 more (done at minute 4, deadline 6). Starting with job 1 (5 pages, done at minute 5) would block both other jobs.\n\nIn the third example, speed 1 delivers at most 1 job, while speed 2 delivers jobs 2, 3 and 4 (finishing at minutes 1.5, 3, 5).\n",
+  "examples": [
+    {
+      "input": "3 2\n5 5\n2 5\n2 6\n",
+      "output": "1\n"
+    },
+    {
+      "input": "3 3\n6 2\n4 3\n2 10\n",
+      "output": "4\n"
+    },
+    {
+      "input": "5 3\n8 4\n3 4\n3 5\n4 5\n20 6\n",
+      "output": "2\n"
+    }
+  ]
+}

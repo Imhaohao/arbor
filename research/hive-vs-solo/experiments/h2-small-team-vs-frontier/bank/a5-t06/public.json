@@ -1,0 +1,29 @@
+{
+  "id": "a5-t06",
+  "title": "Palindromic Necklace",
+  "topic": [
+    "strings",
+    "palindromes",
+    "manacher",
+    "cyclic shifts",
+    "difference arrays"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Palindromic Necklace\n\nMira threads the letters of a string `s` (length `n`) onto a closed necklace and can cut it open at any of the `n` gaps. Cutting just before position `r` (`0 <= r < n`) produces the **rotation** `s[r..n-1] + s[0..r-1]`, which she reads as an ordinary string.\n\nFor a string `w`, let `pal(w)` be the number of pairs `(i, j)` with `i <= j` such that the substring `w[i..j]` is a palindrome. Different pairs are counted separately even when the substrings are equal as text, and every single letter counts.\n\nChoose the cut `r` that maximises `pal` of the rotation. If several cuts give the same maximum, take the smallest `r`.\n\n## Input\n\nThe first line contains the integer `n`.\nThe second line contains the string `s` of length `n`.\n\n## Output\n\nPrint two integers separated by a space: the maximum value of `pal` over all rotations, and the smallest `r` that achieves it.\n\n## Constraints\n\n* `1 <= n <= 200000`\n* `s` consists of lowercase letters `a`-`z`.\n\nThe maximum can be as large as `n(n+1)/2`, about `2*10^10`, so use 64-bit integers.\n\n## Examples\n\nExample 1\n\n```\n5\nabcab\n```\n\n```\n7 2\n```\n\nExample 2\n\n```\n7\naabaaaa\n```\n\n```\n22 2\n```\n\nExample 3\n\n```\n1\nz\n```\n\n```\n1 0\n```\n",
+  "examples": [
+    {
+      "input": "5\nabcab\n",
+      "output": "7 2\n"
+    },
+    {
+      "input": "7\naabaaaa\n",
+      "output": "22 2\n"
+    },
+    {
+      "input": "1\nz\n",
+      "output": "1 0\n"
+    }
+  ]
+}

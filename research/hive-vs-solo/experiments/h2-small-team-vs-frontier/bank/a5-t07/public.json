@@ -1,0 +1,29 @@
+{
+  "id": "a5-t07",
+  "title": "Odd Cuts",
+  "topic": [
+    "strings",
+    "palindromes",
+    "palindromic tree",
+    "series links",
+    "dynamic programming"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.45,
+  "statement": "# Odd Cuts\n\nA **palindrome** reads the same forwards and backwards. You are given a string `s` of lowercase letters and must cut it into consecutive non-empty pieces so that **every piece is a palindrome of odd length**. Concatenating the pieces in order gives back `s`.\n\nAmong all such cuttings, find the smallest possible number of pieces, and also count how many different cuttings use exactly that many pieces. Two cuttings are different if they place their cuts at different positions. Print the count modulo `1000000007`.\n\nA cutting always exists: every single letter is an odd-length palindrome.\n\n## Input\n\nThe first line contains the integer `n`.\nThe second line contains the string `s` of length `n`.\n\n## Output\n\nPrint two integers separated by a space: the minimum number of pieces, and the number of cuttings with that many pieces modulo `1000000007`.\n\n## Constraints\n\n* `1 <= n <= 200000`\n* `s` consists of lowercase letters `a`-`z`.\n\n## Examples\n\nExample 1\n\n```\n7\nabacaba\n```\n\n```\n1 1\n```\n\nExample 2\n\n```\n6\naaaaaa\n```\n\n```\n2 3\n```\n\nExample 3\n\n```\n9\nabbabbabb\n```\n\n```\n3 1\n```\n",
+  "examples": [
+    {
+      "input": "7\nabacaba\n",
+      "output": "1 1\n"
+    },
+    {
+      "input": "6\naaaaaa\n",
+      "output": "2 3\n"
+    },
+    {
+      "input": "9\nabbabbabb\n",
+      "output": "3 1\n"
+    }
+  ]
+}

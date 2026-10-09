@@ -1,0 +1,27 @@
+{
+  "id": "a1-t07",
+  "title": "Rotating Shifts",
+  "topic": [
+    "dp with monotonic queue",
+    "sliding window maximum",
+    "cyclic state machine dp"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.05,
+  "statement": "# Rotating Shifts\n\nA clinic is planning n consecutive days. Every day is assigned to exactly one of three phases, numbered 0, 1 and 2. If day i is assigned to phase p, the clinic earns v[i][p] (this value may be negative).\n\nA maximal run of consecutive days that have the same phase is called a block. A schedule must obey these rules:\n\n1. The phases rotate in a fixed cycle: the block after a block of phase p must have phase (p + 1) mod 3. The phase of the very first block can be anything.\n2. A block of phase p must contain between lo_p and hi_p days, inclusive. The only exception is the last block of the schedule (the one containing day n), which must contain between 1 and hi_p days, so it is allowed to be shorter than lo_p.\n3. Every time a block ends on a day j < n, so that a new block starts on day j + 1, the clinic pays a switching fee s_j.\n\nThe profit of a schedule is the sum of the earnings of all days minus the sum of all switching fees paid. Two schedules are different if some day is assigned to different phases in them. A valid schedule always exists under the constraints.\n\nPrint the maximum possible profit, and also the number of different schedules whose profit equals that maximum, taken modulo 998244353.\n\n## Input\n\nThe first line contains the integer n.\n\nThe second line contains six integers lo_0, hi_0, lo_1, hi_1, lo_2, hi_2.\n\nThe third line contains n integers s_1, ..., s_n. The value s_n is present only so that all lines have a uniform shape; it is never used.\n\nEach of the next n lines contains three integers v[i][0], v[i][1], v[i][2] for day i = 1, ..., n.\n\n## Output\n\nPrint two integers separated by a space: the maximum profit, and the number of schedules attaining it modulo 998244353.\n\n## Constraints\n\n- 1 <= n <= 200000.\n- 1 <= lo_p <= hi_p <= n for each phase p.\n- 0 <= s_j <= 10^9.\n- |v[i][p]| <= 10^9.\n- The answer fits in a signed 64-bit integer.\n\n## Examples\n\n### Example 1\n\nInput\n\n```\n1\n1 1 1 1 1 1\n0\n3 -2 5\n```\n\nOutput\n\n```\n5 1\n```\n\n### Example 2\n\nInput\n\n```\n5\n2 3 1 2 1 1\n4 0 7 2 0\n5 -1 2\n-3 6 0\n4 4 -9\n-2 8 3\n7 -5 1\n```\n\nOutput\n\n```\n13 1\n```\n\n### Example 3\n\nInput\n\n```\n4\n1 4 1 4 1 4\n0 0 0 0\n0 0 0\n0 0 0\n0 0 0\n0 0 0\n```\n\nOutput\n\n```\n0 24\n```\n",
+  "examples": [
+    {
+      "input": "1\n1 1 1 1 1 1\n0\n3 -2 5\n",
+      "output": "5 1\n"
+    },
+    {
+      "input": "5\n2 3 1 2 1 1\n4 0 7 2 0\n5 -1 2\n-3 6 0\n4 4 -9\n-2 8 3\n7 -5 1\n",
+      "output": "13 1\n"
+    },
+    {
+      "input": "4\n1 4 1 4 1 4\n0 0 0 0\n0 0 0\n0 0 0\n0 0 0\n0 0 0\n",
+      "output": "0 24\n"
+    }
+  ]
+}

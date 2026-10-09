@@ -1,0 +1,28 @@
+{
+  "id": "a8-t07",
+  "title": "Distinct XORs of Every Subarray",
+  "topic": [
+    "xor",
+    "linear basis",
+    "prefix basis with timestamps",
+    "counting"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Distinct XORs of Every Subarray\n\nYou are given an array `a_1, ..., a_n` of non-negative integers. For a subarray `a_l, ..., a_r` consider every subset of its elements, including the empty subset and counting subsets by positions (equal values at different positions are different elements), and take the bitwise XOR of the elements of each subset (the XOR of the empty subset is `0`). Let `D(l, r)` be the number of distinct values obtained this way.\n\nFor example, for the subarray `[1, 2, 3]` the subset XORs are `0, 1, 2, 3, 3, 2, 1, 0`, which are the four distinct values `0, 1, 2, 3`, so `D = 4`.\n\nPrint the sum of `D(l, r)` over all pairs `1 <= l <= r <= n`, modulo `998244353`.\n\n## Input\n\nThe first line contains an integer `n`. The second line contains `n` integers `a_1, ..., a_n`.\n\n## Output\n\nPrint one integer: the sum of `D(l, r)` over all subarrays, modulo `998244353`.\n\n## Constraints\n\n- `1 <= n <= 200000`\n- `0 <= a_i < 2^30`\n\n## Examples\n\nInput\n```\n3\n1 2 3\n```\nOutput\n```\n18\n```\n\nThe three single-element subarrays have `D = 2` each, and the subarrays `[1, 2]`, `[2, 3]` and `[1, 2, 3]` have `D = 4` each, so the sum is `3 * 2 + 3 * 4 = 18`.\n\nInput\n```\n4\n0 5 5 2\n```\nOutput\n```\n25\n```\n\nInput\n```\n5\n6 3 5 1 7\n```\nOutput\n```\n70\n```\n",
+  "examples": [
+    {
+      "input": "3\n1 2 3\n",
+      "output": "18\n"
+    },
+    {
+      "input": "4\n0 5 5 2\n",
+      "output": "25\n"
+    },
+    {
+      "input": "5\n6 3 5 1 7\n",
+      "output": "70\n"
+    }
+  ]
+}

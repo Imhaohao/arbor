@@ -1,0 +1,28 @@
+{
+  "id": "a1-t03",
+  "title": "Patrol Drone",
+  "topic": [
+    "slope trick",
+    "convex dp",
+    "heaps",
+    "weighted L1 cost with movement limits"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Patrol Drone\n\nA drone flies along an infinite line whose points are the integers. At time 0 it hovers at position s.\n\nThere are n checkpoints, numbered 1 to n, which must be visited in this order. Checkpoint i is serviced at time i. At that moment the drone must hover at some integer position p_i, and it pays a penalty of w_i * |p_i - a_i|. Between two consecutive moments the drone can fly at most d_i units: the position p_i must satisfy |p_i - p_{i-1}| <= d_i, where p_0 = s. A drone with d_i = 0 simply stays where it is for that step.\n\nChoose integers p_1, ..., p_n respecting all the limits so that the total penalty w_1 * |p_1 - a_1| + ... + w_n * |p_n - a_n| is as small as possible. Positions are unrestricted integers: they may be negative and may lie far outside the range of the a_i.\n\n## Input\n\nThe first line contains two integers n and s.\n\nEach of the next n lines contains three integers a_i, w_i and d_i.\n\n## Output\n\nPrint one integer: the minimum possible total penalty.\n\n## Constraints\n\n- 1 <= n <= 200000.\n- |s| <= 10^6 and |a_i| <= 10^6.\n- 1 <= w_i <= 1000.\n- 0 <= d_i <= 10^6.\n- The answer is at most 4 * 10^14, so it fits in a signed 64-bit integer.\n\n## Examples\n\n### Example 1\n\nInput\n\n```\n3 0\n5 1 2\n-4 3 1\n6 2 3\n```\n\nOutput\n\n```\n22\n```\n\n### Example 2\n\nInput\n\n```\n4 10\n0 5 0\n20 1 4\n3 2 100\n-7 7 1\n```\n\nOutput\n\n```\n74\n```\n\n### Example 3\n\nInput\n\n```\n1 5\n5 10 0\n```\n\nOutput\n\n```\n0\n```\n",
+  "examples": [
+    {
+      "input": "3 0\n5 1 2\n-4 3 1\n6 2 3\n",
+      "output": "22\n"
+    },
+    {
+      "input": "4 10\n0 5 0\n20 1 4\n3 2 100\n-7 7 1\n",
+      "output": "74\n"
+    },
+    {
+      "input": "1 5\n5 10 0\n",
+      "output": "0\n"
+    }
+  ]
+}

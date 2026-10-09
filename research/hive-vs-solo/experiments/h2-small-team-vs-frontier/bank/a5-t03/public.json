@@ -1,0 +1,28 @@
+{
+  "id": "a5-t03",
+  "title": "Distinct Regular Pieces",
+  "topic": [
+    "strings",
+    "bracket sequences",
+    "distinct substrings",
+    "suffix automaton"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Distinct Regular Pieces\n\nA **regular bracket sequence** is a non-empty string of `(` and `)` in which every prefix contains at least as many `(` as `)`, and the whole string contains equally many of both.\n\nYou are given a string `s` of length `n` made of `(` and `)`. The string `s` itself need not be regular. Count the **distinct** strings that are regular bracket sequences and occur in `s` as a contiguous substring. Several occurrences with the same text count once.\n\n## Input\n\nThe first line contains the integer `n`.\nThe second line contains the string `s` of length `n`.\n\n## Output\n\nPrint one integer: the number of distinct regular bracket sequences that occur in `s` as a substring (`0` if there is none).\n\n## Constraints\n\n* `1 <= n <= 200000`\n* `s` consists only of the characters `(` and `)`.\n\nThe answer can be close to `10^9`; use 64-bit integers.\n\n## Examples\n\nExample 1\n\n```\n6\n(()())\n```\n\n```\n3\n```\n\nExample 2\n\n```\n8\n()(())()\n```\n\n```\n5\n```\n\nExample 3\n\n```\n8\n))(()(((\n```\n\n```\n1\n```\n",
+  "examples": [
+    {
+      "input": "6\n(()())\n",
+      "output": "3\n"
+    },
+    {
+      "input": "8\n()(())()\n",
+      "output": "5\n"
+    },
+    {
+      "input": "8\n))(()(((\n",
+      "output": "1\n"
+    }
+  ]
+}

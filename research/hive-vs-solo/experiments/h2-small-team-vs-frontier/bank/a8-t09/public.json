@@ -1,0 +1,29 @@
+{
+  "id": "a8-t09",
+  "title": "Bounded XOR Tuples",
+  "topic": [
+    "bitwise",
+    "xor",
+    "counting",
+    "generating function",
+    "digit dp"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.53,
+  "statement": "# Bounded XOR Tuples\n\nYou are given `n` non-negative integers `c_1, ..., c_n` and a non-negative integer `K`. Count the tuples of integers `(b_1, ..., b_n)` such that `0 <= b_i <= c_i` for every `i` and\n\n`b_1 XOR b_2 XOR ... XOR b_n = K`,\n\nwhere `XOR` is the bitwise exclusive or. Tuples are different if they differ in at least one position.\n\nPrint the count modulo `998244353`.\n\n## Input\n\nThe first line contains two integers `n` and `K`. The second line contains `n` integers `c_1, ..., c_n`.\n\n## Output\n\nPrint one integer: the number of valid tuples modulo `998244353`.\n\n## Constraints\n\n- `1 <= n <= 50000`\n- `0 <= c_i < 2^60`\n- `0 <= K < 2^60`\n\n## Examples\n\nInput\n```\n2 3\n2 3\n```\nOutput\n```\n3\n```\n\nThe valid tuples are `(0, 3)`, `(1, 2)` and `(2, 1)`.\n\nInput\n```\n3 0\n3 5 6\n```\nOutput\n```\n22\n```\n\nInput\n```\n3 5\n7 4 9\n```\nOutput\n```\n40\n```\n",
+  "examples": [
+    {
+      "input": "2 3\n2 3\n",
+      "output": "3\n"
+    },
+    {
+      "input": "3 0\n3 5 6\n",
+      "output": "22\n"
+    },
+    {
+      "input": "3 5\n7 4 9\n",
+      "output": "40\n"
+    }
+  ]
+}

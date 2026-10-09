@@ -1,0 +1,29 @@
+{
+  "id": "a5-t10",
+  "title": "Twice Without Touching",
+  "topic": [
+    "strings",
+    "suffix automaton",
+    "distinct substrings",
+    "endpos sets",
+    "two pointers"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Twice Without Touching\n\nYou are given a string `s` of length `n` and an integer `K`. Call a string `x` **good** if\n\n1. `x` occurs in `s` at least twice **without overlapping**: there are two occurrences of `x` in `s`, at start positions `i < j`, with `i + |x| <= j` (the second one may start right where the first one ends), and\n2. `x` contains **at most `K` distinct letters**.\n\nCount the distinct non-empty good strings. Equal strings are counted once, no matter how many times they occur.\n\n## Input\n\nThe first line contains two integers `n` and `K`.\nThe second line contains the string `s` of length `n`.\n\n## Output\n\nPrint one integer: the number of distinct good strings.\n\n## Constraints\n\n* `1 <= n <= 200000`\n* `1 <= K <= 26`\n* `s` consists of lowercase letters `a`-`z`.\n\nThe answer can reach about `n^2 / 8`, so use 64-bit integers.\n\n## Examples\n\nExample 1\n\n```\n7 2\nabababa\n```\n\n```\n5\n```\n\nExample 2\n\n```\n8 3\nabcabcab\n```\n\n```\n9\n```\n\nExample 3\n\n```\n6 1\naaaaaa\n```\n\n```\n3\n```\n",
+  "examples": [
+    {
+      "input": "7 2\nabababa\n",
+      "output": "5\n"
+    },
+    {
+      "input": "8 3\nabcabcab\n",
+      "output": "9\n"
+    },
+    {
+      "input": "6 1\naaaaaa\n",
+      "output": "3\n"
+    }
+  ]
+}

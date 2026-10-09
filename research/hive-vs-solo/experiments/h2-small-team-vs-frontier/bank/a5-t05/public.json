@@ -1,0 +1,29 @@
+{
+  "id": "a5-t05",
+  "title": "Cyclic Balance",
+  "topic": [
+    "strings",
+    "bracket sequences",
+    "minimal rotation",
+    "prefix function",
+    "prefix codes"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Cyclic Balance\n\nA string of `(` and `)` is a **regular bracket sequence** if it is non-empty, every prefix contains at least as many `(` as `)`, and the whole string contains equally many of both.\n\nFor a string `s` of length `n`, the **rotation by `i`** (`0 <= i < n`) is the string `s[i..n-1] + s[0..i-1]`. Different values of `i` can give identical strings.\n\nConsider all rotations of `s` that are regular bracket sequences. Report\n\n1. how many **distinct** strings appear among them, and\n2. the **lexicographically smallest** of them, where `(` is smaller than `)`.\n\nIf no rotation of `s` is a regular bracket sequence, print only `-1`.\n\n## Input\n\nThe first line contains the integer `n`.\nThe second line contains the string `s` of length `n`.\n\n## Output\n\nIf at least one rotation is regular: print the number of distinct regular rotations on the first line and the lexicographically smallest regular rotation on the second line.\nOtherwise print a single line containing `-1`.\n\n## Constraints\n\n* `1 <= n <= 200000`\n* `s` consists only of the characters `(` and `)`.\n\n## Examples\n\nExample 1\n\n```\n4\n)()(\n```\n\n```\n1\n()()\n```\n\nExample 2\n\n```\n8\n()(())()\n```\n\n```\n3\n(())()()\n```\n\nExample 3\n\n```\n3\n(()\n```\n\n```\n-1\n```\n",
+  "examples": [
+    {
+      "input": "4\n)()(\n",
+      "output": "1\n()()\n"
+    },
+    {
+      "input": "8\n()(())()\n",
+      "output": "3\n(())()()\n"
+    },
+    {
+      "input": "3\n(()\n",
+      "output": "-1\n"
+    }
+  ]
+}

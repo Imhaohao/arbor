@@ -1,0 +1,28 @@
+{
+  "id": "a2-t08",
+  "title": "Parallel Pipelines",
+  "topic": [
+    "graphs",
+    "dag counting",
+    "lgv lemma",
+    "determinant"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Parallel Pipelines\n\nA factory floor is a grid with `R` rows (numbered `1..R` from top to bottom) and `C` columns (numbered `1..C` from left to right). Some cells are blocked. A pipeline is a sequence of free cells that starts at a given source cell, ends at a given sink cell and, at every step, moves from its current cell to the free cell directly to the right or directly below it.\n\nThere are `k` pipelines to lay. Pipeline `i` must start at the source cell `(a_i, 1)` in the leftmost column and end at the sink cell `(R, b_i)` in the bottom row. The sources satisfy `a_1 < a_2 < ... < a_k` and the sinks satisfy `b_1 > b_2 > ... > b_k`. Two different pipelines must not share any cell (this includes their first and last cells). A pipeline that consists of a single cell is allowed when its source and sink are the same cell.\n\nCount the number of ways to lay all `k` pipelines, that is, the number of `k`-tuples `(P_1, ..., P_k)` of pipelines where `P_i` runs from the `i`-th source to the `i`-th sink and no cell belongs to two different pipelines. Print the count modulo `998244353`. If some source or sink cell is blocked, the answer is `0`.\n\n## Input\n\nThe first line contains three integers `R`, `C`, `k`.\n\nEach of the next `R` lines contains a string of `C` characters: `.` for a free cell and `#` for a blocked cell.\n\nThe next line contains the `k` integers `a_1 ... a_k`.\n\nThe next line contains the `k` integers `b_1 ... b_k`.\n\n## Output\n\nPrint one integer: the number of ways modulo `998244353`.\n\n## Constraints\n\n- `1 <= R, C <= 500`\n- `1 <= k <= min(R, C, 20)`\n- `1 <= a_1 < a_2 < ... < a_k <= R`\n- `C >= b_1 > b_2 > ... > b_k >= 1`\n\n## Examples\n\nExample 1\n\nInput\n```\n3 3 2\n...\n...\n...\n1 2\n3 1\n```\n\nOutput\n```\n3\n```\n\nExample 2\n\nInput\n```\n4 4 2\n....\n.#..\n....\n....\n1 3\n4 2\n```\n\nOutput\n```\n8\n```\n\nExample 3\n\nInput\n```\n3 4 3\n....\n....\n....\n1 2 3\n4 3 2\n```\n\nOutput\n```\n1\n```\n\n",
+  "examples": [
+    {
+      "input": "3 3 2\n...\n...\n...\n1 2\n3 1\n",
+      "output": "3\n"
+    },
+    {
+      "input": "4 4 2\n....\n.#..\n....\n....\n1 3\n4 2\n",
+      "output": "8\n"
+    },
+    {
+      "input": "3 4 3\n....\n....\n....\n1 2 3\n4 3 2\n",
+      "output": "1\n"
+    }
+  ]
+}

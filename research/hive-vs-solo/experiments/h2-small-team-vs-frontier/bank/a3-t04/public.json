@@ -1,0 +1,28 @@
+{
+  "id": "a3-t04",
+  "title": "Assembly Lines",
+  "topic": [
+    "scheduling",
+    "sorting by a non-obvious key",
+    "precedence chains",
+    "exchange argument"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Assembly Lines\n\nA single robot arm serves `m` assembly lines. Line `k` is a fixed sequence of tasks, and the tasks of one line must be performed in the given order (task `i+1` of a line may only start after task `i` of the same line is finished). Tasks from different lines have no ordering constraints between them.\n\nEach task has a duration `p` and a priority weight `w`. The arm performs one task at a time, never pauses between tasks, never interrupts a task, and starts at time 0. The completion time `C` of a task is the moment the arm finishes it.\n\nChoose the order in which the arm performs all tasks (respecting the order inside every line) so that the sum over all tasks of `w * C` is minimum. Print this minimum.\n\n## Input\n\nThe first line contains `m`. Each of the next `m` lines describes one line: an integer `L` (the number of tasks on this line) followed by `L` pairs `p w`, in the order the tasks must be performed.\n\n## Output\n\nPrint the minimum value of the sum of `w * C`. The value can exceed 64 bits; print it exactly.\n\n## Constraints\n\n- `1 <= m <= 200000`\n- `1 <=` total number of tasks `n <= 200000`, and every line has `L >= 1`\n- `1 <= p <= 10^4`\n- `1 <= w <= 10^6`\n\n## Examples\n\nInput\n```\n2\n2 1 1 1 10\n1 1 3\n```\nOutput\n```\n30\n```\n\nInput\n```\n1\n1 5 7\n```\nOutput\n```\n35\n```\n\nInput\n```\n3\n3 4 2 1 1 2 9\n2 3 6 3 2\n2 1 1 5 8\n```\nOutput\n```\n307\n```\n\n## Notes\n\nIn the first example the best order is: line 1 task 1, line 1 task 2, line 2 task 1, with completion times 1, 2, 3 and total 1*1 + 10*2 + 3*3 = 30. Starting with the line 2 task (weight 3, duration 1) looks better at first but delays the heavy second task of line 1, giving 35.\n",
+  "examples": [
+    {
+      "input": "2\n2 1 1 1 10\n1 1 3\n",
+      "output": "30\n"
+    },
+    {
+      "input": "1\n1 5 7\n",
+      "output": "35\n"
+    },
+    {
+      "input": "3\n3 4 2 1 1 2 9\n2 3 6 3 2\n2 1 1 5 8\n",
+      "output": "307\n"
+    }
+  ]
+}

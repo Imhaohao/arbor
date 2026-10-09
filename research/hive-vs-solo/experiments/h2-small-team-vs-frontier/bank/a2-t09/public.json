@@ -1,0 +1,28 @@
+{
+  "id": "a2-t09",
+  "title": "Truce Camps",
+  "topic": [
+    "graphs",
+    "dsu",
+    "components under constraints",
+    "small-to-large"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Truce Camps\n\n`n` people (numbered `1..n`) start in separate camps, one person per camp. `k` pairs of people are *feuding*: if two feuding people ever end up in the same camp, a fight breaks out, so this must never happen.\n\nOver time `m` friendship offers arrive, offer `i` between people `x_i` and `y_i`, and they are processed strictly in the given order. Processing an offer works as follows, with the camps as they are at that moment:\n\n- If `x_i` and `y_i` are already in the same camp, nothing changes (print `2`).\n- Otherwise the two camps would merge into one. If the merged camp would contain some feuding pair, the offer is refused and nothing changes (print `0`).\n- Otherwise the two camps merge (print `1`).\n\nFeuding pairs never change. Two different feuding pairs may list the same two people (in either order).\n\n## Input\n\nThe first line contains three integers `n`, `m`, `k`.\n\nEach of the next `m` lines contains two integers `x_i y_i` (`x_i != y_i`).\n\nEach of the next `k` lines contains two integers `a_j b_j` (`a_j != b_j`), a feuding pair.\n\n## Output\n\nPrint two lines. The first line contains `m` integers separated by single spaces: for each offer in order, `0`, `1` or `2` as described above. The second line contains the number of camps that exist after all offers have been processed.\n\n## Constraints\n\n- `2 <= n <= 200000`\n- `1 <= m <= 200000`, `0 <= k <= 200000`\n- `1 <= x_i, y_i, a_j, b_j <= n`\n\n## Examples\n\nExample 1\n\nInput\n```\n5 6 2\n1 2\n3 4\n2 3\n1 3\n4 5\n2 5\n1 4\n2 5\n```\n\nOutput\n```\n1 1 0 0 1 0\n2\n```\n\nExample 2\n\nInput\n```\n4 4 0\n1 2\n3 4\n2 3\n1 4\n```\n\nOutput\n```\n1 1 1 2\n1\n```\n\nExample 3\n\nInput\n```\n6 8 3\n1 2\n3 4\n5 6\n1 3\n2 5\n4 6\n3 5\n1 6\n1 4\n2 6\n3 6\n```\n\nOutput\n```\n1 1 1 0 0 0 0 0\n3\n```\n\n",
+  "examples": [
+    {
+      "input": "5 6 2\n1 2\n3 4\n2 3\n1 3\n4 5\n2 5\n1 4\n2 5\n",
+      "output": "1 1 0 0 1 0\n2\n"
+    },
+    {
+      "input": "4 4 0\n1 2\n3 4\n2 3\n1 4\n",
+      "output": "1 1 1 2\n1\n"
+    },
+    {
+      "input": "6 8 3\n1 2\n3 4\n5 6\n1 3\n2 5\n4 6\n3 5\n1 6\n1 4\n2 6\n3 6\n",
+      "output": "1 1 1 0 0 0 0 0\n3\n"
+    }
+  ]
+}

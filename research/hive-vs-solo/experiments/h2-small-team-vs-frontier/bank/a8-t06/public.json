@@ -1,0 +1,28 @@
+{
+  "id": "a8-t06",
+  "title": "Triangles Around the Origin",
+  "topic": [
+    "geometry",
+    "angular sweep",
+    "exact arithmetic",
+    "counting"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Triangles Around the Origin\n\nYou are given `n` points `p_1, ..., p_n` with integer coordinates, none of them equal to the origin `(0, 0)`. Several points may coincide, and points that coincide are still different indices.\n\nFor a triple of indices `i < j < k`, call it *surrounding* if the origin lies strictly inside the triangle `p_i p_j p_k`, meaning inside the triangle and not on any of its three sides (a degenerate triangle with all three points on one line never surrounds the origin). The *weight* of a surrounding triple is twice the area of its triangle, which is always an integer.\n\nPrint the sum of the weights of all surrounding triples, modulo `998244353`.\n\n## Input\n\nThe first line contains an integer `n`. Each of the next `n` lines contains two integers `x_i` and `y_i`, the coordinates of `p_i`.\n\n## Output\n\nPrint one integer: the sum of the weights of all surrounding triples, modulo `998244353`.\n\n## Constraints\n\n- `1 <= n <= 200000`\n- `-10^9 <= x_i, y_i <= 10^9`\n- `(x_i, y_i) != (0, 0)`\n\n## Examples\n\nInput\n```\n3\n1 0\n-1 1\n-1 -1\n```\nOutput\n```\n4\n```\n\nThe only triple surrounds the origin, and its triangle has area `2`, so its weight is `4`.\n\nInput\n```\n3\n1 0\n-1 0\n0 1\n```\nOutput\n```\n0\n```\n\nThe origin lies on the side between `(1, 0)` and `(-1, 0)`, so the triple does not surround it.\n\nInput\n```\n6\n2 0\n4 0\n-1 1\n-1 -1\n-3 3\n0 -5\n```\nOutput\n```\n176\n```\n\nThe points `(2, 0)` and `(4, 0)` lie in the same direction from the origin and are different indices, so both can take part in surrounding triples.\n",
+  "examples": [
+    {
+      "input": "3\n1 0\n-1 1\n-1 -1\n",
+      "output": "4\n"
+    },
+    {
+      "input": "3\n1 0\n-1 0\n0 1\n",
+      "output": "0\n"
+    },
+    {
+      "input": "6\n2 0\n4 0\n-1 1\n-1 -1\n-3 3\n0 -5\n",
+      "output": "176\n"
+    }
+  ]
+}

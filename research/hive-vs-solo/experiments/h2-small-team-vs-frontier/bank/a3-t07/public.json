@@ -1,0 +1,28 @@
+{
+  "id": "a3-t07",
+  "title": "Barge Convoy",
+  "topic": [
+    "binary search on the answer",
+    "greedy",
+    "bin packing with divisible sizes",
+    "bit decomposition"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Barge Convoy\n\nA river port must ship `n` crates. Crate `i` weighs `w_i`, and every weight is a power of two (`1, 2, 4, 8, ...`).\n\nThere are `m` barges. Barge `k` has capacity `c_k` and needs exactly `t_k` minutes for one round trip. All barges are at the port at minute 0 and start trips back to back, so within the first `T` minutes barge `k` completes exactly `floor(T / t_k)` trips. On one trip a barge can carry any number of crates whose total weight is at most `c_k`. A crate must be carried on exactly one trip; trips may be empty.\n\nFind the smallest integer `T` such that all crates can be shipped using only trips completed within the first `T` minutes. If some crate is heavier than every barge's capacity, print `-1`.\n\n## Input\n\nThe first line contains `n` and `m`. The second line contains `w_1 ... w_n`. Each of the next `m` lines contains `c_k` and `t_k`.\n\n## Output\n\nPrint the smallest `T`, or `-1` if no `T` works.\n\n## Constraints\n\n- `1 <= n <= 200000`\n- `1 <= m <= 2000`\n- Every `w_i` is a power of two with `1 <= w_i <= 2^29`\n- `1 <= c_k <= 10^9`\n- `1 <= t_k <= 10^9`\n\n## Examples\n\nInput\n```\n3 1\n4 4 4\n6 1\n```\nOutput\n```\n3\n```\n\nInput\n```\n2 2\n8 1\n7 1\n3 2\n```\nOutput\n```\n-1\n```\n\nInput\n```\n6 2\n4 2 2 2 1 1\n6 3\n5 2\n```\nOutput\n```\n4\n```\n\n## Notes\n\nIn the first example the total weight 12 fits into two trips of capacity 6 by weight alone, but two crates of weight 4 cannot share a trip, so three trips are needed.\n\nIn the third example, with `T = 4` barge 1 makes one trip (capacity 6) and barge 2 makes two trips (capacity 5 each). The trips carry {4, 2}, {2, 2, 1} and {1}. With `T = 3` only capacities 6 and 5 are available, which cannot hold total weight 12.\n",
+  "examples": [
+    {
+      "input": "3 1\n4 4 4\n6 1\n",
+      "output": "3\n"
+    },
+    {
+      "input": "2 2\n8 1\n7 1\n3 2\n",
+      "output": "-1\n"
+    },
+    {
+      "input": "6 2\n4 2 2 2 1 1\n6 3\n5 2\n",
+      "output": "4\n"
+    }
+  ]
+}

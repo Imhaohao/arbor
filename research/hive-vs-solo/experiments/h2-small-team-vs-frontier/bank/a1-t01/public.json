@@ -1,0 +1,27 @@
+{
+  "id": "a1-t01",
+  "title": "Mirror Pairs",
+  "topic": [
+    "digit dp",
+    "outside-in pair dp",
+    "modular counting"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Mirror Pairs\n\nFor a positive integer x written in decimal without leading zeros, let rev(x) be the integer obtained by writing the digits of x in reverse order. If x ends in zeros, the reversed string starts with zeros, which are simply dropped: rev(120) = 21 and rev(1000) = 1. Let S(x) denote the sum of the decimal digits of x.\n\nYou are given a positive integer N, a modulus D and a residue R. Count the integers x with 1 <= x <= N that satisfy both conditions:\n\n1. rev(x) > x (compared as ordinary integers), and\n2. S(x) mod D = R.\n\nPrint the count modulo 998244353.\n\n## Input\n\nThe first line contains N as a decimal string without leading zeros.\n\nThe second line contains two integers D and R.\n\n## Output\n\nPrint one integer: the number of integers x with 1 <= x <= N satisfying both conditions, modulo 998244353.\n\n## Constraints\n\n- 1 <= N < 10^500 (N has at most 500 digits).\n- 1 <= D <= 9.\n- 0 <= R < D.\n\n## Examples\n\n### Example 1\n\nInput\n\n```\n100\n1 0\n```\n\nOutput\n\n```\n36\n```\n\n### Example 2\n\nInput\n\n```\n1000\n3 1\n```\n\nOutput\n\n```\n132\n```\n\n### Example 3\n\nInput\n\n```\n20260\n9 4\n```\n\nOutput\n\n```\n1450\n```\n",
+  "examples": [
+    {
+      "input": "100\n1 0\n",
+      "output": "36\n"
+    },
+    {
+      "input": "1000\n3 1\n",
+      "output": "132\n"
+    },
+    {
+      "input": "20260\n9 4\n",
+      "output": "1450\n"
+    }
+  ]
+}

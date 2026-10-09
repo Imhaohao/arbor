@@ -1,0 +1,28 @@
+{
+  "id": "a6-t05",
+  "title": "Reservoir Pressure",
+  "topic": [
+    "monotonic stack",
+    "offline queries",
+    "trapped water over ranges",
+    "prefix sums on greater chains"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Reservoir Pressure\n\nA mountain valley is described by column heights `h_1, h_2, ..., h_n`. After rain, water collects in the valley. For a query `l r` only the strip of columns `l, l+1, ..., r` is considered, and nothing outside the strip exists (water that reaches either end of the strip runs off).\n\nIn the strip, the water level above column `i` (`l <= i <= r`) is\n\n`level(i) = min( max(h_l, ..., h_i), max(h_i, ..., h_r) )`\n\nand the **depth** of the water on column `i` is `d_i = level(i) - h_i`. Depths are never negative.\n\nThe **pressure** of the strip is the sum of the squared depths: `d_l^2 + d_{l+1}^2 + ... + d_r^2`. For each query print the pressure of its strip.\n\n## Input\n\nThe first line contains two integers `n` and `q`.\n\nThe second line contains `n` integers `h_1, ..., h_n`.\n\nEach of the next `q` lines contains two integers `l` and `r`.\n\n## Output\n\nPrint `q` lines. Line `i` contains the pressure of the `i`-th strip.\n\n## Constraints\n\n- `1 <= n, q <= 200000`\n- `0 <= h_i <= 10^6`\n- `1 <= l <= r <= n`\n\nAll answers fit in a signed 64-bit integer.\n\n## Examples\n\nIn the first example, the query `1 8` covers heights 3 0 2 0 4 1 3 2. The levels are 3 3 3 3 4 3 3 2 and the depths are 0 3 1 3 0 2 0 0, so the pressure is 9 + 1 + 9 + 4 = 23.\n\nExample 1\n\nInput\n\n```\n8 5\n3 0 2 0 4 1 3 2\n1 8\n1 4\n2 4\n5 8\n3 3\n```\n\nOutput\n\n```\n23\n4\n0\n4\n0\n```\n\nExample 2\n\nInput\n\n```\n7 5\n5 1 1 5 2 6 3\n1 7\n2 3\n1 4\n4 6\n3 7\n```\n\nOutput\n\n```\n41\n0\n32\n9\n9\n```\n\nExample 3\n\nInput\n\n```\n10 6\n4 1 1 6 2 2 2 5 0 3\n1 10\n2 7\n4 10\n5 9\n1 3\n6 10\n```\n\nOutput\n\n```\n54\n0\n36\n0\n0\n9\n```\n\n",
+  "examples": [
+    {
+      "input": "8 5\n3 0 2 0 4 1 3 2\n1 8\n1 4\n2 4\n5 8\n3 3\n",
+      "output": "23\n4\n0\n4\n0\n"
+    },
+    {
+      "input": "7 5\n5 1 1 5 2 6 3\n1 7\n2 3\n1 4\n4 6\n3 7\n",
+      "output": "41\n0\n32\n9\n9\n"
+    },
+    {
+      "input": "10 6\n4 1 1 6 2 2 2 5 0 3\n1 10\n2 7\n4 10\n5 9\n1 3\n6 10\n",
+      "output": "54\n0\n36\n0\n0\n9\n"
+    }
+  ]
+}

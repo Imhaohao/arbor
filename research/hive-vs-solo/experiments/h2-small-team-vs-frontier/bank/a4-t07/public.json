@@ -1,0 +1,29 @@
+{
+  "id": "a4-t07",
+  "title": "Even Square Subsets",
+  "topic": [
+    "combinatorics",
+    "linear algebra over GF(2)",
+    "number theory",
+    "sieve",
+    "modular arithmetic"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Even Square Subsets\n\nYou are given n positive integers a_1, ..., a_n.\n\nCount the non-empty subsets of positions {1, ..., n} (a subset is a set of positions, so equal values at different positions are different elements) that satisfy both conditions:\n\n- the product of the chosen a_i is a perfect square (an integer of the form s*s for an integer s);\n- the sum of the chosen a_i is even.\n\nPrint the number of such subsets modulo 998244353.\n\n## Input\n\nThe first line contains the integer n.\nThe second line contains n integers a_1, ..., a_n.\n\n## Output\n\nPrint one integer: the number of valid non-empty subsets modulo 998244353.\n\n## Constraints\n\n- 1 <= n <= 200000\n- 1 <= a_i <= 1000000\n\n## Examples\n\nInput\n```\n3\n2 8 4\n```\nOutput\n```\n3\n```\n\nInput\n```\n3\n1 1 4\n```\nOutput\n```\n3\n```\n\nInput\n```\n4\n3 12 27 1\n```\nOutput\n```\n3\n```\n\n## Notes\n\nIn the first example the valid subsets are {4}, {2, 8} and {2, 8, 4}. The subset {2, 4} has product 8, which is not a square.\n\nIn the second example the subset {1} (either position) has a square product but an odd sum, so it does not count. The valid subsets are {1, 1}, {4} and {1, 1, 4}.\n\nIn the third example the valid subsets are {3, 27} (product 81, sum 30), {3, 12, 1} (product 36, sum 16) and {12, 27, 1} (product 324, sum 40). The subset {3, 12} has a square product (36) but an odd sum, so it does not count.\n",
+  "examples": [
+    {
+      "input": "3\n2 8 4\n",
+      "output": "3\n"
+    },
+    {
+      "input": "3\n1 1 4\n",
+      "output": "3\n"
+    },
+    {
+      "input": "4\n3 12 27 1\n",
+      "output": "3\n"
+    }
+  ]
+}

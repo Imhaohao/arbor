@@ -1,0 +1,28 @@
+{
+  "id": "a5-t01",
+  "title": "Echo Typewriter",
+  "topic": [
+    "strings",
+    "suffix automaton",
+    "dynamic programming",
+    "string transformation with minimum cost"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Echo Typewriter\n\nA typewriter holds a text that starts empty. You want the text to become exactly the string `t` (lowercase Latin letters). Two kinds of operations exist, and each one appends something to the **end** of the current text:\n\n* **Type**: append one letter of your choice. Cost `A`.\n* **Paste**: choose any contiguous, non-empty substring of the **current** text (the text as it is right before this operation), optionally reverse it, and append the result. Cost `B`, regardless of the length of the pasted piece.\n\nThe text can only grow at its end, so at every moment it is a prefix of `t`. Find the minimum total cost to make the text equal to `t`.\n\n## Input\n\nThe first line contains three integers `n`, `A`, `B`: the length of `t` and the two costs.\nThe second line contains the string `t` of length `n`.\n\n## Output\n\nPrint one integer: the minimum total cost.\n\n## Constraints\n\n* `1 <= n <= 200000`\n* `1 <= A, B <= 10^9`\n* `t` consists of lowercase letters `a`-`z`.\n\nThe first operation is always a Type, because there is nothing to paste from an empty text. A pasted piece may be a single letter. The answer can reach about `2*10^14`.\n\n## Examples\n\nExample 1\n\n```\n7 5 6\nabcdcba\n```\n\n```\n26\n```\n\nExample 2\n\n```\n10 3 4\naaaaaaaaaa\n```\n\n```\n17\n```\n\nExample 3\n\n```\n11 4 5\nabbabaabbab\n```\n\n```\n23\n```\n",
+  "examples": [
+    {
+      "input": "7 5 6\nabcdcba\n",
+      "output": "26\n"
+    },
+    {
+      "input": "10 3 4\naaaaaaaaaa\n",
+      "output": "17\n"
+    },
+    {
+      "input": "11 4 5\nabbabaabbab\n",
+      "output": "23\n"
+    }
+  ]
+}

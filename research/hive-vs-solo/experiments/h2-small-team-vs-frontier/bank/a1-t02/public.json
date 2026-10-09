@@ -1,0 +1,28 @@
+{
+  "id": "a1-t02",
+  "title": "Tall Mosaic",
+  "topic": [
+    "profile dp",
+    "bitmask dp",
+    "linear recurrences",
+    "tilings"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Tall Mosaic\n\nA mosaic floor is a grid with W columns and H rows (H may be astronomically large). It must be covered completely, without overlaps and without any tile sticking out of the grid, using tiles of two kinds. Each kind may be placed in any rotation:\n\n- a domino: two cells sharing a side (so it can lie horizontally or vertically);\n- an L-tromino: three cells forming an L, that is, a 2x2 block with exactly one of its four cells missing (it has four rotations).\n\nTiles of the same kind are indistinguishable, so a tiling is determined only by how the cells are partitioned into tiles: two tilings are different if some two cells are in the same tile in one tiling and not in the other.\n\nCount the number of tilings of the W x H grid, modulo 998244353. The empty grid (H = 0) has exactly one tiling, the empty one.\n\n## Input\n\nA single line with two integers W and H.\n\n## Output\n\nPrint the number of tilings modulo 998244353.\n\n## Constraints\n\n- 1 <= W <= 8.\n- 0 <= H <= 10^18.\n\n## Examples\n\n### Example 1\n\nInput\n\n```\n2 3\n```\n\nOutput\n\n```\n5\n```\n\n### Example 2\n\nInput\n\n```\n3 4\n```\n\nOutput\n\n```\n55\n```\n\n### Example 3\n\nInput\n\n```\n5 1000000000000000000\n```\n\nOutput\n\n```\n953036433\n```\n",
+  "examples": [
+    {
+      "input": "2 3\n",
+      "output": "5\n"
+    },
+    {
+      "input": "3 4\n",
+      "output": "55\n"
+    },
+    {
+      "input": "5 1000000000000000000\n",
+      "output": "953036433\n"
+    }
+  ]
+}

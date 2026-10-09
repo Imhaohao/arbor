@@ -1,0 +1,29 @@
+{
+  "id": "a4-t08",
+  "title": "Elements of Prescribed Order",
+  "topic": [
+    "number theory",
+    "multiplicative order",
+    "chinese remainder theorem",
+    "mobius inversion",
+    "modular arithmetic"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Elements of Prescribed Order\n\nFor an integer N >= 2 and an integer x coprime to N, the **order of x modulo N** is the smallest positive integer t such that x^t - 1 is divisible by N. For example, modulo 7 the number 2 has order 3, because 2^1 = 2, 2^2 = 4, 2^3 = 8 = 1 (mod 7).\n\nYou are given N and k through their prime factorizations. Count the integers x with 1 <= x <= N, gcd(x, N) = 1, whose order modulo N is exactly k. Print the count modulo 998244353. If no such x exists, print 0.\n\n## Input\n\nThe first line contains the integer r, the number of distinct primes dividing N.\nEach of the next r lines contains two integers p_i and e_i: a prime p_i and its exponent in N, so N = p_1^e_1 * p_2^e_2 * ... * p_r^e_r.\nThe next line contains the integer s, the number of distinct primes dividing k (s = 0 means k = 1).\nEach of the next s lines contains two integers q_j and f_j: a prime q_j and its exponent in k, so k = q_1^f_1 * ... * q_s^f_s.\n\n## Output\n\nPrint one integer: the number of integers x in [1, N] coprime to N with order exactly k modulo N, taken modulo 998244353.\n\n## Constraints\n\n- 1 <= r <= 20, and the primes p_i are pairwise distinct\n- 2 <= p_i <= 10^9 and 1 <= e_i, with p_i^e_i <= 10^18 for every i\n- 0 <= s <= 15, and the primes q_j are pairwise distinct\n- 2 <= q_j <= 10^9 and 1 <= f_j, with k = q_1^f_1 * ... * q_s^f_s <= 10^18\n\n## Examples\n\nInput\n```\n1\n7 1\n1\n3 1\n```\nOutput\n```\n2\n```\n\nInput\n```\n2\n3 1\n5 1\n1\n2 2\n```\nOutput\n```\n4\n```\n\nInput\n```\n2\n2 2\n3 2\n1\n2 1\n```\nOutput\n```\n3\n```\n\n## Notes\n\nIn the first example N = 7 and k = 3. The elements of order 3 modulo 7 are 2 and 4.\n\nIn the second example N = 15 and k = 4. The numbers 2, 7, 8 and 13 have order 4 modulo 15.\n\nIn the third example N = 36 and k = 2. The elements of order 2 modulo 36 are 17, 19 and 35.\n",
+  "examples": [
+    {
+      "input": "1\n7 1\n1\n3 1\n",
+      "output": "2\n"
+    },
+    {
+      "input": "2\n3 1\n5 1\n1\n2 2\n",
+      "output": "4\n"
+    },
+    {
+      "input": "2\n2 2\n3 2\n1\n2 1\n",
+      "output": "3\n"
+    }
+  ]
+}

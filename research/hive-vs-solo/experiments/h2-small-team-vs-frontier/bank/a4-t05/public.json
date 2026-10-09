@@ -1,0 +1,29 @@
+{
+  "id": "a4-t05",
+  "title": "Permutations of Exact Order",
+  "topic": [
+    "combinatorics",
+    "permutations",
+    "exponential generating functions",
+    "inclusion-exclusion",
+    "number theory"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Permutations of Exact Order\n\nA permutation p of the numbers 1, 2, ..., n is a sequence containing each of these numbers exactly once. Applying p to itself repeatedly gives the powers p^1 = p, p^2, p^3, and so on, where (p^t)(i) = p(p(...p(i))) with t applications. The **order** of p is the smallest positive integer t such that p^t is the identity permutation (that is, p^t(i) = i for every i).\n\nGiven n and m, count the permutations of 1..n whose order is exactly m. Print the count modulo 998244353.\n\n## Input\n\nOne line with two integers n and m.\n\n## Output\n\nPrint one integer: the number of permutations of length n with order exactly m, modulo 998244353.\n\n## Constraints\n\n- 1 <= n <= 6000\n- 1 <= m <= 1000000\n\nIf no permutation of length n has order m, print 0.\n\n## Examples\n\nInput\n```\n5 6\n```\nOutput\n```\n20\n```\n\nInput\n```\n4 4\n```\nOutput\n```\n6\n```\n\nInput\n```\n6 6\n```\nOutput\n```\n240\n```\n\n## Notes\n\nThe order of a permutation equals the least common multiple of its cycle lengths.\n\nFor n = 5 and m = 6 the permutations are those made of one cycle of length 3 and one of length 2: there are C(5,3) * 2 * 1 = 20 of them.\n\nFor n = 4 and m = 4 only the 4-cycles qualify, and there are 3! = 6 of them.\n\nFor n = 6 and m = 6, the 6-cycles contribute 120 permutations and the cycle type 3 + 2 + 1 contributes another 120.\n",
+  "examples": [
+    {
+      "input": "5 6\n",
+      "output": "20\n"
+    },
+    {
+      "input": "4 4\n",
+      "output": "6\n"
+    },
+    {
+      "input": "6 6\n",
+      "output": "240\n"
+    }
+  ]
+}

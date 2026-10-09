@@ -1,0 +1,28 @@
+{
+  "id": "a6-t02",
+  "title": "Cliff Dives",
+  "topic": [
+    "monotonic stack",
+    "Fenwick tree",
+    "offline sweep",
+    "range counting of subarrays"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.37,
+  "statement": "# Cliff Dives\n\nA mountain trail has `n` stations with altitudes `a_1, a_2, ..., a_n`. A **dive** is an ordered pair of stations `(i, j)` with `i <= j` such that\n\n- station `i` is a highest point of the stretch from `i` to `j`: `a_k <= a_i` for every `k` with `i <= k <= j`, and\n- station `j` is a lowest point of that stretch: `a_k >= a_j` for every `k` with `i <= k <= j`.\n\nTies are allowed, so a stretch may contain several highest or several lowest stations. The pair `(i, i)` is always a dive. Two dives with different `(i, j)` are different dives even if they cover equal altitudes.\n\nYou are given `q` queries `l`, `r`. For each query, count the dives `(i, j)` with `l <= i <= j <= r`.\n\n## Input\n\nThe first line contains two integers `n` and `q`.\n\nThe second line contains `n` integers `a_1, ..., a_n`.\n\nEach of the next `q` lines contains two integers `l` and `r`.\n\n## Output\n\nPrint `q` lines. Line `i` contains the answer to the `i`-th query.\n\n## Constraints\n\n- `1 <= n, q <= 120000`\n- `1 <= a_i <= 10^9`\n- `1 <= l <= r <= n`\n\nAll answers fit in a signed 64-bit integer.\n\n## Examples\n\nIn the first example, the query `1 3` covers altitudes 5, 3, 4. The dives are `(1,1)`, `(2,2)`, `(3,3)` and `(1,2)` (station 1 is highest and station 2 is lowest). The pair `(2,3)` is not a dive because station 3 is higher than station 2, and `(1,3)` is not a dive because the lowest point of the stretch is station 2, not station 3. So the answer is 4.\n\nExample 1\n\nInput\n\n```\n7 5\n5 3 4 3 2 5 1\n1 3\n1 7\n2 5\n4 4\n3 6\n```\n\nOutput\n\n```\n4\n15\n7\n1\n7\n```\n\nExample 2\n\nInput\n\n```\n5 3\n2 2 2 2 2\n1 5\n2 4\n3 3\n```\n\nOutput\n\n```\n15\n6\n1\n```\n\nExample 3\n\nInput\n\n```\n9 6\n9 1 8 2 7 3 6 4 5\n1 9\n1 5\n2 8\n3 3\n5 9\n4 6\n```\n\nOutput\n\n```\n13\n7\n10\n1\n7\n4\n```\n\n",
+  "examples": [
+    {
+      "input": "7 5\n5 3 4 3 2 5 1\n1 3\n1 7\n2 5\n4 4\n3 6\n",
+      "output": "4\n15\n7\n1\n7\n"
+    },
+    {
+      "input": "5 3\n2 2 2 2 2\n1 5\n2 4\n3 3\n",
+      "output": "15\n6\n1\n"
+    },
+    {
+      "input": "9 6\n9 1 8 2 7 3 6 4 5\n1 9\n1 5\n2 8\n3 3\n5 9\n4 6\n",
+      "output": "13\n7\n10\n1\n7\n4\n"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "a6-t04",
+  "title": "Odd Valleys",
+  "topic": [
+    "monotonic stack",
+    "offline queries",
+    "prefix sums on next-smaller chain",
+    "parity of subarray length"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Odd Valleys\n\nA sequence `a_1, a_2, ..., a_n` of positive integers is given. For a subarray `a_x, a_{x+1}, ..., a_y` its **valley depth** is the minimum value in it. A subarray is **odd** if it has an odd number of elements, that is, if `y - x` is even.\n\nYou are given `q` queries `l`, `r`. For each query, compute the sum of the valley depths of all odd subarrays `[x, y]` that lie inside the range, meaning `l <= x <= y <= r`. Subarrays that are equal as sequences but sit at different positions are counted separately.\n\n## Input\n\nThe first line contains two integers `n` and `q`.\n\nThe second line contains `n` integers `a_1, ..., a_n`.\n\nEach of the next `q` lines contains two integers `l` and `r`.\n\n## Output\n\nPrint `q` lines. Line `i` contains the answer to the `i`-th query.\n\n## Constraints\n\n- `1 <= n, q <= 150000`\n- `1 <= a_i <= 10^9`\n- `1 <= l <= r <= n`\n\nAll answers fit in a signed 64-bit integer.\n\n## Examples\n\nIn the first example, the query `1 4` has odd subarrays `[3]`, `[1]`, `[4]`, `[1]` of length 1 with depths 3, 1, 4, 1 and `[3,1,4]`, `[1,4,1]` of length 3 with depths 1, 1. The sum is 3 + 1 + 4 + 1 + 1 + 1 = 11.\n\nExample 1\n\nInput\n\n```\n8 5\n3 1 4 1 5 9 2 6\n1 4\n1 8\n2 6\n5 5\n3 7\n```\n\nOutput\n\n```\n11\n45\n24\n5\n26\n```\n\nExample 2\n\nInput\n\n```\n5 3\n7 7 7 7 7\n1 5\n2 4\n1 2\n```\n\nOutput\n\n```\n63\n28\n14\n```\n\nExample 3\n\nInput\n\n```\n9 6\n9 2 8 3 7 1 6 4 5\n1 9\n1 3\n2 8\n4 6\n6 6\n3 9\n```\n\nOutput\n\n```\n69\n21\n43\n12\n1\n48\n```\n\n",
+  "examples": [
+    {
+      "input": "8 5\n3 1 4 1 5 9 2 6\n1 4\n1 8\n2 6\n5 5\n3 7\n",
+      "output": "11\n45\n24\n5\n26\n"
+    },
+    {
+      "input": "5 3\n7 7 7 7 7\n1 5\n2 4\n1 2\n",
+      "output": "63\n28\n14\n"
+    },
+    {
+      "input": "9 6\n9 2 8 3 7 1 6 4 5\n1 9\n1 3\n2 8\n4 6\n6 6\n3 9\n",
+      "output": "69\n21\n43\n12\n1\n48\n"
+    }
+  ]
+}

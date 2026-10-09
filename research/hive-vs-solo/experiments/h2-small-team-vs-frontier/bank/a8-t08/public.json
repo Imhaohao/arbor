@@ -1,0 +1,28 @@
+{
+  "id": "a8-t08",
+  "title": "Min-Max XOR under a Limit",
+  "topic": [
+    "bitwise",
+    "trie greedy",
+    "bit-by-bit greedy",
+    "counting"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.45,
+  "statement": "# Min-Max XOR under a Limit\n\nYou are given a multiset `A` of `n` non-negative integers `a_1, ..., a_n`. For an integer `x >= 0` define\n\n`f(x) = max over i of (a_i XOR x)`,\n\nwhere `XOR` is the bitwise exclusive or.\n\nThere are `q` independent queries. In query `j` you are given an integer `M_j`. Among all integers `x` with `0 <= x <= M_j`, find the minimum value `V` of `f(x)`, and also the number `C` of integers `x` in `[0, M_j]` with `f(x) = V`.\n\n## Input\n\nThe first line contains two integers `n` and `q`. The second line contains `n` integers `a_1, ..., a_n`. The third line contains `q` integers `M_1, ..., M_q`.\n\n## Output\n\nPrint `q` lines. Line `j` contains two integers `V` and `C` for query `j`, separated by a space.\n\n## Constraints\n\n- `1 <= n <= 200000`\n- `1 <= q <= 50000`\n- `0 <= a_i < 2^30`\n- `0 <= M_j < 2^30`\n\n## Examples\n\nInput\n```\n3 4\n5 3 6\n0 1 4 7\n```\nOutput\n```\n6 1\n6 1\n6 2\n4 1\n```\n\nFor `M = 0` only `x = 0` is allowed and `f(0) = max(5, 3, 6) = 6`. For `M = 4` the values `x = 0` and `x = 3` both give `f(x) = 6`, which is the minimum over `0..4`, so `C = 2`. For `M = 7` only `x = 7` reaches the minimum `f(7) = max(2, 4, 1) = 4`.\n\nInput\n```\n4 3\n0 0 8 8\n0 7 15\n```\nOutput\n```\n8 1\n8 1\n8 2\n```\n\nInput\n```\n2 3\n1 6\n0 3 6\n```\nOutput\n```\n6 1\n4 1\n4 2\n```\n",
+  "examples": [
+    {
+      "input": "3 4\n5 3 6\n0 1 4 7\n",
+      "output": "6 1\n6 1\n6 2\n4 1\n"
+    },
+    {
+      "input": "4 3\n0 0 8 8\n0 7 15\n",
+      "output": "8 1\n8 1\n8 2\n"
+    },
+    {
+      "input": "2 3\n1 6\n0 3 6\n",
+      "output": "6 1\n4 1\n4 2\n"
+    }
+  ]
+}

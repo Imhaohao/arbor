@@ -1,0 +1,28 @@
+{
+  "id": "a1-t10",
+  "title": "Zeckendorf Terms",
+  "topic": [
+    "digit dp",
+    "non-standard numeration system",
+    "fibonacci",
+    "counting by residue"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Zeckendorf Terms\n\nDefine the sequence f_1 = 1, f_2 = 2, and f_i = f_{i-1} + f_{i-2} for i >= 3, so f is 1, 2, 3, 5, 8, 13, 21, ...\n\nEvery positive integer x can be written in exactly one way as a sum of distinct terms f_i in which no two used indices are consecutive (if f_i is used, then f_{i+1} is not). This is the Zeckendorf representation of x. For example, 20 = 13 + 5 + 2 uses the indices 6, 4 and 2, and 12 = 8 + 3 + 1 uses the indices 5, 3 and 1. Let z(x) denote the number of terms in the Zeckendorf representation of x; here z(20) = 3 and z(12) = 3.\n\nYou are given three integers M, R and K and then Q queries. For each query value N, count the integers x with 1 <= x <= N such that both of the following hold:\n\n- z(x) = K, and\n- x mod M = R.\n\n## Input\n\nThe first line contains the integers M, R and K.\n\nThe second line contains the integer Q.\n\nEach of the next Q lines contains one integer N.\n\n## Output\n\nPrint Q lines. Line j contains the answer for the j-th query. Answers are exact integers and need no modulus.\n\n## Constraints\n\n- 1 <= M <= 100.\n- 0 <= R < M.\n- 1 <= K <= 45.\n- 1 <= Q <= 20000.\n- 1 <= N <= 10^18 for every query.\n\n## Examples\n\n### Example 1\n\nInput\n\n```\n1 0 2\n3\n10\n100\n1000\n```\n\nOutput\n\n```\n5\n33\n84\n```\n\n### Example 2\n\nInput\n\n```\n3 1 3\n2\n500\n30000\n```\n\nOutput\n\n```\n50\n352\n```\n\n### Example 3\n\nInput\n\n```\n7 4 5\n1\n1000000000000000000\n```\n\nOutput\n\n```\n3889582\n```\n",
+  "examples": [
+    {
+      "input": "1 0 2\n3\n10\n100\n1000\n",
+      "output": "5\n33\n84\n"
+    },
+    {
+      "input": "3 1 3\n2\n500\n30000\n",
+      "output": "50\n352\n"
+    },
+    {
+      "input": "7 4 5\n1\n1000000000000000000\n",
+      "output": "3889582\n"
+    }
+  ]
+}

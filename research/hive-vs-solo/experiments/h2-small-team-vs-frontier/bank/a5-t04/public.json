@@ -1,0 +1,28 @@
+{
+  "id": "a5-t04",
+  "title": "Square Shuffle",
+  "topic": [
+    "strings",
+    "minimum adjacent swaps",
+    "inversions",
+    "string transformation with minimum cost"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Square Shuffle\n\nA string is a **square** if it equals `u + u` for some non-empty string `u` (for example `abcabc` and `aa` are squares, while `ababa` and `abba` are not).\n\nYou are given a string `s` of lowercase letters. In one move you may swap two **adjacent** characters of the current string. Find the minimum number of moves needed to turn `s` into some square. You may choose which square to aim for; only the number of moves matters.\n\nIf no sequence of moves can produce a square, print `-1`.\n\n## Input\n\nThe first line contains the integer `n`, the length of `s`.\nThe second line contains the string `s`.\n\n## Output\n\nPrint one integer: the minimum number of adjacent swaps needed to make `s` a square, or `-1` if it is impossible.\n\n## Constraints\n\n* `1 <= n <= 200000`\n* `s` consists of lowercase letters `a`-`z`.\n\nThe answer can be as large as about `10^10`, so use 64-bit integers.\n\n## Examples\n\nExample 1\n\n```\n4\naabb\n```\n\n```\n1\n```\n\nExample 2\n\n```\n6\ncabbac\n```\n\n```\n3\n```\n\nExample 3\n\n```\n5\nabcab\n```\n\n```\n-1\n```\n",
+  "examples": [
+    {
+      "input": "4\naabb\n",
+      "output": "1\n"
+    },
+    {
+      "input": "6\ncabbac\n",
+      "output": "3\n"
+    },
+    {
+      "input": "5\nabcab\n",
+      "output": "-1\n"
+    }
+  ]
+}

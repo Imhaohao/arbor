@@ -1,0 +1,29 @@
+{
+  "id": "a4-t02",
+  "title": "Square Purge",
+  "topic": [
+    "expected value",
+    "probability",
+    "number theory",
+    "divisor sieve",
+    "modular fractions"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Square Purge\n\nA table holds n cards. Card i carries a positive integer label v_i (all labels are different) and a positive integer weight w_i.\n\nThe following process is repeated until no cards remain on the table:\n\n1. Choose one card x among the cards currently on the table. The probability of choosing a card is its weight divided by the total weight of all cards currently on the table.\n2. Remove card x from the table, and also remove every card y currently on the table whose label divides the label of x with a quotient that is a perfect square. That is, remove y whenever v_x / v_y is an integer and is a perfect square (1, 4, 9, 16, ...). The chosen card x itself is always removed since v_x / v_x = 1.\n\nEach execution of step 1 is called a *choice*. Let E be the expected number of choices made until the table is empty. It can be shown that E is a rational number P/Q where Q is not divisible by 998244353. Print P * Q^(-1) modulo 998244353, that is, the unique integer r in [0, 998244352] with r * Q = P (mod 998244353).\n\n## Input\n\nThe first line contains the integer n.\nEach of the next n lines contains two integers v_i and w_i.\n\n## Output\n\nPrint one integer: E modulo 998244353.\n\n## Constraints\n\n- 1 <= n <= 500000\n- 1 <= v_i <= 1000000, and all v_i are pairwise different\n- 1 <= w_i <= 100\n\n## Examples\n\nInput\n```\n2\n1 1\n4 1\n```\nOutput\n```\n499122178\n```\n\nInput\n```\n4\n1 2\n2 3\n8 1\n18 4\n```\nOutput\n```\n623902724\n```\n\nInput\n```\n3\n2 1\n3 5\n5 7\n```\nOutput\n```\n3\n```\n\n## Notes\n\nIn the first example, with probability 1/2 the card 4 is chosen first, which removes both cards (4 / 1 = 4 is a perfect square), so there is one choice. With probability 1/2 the card 1 is chosen first, which removes only itself, and then card 4 must be chosen. So E = 1/2 * 1 + 1/2 * 2 = 3/2, and 3 * 2^(-1) mod 998244353 = 499122178.\n\nIn the third example no label divides another with a square quotient, so every card is chosen exactly once and E = 3.\n",
+  "examples": [
+    {
+      "input": "2\n1 1\n4 1\n",
+      "output": "499122178\n"
+    },
+    {
+      "input": "4\n1 2\n2 3\n8 1\n18 4\n",
+      "output": "623902724\n"
+    },
+    {
+      "input": "3\n2 1\n3 5\n5 7\n",
+      "output": "3\n"
+    }
+  ]
+}

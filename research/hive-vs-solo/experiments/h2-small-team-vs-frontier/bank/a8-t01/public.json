@@ -1,0 +1,24 @@
+{
+  "id": "a8-t01",
+  "title": "Losing Pairs of Euclid's Game",
+  "topic": [
+    "impartial games",
+    "number theory",
+    "floor sum",
+    "counting"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Losing Pairs of Euclid's Game\n\nTwo players play Euclid's game on two piles containing `a` and `b` stones. Let `s` be the size of the smaller pile and `l` the size of the larger pile (if the piles are equal, both have the same size and either one may be called the larger one). In one move the player chooses an integer `k >= 1` with `k * s <= l` and removes exactly `k * s` stones from the larger pile. The players move alternately, and a player who cannot move loses. A player cannot move exactly when one of the piles is empty. For example, from `(3, 7)` a player may move to `(3, 4)` or to `(3, 1)`, and from `(5, 5)` the only move is to `(5, 0)`.\n\nBoth players play optimally. For a given integer `N`, count the pairs of integers `(a, b)` with `1 <= a < b <= N` such that the player who moves first from the position `(a, b)` loses. Pairs are counted once, as `a < b`.\n\nBecause the answer can be huge, print it modulo `998244353`.\n\n## Input\n\nThe first line contains an integer `T`, the number of test cases. Each of the next `T` lines contains one integer `N`.\n\n## Output\n\nFor each test case print one line: the number of losing pairs `(a, b)` with `1 <= a < b <= N`, modulo `998244353`.\n\n## Constraints\n\n- `1 <= T <= 100`\n- `1 <= N <= 10^18`\n\n## Examples\n\nInput\n```\n3\n1\n5\n20\n```\nOutput\n```\n0\n3\n70\n```\n\nFor `N = 5` the losing pairs are `(2, 3)`, `(3, 4)` and `(4, 5)`.\n\nInput\n```\n4\n2\n3\n10\n60\n```\nOutput\n```\n0\n1\n16\n669\n```\n",
+  "examples": [
+    {
+      "input": "3\n1\n5\n20\n",
+      "output": "0\n3\n70\n"
+    },
+    {
+      "input": "4\n2\n3\n10\n60\n",
+      "output": "0\n1\n16\n669\n"
+    }
+  ]
+}

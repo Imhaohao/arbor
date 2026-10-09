@@ -1,0 +1,28 @@
+{
+  "id": "a2-t02",
+  "title": "Clock-Face Walks",
+  "topic": [
+    "graphs",
+    "shortest paths",
+    "strongly connected components",
+    "number theory"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.78,
+  "statement": "# Clock-Face Walks\n\nA town has `n` junctions connected by `m` one-way roads. Road `i` leads from junction `u_i` to junction `v_i` and has length `w_i`. Several roads may join the same ordered pair of junctions, and a road may start and end at the same junction (a loop).\n\nA tourist carries a circular odometer that shows the total distance travelled modulo `M`, so it always displays an integer in `0 .. M-1`. A *walk* is a sequence of roads in which every road starts at the junction where the previous road ends; it may use a road several times. Its length is the sum of the lengths of all roads in it, counted with repetition. A walk with zero roads is allowed and has length `0`.\n\nFor each of `q` queries `(s, t)`, the tourist wants to walk from junction `s` to junction `t` so that the odometer finally shows the smallest possible value. Print that smallest value, that is, the minimum over all walks from `s` to `t` of `(length of the walk) mod M`. If `s` and `t` are not mutually reachable (that is, there is no walk from `s` to `t` or no walk from `t` to `s`), print `-1` instead.\n\n## Input\n\nThe first line contains four integers `n`, `m`, `M`, `q`.\n\nEach of the next `m` lines contains three integers `u_i v_i w_i`.\n\nEach of the next `q` lines contains two integers `s t`.\n\n## Output\n\nPrint `q` lines; line `j` contains the answer to the `j`-th query.\n\n## Constraints\n\n- `1 <= n <= 150000`, `0 <= m <= 200000`, `1 <= q <= 150000`\n- `1 <= M <= 10^18`\n- `1 <= w_i <= 10^18`\n- `1 <= u_i, v_i, s, t <= n`\n\n## Examples\n\nExample 1\n\nInput\n```\n3 3 10 4\n1 2 3\n2 3 4\n3 1 5\n1 1\n1 2\n2 1\n3 2\n```\n\nOutput\n```\n0\n1\n1\n0\n```\n\nExample 2\n\nInput\n```\n5 6 12 5\n1 2 5\n2 1 7\n2 3 1\n3 4 8\n4 3 4\n5 5 9\n1 2\n2 1\n1 3\n3 4\n5 5\n```\n\nOutput\n```\n5\n7\n-1\n8\n0\n```\n\nExample 3\n\nInput\n```\n4 5 60 4\n1 2 17\n2 3 25\n3 1 28\n3 4 3\n4 3 12\n1 3\n3 1\n3 4\n2 4\n```\n\nOutput\n```\n2\n3\n3\n3\n```\n\n",
+  "examples": [
+    {
+      "input": "3 3 10 4\n1 2 3\n2 3 4\n3 1 5\n1 1\n1 2\n2 1\n3 2\n",
+      "output": "0\n1\n1\n0\n"
+    },
+    {
+      "input": "5 6 12 5\n1 2 5\n2 1 7\n2 3 1\n3 4 8\n4 3 4\n5 5 9\n1 2\n2 1\n1 3\n3 4\n5 5\n",
+      "output": "5\n7\n-1\n8\n0\n"
+    },
+    {
+      "input": "4 5 60 4\n1 2 17\n2 3 25\n3 1 28\n3 4 3\n4 3 12\n1 3\n3 1\n3 4\n2 4\n",
+      "output": "2\n3\n3\n3\n"
+    }
+  ]
+}

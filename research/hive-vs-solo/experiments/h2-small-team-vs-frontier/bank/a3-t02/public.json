@@ -1,0 +1,28 @@
+{
+  "id": "a3-t02",
+  "title": "Orchard Crew",
+  "topic": [
+    "scheduling",
+    "greedy",
+    "precedence forest",
+    "level counting"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Orchard Crew\n\nAn orchard is harvested by a crew of identical workers. The work is organised as a forest of `n` tasks numbered `1..n`. Task `v` has a parent `p_v`, or `p_v = 0` if `v` is a root. A task can only be done after **all of its children** are done, so the work flows from the leaves towards the roots. Every task takes exactly one minute, and one worker handles one task per minute. Tasks cannot be split.\n\nYou hire `m` workers for the whole job (the same `m` in every minute, `m >= 1`). In minute `t` (`t = 1, 2, ...`) each worker may do one task whose children were all finished in earlier minutes; workers may also stay idle. All tasks must be finished within the first `D` minutes.\n\nFind the smallest `m` for which this is possible. If it is impossible for every `m`, print `-1`.\n\n## Input\n\nThe first line contains two integers `n` and `D`. The second line contains `n` integers `p_1 ... p_n`.\n\nThe parent pointers describe a valid forest (no cycles).\n\n## Output\n\nPrint the smallest `m`, or `-1` if no number of workers can finish all tasks in `D` minutes.\n\n## Constraints\n\n- `1 <= n <= 200000`\n- `1 <= D <= 10^9`\n- `0 <= p_v <= n`, `p_v != v`\n\n## Examples\n\nInput\n```\n7 4\n0 1 1 2 2 3 3\n```\nOutput\n```\n2\n```\n\nInput\n```\n7 2\n0 1 1 2 2 3 3\n```\nOutput\n```\n-1\n```\n\nInput\n```\n8 3\n0 1 1 2 0 5 5 5\n```\nOutput\n```\n3\n```\n\n## Notes\n\nIn the first example the tasks form a complete binary tree with root 1. With two workers: minute 1 does tasks 4 and 5, minute 2 does 6 and 7, minute 3 does 2 and 3, minute 4 does task 1. One worker would need 7 minutes.\n",
+  "examples": [
+    {
+      "input": "7 4\n0 1 1 2 2 3 3\n",
+      "output": "2\n"
+    },
+    {
+      "input": "7 2\n0 1 1 2 2 3 3\n",
+      "output": "-1\n"
+    },
+    {
+      "input": "8 3\n0 1 1 2 0 5 5 5\n",
+      "output": "3\n"
+    }
+  ]
+}

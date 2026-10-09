@@ -1,0 +1,29 @@
+{
+  "id": "a4-t04",
+  "title": "GCD Meets LCM",
+  "topic": [
+    "combinatorics",
+    "mobius inversion",
+    "divisor lattice",
+    "number theory",
+    "modular arithmetic"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# GCD Meets LCM\n\nYou are given an array a_1, a_2, ..., a_n of positive integers.\n\nCount the ordered pairs (A, B) of sets of positions such that\n\n- A and B are non-empty subsets of {1, 2, ..., n};\n- A and B have no position in common (they are disjoint as sets of positions, even if the array holds equal values at different positions);\n- gcd of the values a_i over i in A equals lcm of the values a_j over j in B.\n\nPairs are ordered: (A, B) and (B, A) are different pairs when A != B. Two pairs are different if their sets of positions differ.\n\nPrint the number of such pairs modulo 998244353.\n\n## Input\n\nThe first line contains the integer n.\nThe second line contains n integers a_1, ..., a_n.\n\n## Output\n\nPrint one integer: the number of pairs (A, B) modulo 998244353.\n\n## Constraints\n\n- 1 <= n <= 400000\n- 1 <= a_i <= 400000\n\n## Examples\n\nInput\n```\n4\n6 2 3 12\n```\nOutput\n```\n2\n```\n\nInput\n```\n3\n2 2 2\n```\nOutput\n```\n12\n```\n\nInput\n```\n5\n12 4 3 6 6\n```\nOutput\n```\n15\n```\n\n## Notes\n\nIn the first example, B = {positions of 2 and 3} has lcm 6. Paired with A = {position of 6} (gcd 6), or with A = {positions of 6 and 12} (gcd 6), it gives the two valid pairs.\n\nIn the second example every non-empty set has gcd 2 and lcm 2, so every pair of disjoint non-empty sets counts. There are 3^3 - 2*2^3 + 1 = 12 of them.\n",
+  "examples": [
+    {
+      "input": "4\n6 2 3 12\n",
+      "output": "2\n"
+    },
+    {
+      "input": "3\n2 2 2\n",
+      "output": "12\n"
+    },
+    {
+      "input": "5\n12 4 3 6 6\n",
+      "output": "15\n"
+    }
+  ]
+}

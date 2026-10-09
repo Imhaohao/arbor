@@ -1,0 +1,28 @@
+{
+  "id": "a5-t08",
+  "title": "Mirror Twins",
+  "topic": [
+    "strings",
+    "hashing",
+    "rolling hash",
+    "parameterized matching"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Mirror Twins\n\nTwo strings `x` and `y` of the same length are **twins** if some bijection `f` between letters satisfies `y[i] = f(x[i])` for every `i` (so `x` and `y` have exactly the same pattern of equal and different letters). For example `abca` and `xzyx` are twins, while `abca` and `abcb` are not, and neither are `aab` and `abb`.\n\nYou are given a string `s` of length `n` and an integer `m`. A **window** is a substring of `s` of length exactly `m`; there are `n - m + 1` windows, one for each start position. Count the windows `w` that are twins of their own reversal `reverse(w)`.\n\nFor example, `abca` is a twin of its reversal `acba` (use `a -> a`, `b -> c`, `c -> b`), but `abcb` is not a twin of `bcba`. Every palindrome qualifies, and so do many strings that are not palindromes.\n\n## Input\n\nThe first line contains two integers `n` and `m`.\nThe second line contains the string `s` of length `n`.\n\n## Output\n\nPrint one integer: the number of start positions `i` (`0 <= i <= n - m`) for which `s[i..i+m-1]` is a twin of its reversal.\n\n## Constraints\n\n* `1 <= m <= n <= 200000`\n* `s` consists of lowercase letters `a`-`z`.\n\n## Examples\n\nExample 1\n\n```\n6 4\nabcabc\n```\n\n```\n3\n```\n\nExample 2\n\n```\n9 4\nabbcaabbc\n```\n\n```\n4\n```\n\nExample 3\n\n```\n5 3\nabcab\n```\n\n```\n3\n```\n",
+  "examples": [
+    {
+      "input": "6 4\nabcabc\n",
+      "output": "3\n"
+    },
+    {
+      "input": "9 4\nabbcaabbc\n",
+      "output": "4\n"
+    },
+    {
+      "input": "5 3\nabcab\n",
+      "output": "3\n"
+    }
+  ]
+}

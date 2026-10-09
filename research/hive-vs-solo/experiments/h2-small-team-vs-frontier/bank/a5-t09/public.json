@@ -1,0 +1,29 @@
+{
+  "id": "a5-t09",
+  "title": "Prefix Tiling",
+  "topic": [
+    "strings",
+    "z-function",
+    "greedy",
+    "disjoint set union",
+    "harmonic sums"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Prefix Tiling\n\nYou are given a string `s` of length `n`. For each `k` from `1` to `n`, let `P_k` be the prefix of `s` of length `k`. Define `f(k)` as the largest number of **pairwise non-overlapping** occurrences of `P_k` inside `s`. An occurrence is a position `i` with `s[i..i+k-1] = P_k`; two occurrences at positions `i < j` overlap if `j < i + k`. Occurrences may be adjacent (`j = i + k`).\n\nThe prefix itself is always an occurrence (at position `0`), so `f(k) >= 1`.\n\nCompute `f(1), f(2), ..., f(n)`.\n\n## Input\n\nThe first line contains the integer `n`.\nThe second line contains the string `s` of length `n`.\n\n## Output\n\nPrint `n` integers `f(1), f(2), ..., f(n)` separated by single spaces on one line.\n\n## Constraints\n\n* `1 <= n <= 200000`\n* `s` consists of lowercase letters `a`-`z`.\n\n## Examples\n\nExample 1\n\n```\n8\nabababab\n```\n\n```\n4 4 2 2 1 1 1 1\n```\n\nExample 2\n\n```\n6\naaaaaa\n```\n\n```\n6 3 2 1 1 1\n```\n\nExample 3\n\n```\n10\nabcabdabca\n```\n\n```\n4 3 2 2 1 1 1 1 1 1\n```\n",
+  "examples": [
+    {
+      "input": "8\nabababab\n",
+      "output": "4 4 2 2 1 1 1 1\n"
+    },
+    {
+      "input": "6\naaaaaa\n",
+      "output": "6 3 2 1 1 1\n"
+    },
+    {
+      "input": "10\nabcabdabca\n",
+      "output": "4 3 2 2 1 1 1 1 1 1\n"
+    }
+  ]
+}

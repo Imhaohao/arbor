@@ -1,0 +1,28 @@
+{
+  "id": "a1-t05",
+  "title": "Toppling Order",
+  "topic": [
+    "interval dp",
+    "counting",
+    "last-removed decomposition",
+    "binomial interleaving"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Toppling Order\n\nA row of n blocks stands on a table. Block i has strength a_i. The blocks are removed one at a time until the table is empty, and a block may only be removed when it is \"stable\" with respect to the blocks currently standing next to it:\n\n- the neighbors of a block are the closest blocks that are still standing on its left and on its right (there may be none, or only one);\n- a block with two neighbors can be removed if its strength is at least the smaller of the two neighbors' strengths;\n- a block with exactly one neighbor can be removed if its strength is at least that neighbor's strength;\n- a block with no neighbors (the last block standing) can always be removed.\n\nA removal sequence is the order in which the n blocks are removed, written as a permutation of the block indices 1..n. Two sequences are different if they differ at some position, even when the blocks involved have equal strength.\n\nCount the removal sequences in which every removal obeys the rule above. Print the count modulo 998244353.\n\n## Input\n\nThe first line contains the integer n.\n\nThe second line contains n integers a_1, a_2, ..., a_n.\n\n## Output\n\nPrint one integer: the number of valid removal sequences modulo 998244353.\n\n## Constraints\n\n- 1 <= n <= 400.\n- 1 <= a_i <= 10^9.\n\n## Examples\n\n### Example 1\n\nInput\n\n```\n2\n3 5\n```\n\nOutput\n\n```\n1\n```\n\n### Example 2\n\nInput\n\n```\n4\n2 7 7 1\n```\n\nOutput\n\n```\n2\n```\n\n### Example 3\n\nInput\n\n```\n6\n5 1 4 1 5 9\n```\n\nOutput\n\n```\n120\n```\n",
+  "examples": [
+    {
+      "input": "2\n3 5\n",
+      "output": "1\n"
+    },
+    {
+      "input": "4\n2 7 7 1\n",
+      "output": "2\n"
+    },
+    {
+      "input": "6\n5 1 4 1 5 9\n",
+      "output": "120\n"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "a7-t05",
+  "title": "Quartet Tricks",
+  "topic": [
+    "specification"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Quartet Tricks\n\nFour players (seats 0, 1, 2, 3) play a long series of `G` games of a small trick-taking card game. The cards of every game are dealt using a pseudo-random generator, and every player follows a fixed deterministic strategy. Compute the total score of each seat over all games.\n\n## The generator\n\nYou are given integers `a`, `c`, `m`, `x0`. The generator has a state `x`, initially `x0`. Drawing a number means: set `x = (a * x + c) mod m`, and the drawn number is the new `x`. The state persists from one game to the next.\n\n## One game\n\nGames are numbered `g = 0, 1, ..., G-1`.\n\n1. Cards. There are 24 cards numbered 0 to 23. Card `k` has suit `floor(k / 6)` (0 to 3) and rank `k mod 6` (0 to 5; a higher rank is stronger).\n2. Shuffle. Start with the list `D = [0, 1, ..., 23]` (positions 0 to 23). For `i = 23, 22, ..., 1` in this order: draw a number `r`, set `j = r mod (i + 1)`, and swap `D[i]` and `D[j]`. (Exactly 23 draws per game.)\n3. Deal. Seat `s` receives the cards at positions `6s` to `6s + 5` of `D`. The *trump suit* is the suit of the card at position 23 of `D`.\n4. Play. There are 6 tricks. The seat `g mod 4` leads the first trick. In a trick, the leader plays one card, then the seats following it in order (leader+1, leader+2, leader+3, all mod 4) each play one card, chosen by the strategy below. Played cards are removed from the hands. The winner of a trick leads the next trick.\n5. Trick winner. A card `c` *beats* a card `b` if either `c` is a trump and `b` is not a trump, or `c` and `b` have the same suit and `c` has a higher rank. The winner of a trick is the player whose card beats every other card in the trick; this is always well defined (the winning card is the highest trump if any trump was played, otherwise the highest card of the suit led).\n6. Scoring. Let `t_s` be the number of tricks seat `s` won, and let `L` be the seat that won the 6th (last) trick.\n   - If some seat `s*` won all 6 tricks (a *sweep*), seat `s*` scores 20 points for the game and the other seats score 0.\n   - Otherwise seat `s` scores `t_s`, plus 2 if `s = L`, minus 2 if `t_s = 0`.\n\n## The strategy\n\nAll choices below are made from the cards still in the player's hand. \"Lowest\" and \"highest\" refer to rank. When two candidate cards have the same rank (they then have different suits), the tie-break is stated in each rule.\n\n1. Leading a trick:\n   - If the player holds at least one non-trump card, play the highest-ranked non-trump card; among equal ranks take the one with the smaller suit number.\n   - Otherwise (the hand holds only trump cards) play the lowest trump.\n2. Following. Let `led` be the suit of the first card of the trick, and `best` the card that currently beats all cards played so far in the trick (by rule 5 above applied to the cards played so far).\n   - If the player holds at least one card of suit `led`: if some card of suit `led` in the hand beats `best`, play the lowest such card; otherwise play the lowest card of suit `led`.\n   - Otherwise, if the player holds at least one trump card that beats `best`, play the lowest such trump.\n   - Otherwise (discard): if the player holds at least one non-trump card, play the lowest-ranked non-trump card; among equal ranks take the one with the smaller suit number. If the hand holds only trump cards, play the lowest trump.\n\nWithin one suit, ranks are all different, so \"lowest/highest\" among cards of one suit is never ambiguous.\n\n## Input\n\nOne line with five integers `a c m x0 G`.\n\n## Output\n\nOne line with six integers: the total score of seat 0, of seat 1, of seat 2, of seat 3, the number of games that were sweeps, and the final state `x` of the generator after all `G` games.\n\n## Constraints\n\n- `1 <= m <= 8000`, `0 <= a, c, x0 < m`\n- `1 <= G <= 10^18`\n- Total scores and counts fit in signed 64-bit integers.\n\n## Examples\n\n### Example 1\n\nInput:\n\n```\n1 2 7 1 12\n```\n\nOutput:\n\n```\n-5 -17 1 101 2 0\n```\n\n### Example 2\n\nInput:\n\n```\n5 3 29 11 40\n```\n\nOutput:\n\n```\n28 11 90 121 0 24\n```\n\n### Example 3\n\nInput:\n\n```\n2 0 499 1 1000000000000000000\n```\n\nOutput:\n\n```\n1340361445783132536 1448795180722891569 1295180722891566273 2355421686746987930 0 491\n```\n",
+  "examples": [
+    {
+      "input": "1 2 7 1 12\n",
+      "output": "-5 -17 1 101 2 0\n"
+    },
+    {
+      "input": "5 3 29 11 40\n",
+      "output": "28 11 90 121 0 24\n"
+    },
+    {
+      "input": "2 0 499 1 1000000000000000000\n",
+      "output": "1340361445783132536 1448795180722891569 1295180722891566273 2355421686746987930 0 491\n"
+    }
+  ]
+}

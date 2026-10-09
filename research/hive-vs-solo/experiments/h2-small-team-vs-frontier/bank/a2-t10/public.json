@@ -1,0 +1,28 @@
+{
+  "id": "a2-t10",
+  "title": "Only Fixed Points",
+  "topic": [
+    "graphs",
+    "functional graphs",
+    "counting",
+    "combinatorics"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Only Fixed Points\n\nA function `f` from `{1, ..., n}` to itself is described by an array. For some positions `i` the value `f_i` is already known; for the other positions it is unknown and given as `0`. Every unknown position may be filled with any integer from `1` to `n` (including `i` itself), independently of the others.\n\nOnce every position is filled, draw an arrow `i -> f_i` for each `i`. Following the arrows from any starting position eventually enters a cycle. A position `j` with `f_j = j` is a *fixed point*, and it is a cycle of length `1`.\n\nA filling is *good* if every cycle in the resulting graph has length exactly `1` (so every cycle is a fixed point) and the total number of fixed points is exactly `c`. Count the good fillings modulo `998244353`.\n\nIf there are no unknown positions, the answer is `1` when the given function is good and `0` otherwise.\n\n## Input\n\nThe first line contains the integers `n` and `c`.\n\nThe second line contains `n` integers `f_1 ... f_n`, where `0 <= f_i <= n`, and `f_i = 0` means that the value is unknown.\n\n## Output\n\nPrint the number of good fillings modulo `998244353`.\n\n## Constraints\n\n- `1 <= n <= 200000`\n- `0 <= c <= n`\n- `0 <= f_i <= n`\n\n## Examples\n\nExample 1\n\nInput\n```\n2 1\n0 0\n```\n\nOutput\n```\n2\n```\n\nExample 2\n\nInput\n```\n3 2\n1 0 0\n```\n\nOutput\n```\n4\n```\n\nExample 3\n\nInput\n```\n6 2\n2 2 2 0 4 0\n```\n\nOutput\n```\n9\n```\n\n",
+  "examples": [
+    {
+      "input": "2 1\n0 0\n",
+      "output": "2\n"
+    },
+    {
+      "input": "3 2\n1 0 0\n",
+      "output": "4\n"
+    },
+    {
+      "input": "6 2\n2 2 2 0 4 0\n",
+      "output": "9\n"
+    }
+  ]
+}

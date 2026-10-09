@@ -1,0 +1,28 @@
+{
+  "id": "a2-t05",
+  "title": "Ring Town",
+  "topic": [
+    "graphs",
+    "unicyclic graph",
+    "shortest paths",
+    "counting"
+  ],
+  "author": "claude-sonnet (subagent)",
+  "checker": "tokens",
+  "time_limit_s": 2.2,
+  "statement": "# Ring Town\n\nA town has `n` plazas connected by exactly `n` two-way streets, so that it is possible to walk between any two plazas. Street `i` joins plazas `u_i` and `v_i` and has length `w_i`. No street joins a plaza to itself and no two streets join the same pair of plazas. (Such a town contains exactly one closed loop of streets, with trees of streets hanging off it.)\n\nFor two plazas `x` and `y`, let `d(x, y)` be the length of the shortest route from `x` to `y`. Compute the sum of `d(x, y)` over all unordered pairs `{x, y}` of distinct plazas, and print it modulo `1000000007`.\n\n## Input\n\nThe first line contains the integer `n`.\n\nEach of the next `n` lines contains three integers `u_i v_i w_i`.\n\n## Output\n\nPrint one integer: the sum of `d(x, y)` over all unordered pairs of distinct plazas, modulo `1000000007`.\n\n## Constraints\n\n- `3 <= n <= 200000`\n- `1 <= w_i <= 10^9`\n- The streets form a connected graph with no self-loops and no repeated pairs.\n\n## Examples\n\nExample 1\n\nInput\n```\n3\n1 2 1\n2 3 2\n3 1 3\n```\n\nOutput\n```\n6\n```\n\nExample 2\n\nInput\n```\n5\n1 2 4\n2 3 4\n3 4 4\n4 1 4\n3 5 7\n```\n\nOutput\n```\n76\n```\n\nExample 3\n\nInput\n```\n6\n1 2 5\n2 3 1\n3 4 1\n4 5 1\n5 1 1\n3 6 2\n```\n\nOutput\n```\n37\n```\n\n",
+  "examples": [
+    {
+      "input": "3\n1 2 1\n2 3 2\n3 1 3\n",
+      "output": "6\n"
+    },
+    {
+      "input": "5\n1 2 4\n2 3 4\n3 4 4\n4 1 4\n3 5 7\n",
+      "output": "76\n"
+    },
+    {
+      "input": "6\n1 2 5\n2 3 1\n3 4 1\n4 5 1\n5 1 1\n3 6 2\n",
+      "output": "37\n"
+    }
+  ]
+}
