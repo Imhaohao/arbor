@@ -35,14 +35,19 @@ import {
   abandonUnfinished,
   benchMs,
   judgeRun,
+  judgedCount,
+  leadPrompt,
+  needsAgenda,
   newBoard,
   nextAuthor,
   nextExperimentId,
+  parseAgenda,
   parseProposal,
   parseTrainingSummary,
   renderBoard,
   researchPrompt,
   resultsTsvRow,
+  splitTurnWeight,
   type Board,
   type Experiment,
 } from "./board-core";
@@ -942,7 +947,9 @@ assert.equal(unfinishedBoard.experiments[3].status, "queued");
 
 // ── board-core: nextAuthor ──────────────────────────────────────────────────
 
-const AUTHORS = ["claude", "codex", "cursor:grok-4.7-medium"];
+const equalShares = (labels: string[]) => labels.map((label) => ({ label, weight: 1 }));
+const AUTHOR_LABELS = ["claude", "codex", "cursor:grok-4.7-medium"];
+const AUTHORS = equalShares(AUTHOR_LABELS);
 const turnsBoard = boardWith([
   boardExperiment({ id: "e001", author: "claude" }),
   boardExperiment({ id: "e002", author: "claude" }),
@@ -955,7 +962,7 @@ assert.equal(
   nextAuthor(turnsBoard, AUTHORS, new Set(["cursor:grok-4.7-medium", "codex"])),
   "claude",
 );
-assert.equal(nextAuthor(turnsBoard, AUTHORS, new Set(AUTHORS)), undefined);
+assert.equal(nextAuthor(turnsBoard, AUTHORS, new Set(AUTHOR_LABELS)), undefined);
 assert.equal(nextAuthor(turnsBoard, [], new Set()), undefined);
 assert.equal(nextAuthor(freshBoard, AUTHORS, new Set()), "claude");
 
@@ -964,7 +971,7 @@ const baselineOnlyBoard = boardWith([
   boardExperiment({ id: "e002", author: BASELINE_AUTHOR }),
   boardExperiment({ id: "e003", author: BASELINE_AUTHOR }),
 ]);
-assert.equal(nextAuthor(baselineOnlyBoard, ["claude", "codex"], new Set()), "claude");
+assert.equal(nextAuthor(baselineOnlyBoard, equalShares(["claude", "codex"]), new Set()), "claude");
 
 const baselineAndCodexBoard = boardWith([
   boardExperiment({ id: "e001", author: BASELINE_AUTHOR }),
@@ -972,8 +979,90 @@ const baselineAndCodexBoard = boardWith([
   boardExperiment({ id: "e003", author: BASELINE_AUTHOR }),
   boardExperiment({ id: "e004", author: "codex" }),
 ]);
-assert.equal(nextAuthor(baselineAndCodexBoard, ["codex", "claude"], new Set()), "claude");
-assert.equal(nextAuthor(baselineAndCodexBoard, ["claude", "codex"], new Set(["claude"])), "codex");
+assert.equal(nextAuthor(baselineAndCodexBoard, equalShares(["codex", "claude"]), new Set()), "claude");
+assert.equal(nextAuthor(baselineAndCodexBoard, equalShares(["claude", "codex"]), new Set(["claude"])), "codex");
+
+// Weighted turns: gemini (weight 3) proposes three times per grok turn.
+const WEIGHTED = [
+  { label: "cursor:grok-4.7-high", weight: 1 },
+  { label: "antigravity", weight: 3 },
+];
+function simulateTurns(turns: number): string[] {
+  const authors: string[] = [];
+  let board = freshBoard;
+  for (let turn = 0; turn < turns; turn += 1) {
+    const author = nextAuthor(board, WEIGHTED, new Set())!;
+    authors.push(author);
+    board = boardWith([...board.experiments, boardExperiment({ id: `e${turn}`, author })]);
+  }
+  return authors;
+}
+const eightTurns = simulateTurns(8);
+assert.equal(eightTurns[0], "antigravity");
+assert.equal(eightTurns.filter((author) => author === "antigravity").length, 6);
+assert.equal(eightTurns.filter((author) => author === "cursor:grok-4.7-high").length, 2);
+assert.equal(nextAuthor(freshBoard, WEIGHTED, new Set(["antigravity"])), "cursor:grok-4.7-high");
+
+const tinyShare = [
+  { label: "antigravity", weight: 3 },
+  { label: "claude:claude-opus-5-5", weight: 0.5 },
+];
+const tinyBoard = boardWith(
+  ["antigravity", "antigravity", "antigravity", "antigravity", "antigravity", "claude:claude-opus-5-5"].map(
+    (author, index) => boardExperiment({ id: `e${index}`, author }),
+  ),
+);
+assert.equal(nextAuthor(tinyBoard, tinyShare, new Set()), "antigravity");
+
+// ── board-core: splitTurnWeight ─────────────────────────────────────────────
+
+assert.deepEqual(splitTurnWeight("antigravity:gemini-3.1-pro-high@3"), { worker: "antigravity:gemini-3.1-pro-high", weight: 3 });
+assert.deepEqual(splitTurnWeight(" claude:claude-opus-5-5@0.5 "), { worker: "claude:claude-opus-5-5", weight: 0.5 });
+assert.deepEqual(splitTurnWeight("cursor:grok-4.7-high"), { worker: "cursor:grok-4.7-high", weight: 1 });
+assert.deepEqual(splitTurnWeight("ollama:qwen2.5-coder:7b"), { worker: "ollama:qwen2.5-coder:7b", weight: 1 });
+assert.throws(() => splitTurnWeight("codex@0"), /turn weight must be positive/);
+
+// ── board-core: lead agenda ─────────────────────────────────────────────────
+
+assert.equal(needsAgenda(freshBoard, 5), false);
+const twoJudged = boardWith([
+  boardExperiment({ id: "e001", author: BASELINE_AUTHOR }),
+  boardExperiment({ id: "e002", author: "codex", status: "discarded" }),
+  boardExperiment({ id: "e003", author: "codex", status: "queued" }),
+  boardExperiment({ id: "e004", author: "codex", status: "abandoned" }),
+]);
+assert.equal(judgedCount(twoJudged), 2);
+assert.equal(needsAgenda(twoJudged, 5), true);
+const agendaBoard: Board = {
+  ...twoJudged,
+  agenda: { at: NOW, author: "codex:gpt-6-astra", afterJudged: 2, text: "Try a deeper model." },
+};
+assert.equal(needsAgenda(agendaBoard, 5), false);
+const sevenJudged: Board = {
+  ...agendaBoard,
+  experiments: [
+    ...agendaBoard.experiments,
+    ...["e005", "e006", "e007", "e008", "e009"].map((id) => boardExperiment({ id, author: "codex", status: "crashed" })),
+  ],
+};
+assert.equal(needsAgenda(sevenJudged, 5), true);
+assert.equal(needsAgenda(sevenJudged, 6), false);
+
+const agendaRendered = renderBoard(agendaBoard);
+assert.match(agendaRendered, /## Research direction from the lead \(codex:gpt-6-astra, after 2 judged runs\)\nTry a deeper model\./);
+assert.ok(agendaRendered.indexOf("Research direction") < agendaRendered.indexOf("## Experiments"));
+assert.equal(renderBoard(twoJudged).includes("Research direction"), false);
+assert.match(researchPrompt("antigravity", agendaRendered, "M1 Pro"), /research direction from the lead/);
+
+const lead = leadPrompt("codex:gpt-6-astra", agendaRendered, "M1 Pro");
+assert.match(lead, /You are codex:gpt-6-astra, the research lead/);
+assert.match(lead, /You do not edit files/);
+assert.ok(lead.includes(agendaRendered));
+assert.match(lead, /\{"agenda":/);
+
+assert.equal(parseAgenda('Thinking...\n{"agenda":"1. Deepen to 6 layers.\\n2. Stop LR sweeps."}'), "1. Deepen to 6 layers.\n2. Stop LR sweeps.");
+assert.equal(parseAgenda("  Just prose, no JSON.  "), "Just prose, no JSON.");
+assert.equal(parseAgenda("x".repeat(5000)).length, 3000);
 
 // ── board-core: parseTrainingSummary ────────────────────────────────────────
 

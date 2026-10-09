@@ -7,8 +7,9 @@
 //   npm run swarm -- code "task" --check "npm test" [--workers a,b] [--count 3]
 //   npm run swarm -- stats                                   # win rates + cooldowns
 //   npm run swarm -- clean [runId]                           # remove worktrees
-//   npm run swarm -- research --repo ~/autoresearch-mlx --agents codex,cursor:grok-4.7-high,gemini
-//                                                            # autoresearch lab on a shared board
+//   npm run swarm -- research --repo ~/autoresearch-mlx --agents antigravity@3,cursor:grok-4.7-high \
+//     [--lead codex:gpt-6-astra] [--lead-every 5]           # autoresearch lab on a shared board;
+//                                                            # @N weights an agent's share of turns
 //
 // Workers are `backend[:model]`, e.g. claude, codex, cursor:grok-4.7-medium,
 // opencode:google/gemini-3-flash-preview, ollama:qwen2.5-coder:7b.
@@ -23,6 +24,7 @@ import {
   workerStatsRows,
   type RunSummary,
 } from "../lib/swarm/orchestrate";
+import { splitTurnWeight } from "../lib/swarm/board-core";
 import { runResearch } from "../lib/swarm/research";
 import { DEFAULT_POOL, parseWorker, parseWorkerList } from "../lib/swarm/worker-core";
 
@@ -148,11 +150,18 @@ function clean(flags: Flags): void {
 async function research(flags: Flags): Promise<void> {
   const repo = flags.values.get("repo");
   const agents = flags.values.get("agents");
-  if (!repo || !agents) throw new Error("usage: swarm research --repo <autoresearch checkout> --agents a,b,c");
+  if (!repo || !agents) throw new Error("usage: swarm research --repo <autoresearch checkout> --agents a@3,b,c [--lead d]");
   const max = flags.values.get("max");
+  const lead = flags.values.get("lead");
   await runResearch({
     repo: resolve(repo.replace(/^~(?=$|\/)/, process.env.HOME ?? "~")),
-    agents: parseWorkerList(agents),
+    agents: agents
+      .split(",")
+      .filter((part) => part.trim())
+      .map(splitTurnWeight)
+      .map(({ worker, weight }) => ({ spec: parseWorker(worker), weight })),
+    lead: lead ? parseWorker(lead) : undefined,
+    leadEvery: numberFlag(flags, "lead-every", 5),
     branch: flags.values.get("branch") || "autoresearch/board",
     queueDepth: numberFlag(flags, "queue", 2),
     proposeTimeoutMs: numberFlag(flags, "propose-timeout-min", 15) * MINUTE,

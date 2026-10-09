@@ -14,23 +14,35 @@ import {
   abandonUnfinished,
   benchMs,
   judgeRun,
+  leadPrompt,
+  needsAgenda,
   newBoard,
   nextAuthor,
   nextExperimentId,
+  parseAgenda,
   parseProposal,
   parseTrainingSummary,
   renderBoard,
   researchPrompt,
   resultsTsvRow,
+  judgedCount,
   type Board,
   type Experiment,
 } from "./board-core";
 import { ensureCodexHome, runProcess, swarmPaths, syncCodexAuth, type Log } from "./orchestrate";
 import { buildInvocation, parseWorkerOutput, type FailureKind, type WorkerSpec } from "./worker-core";
 
+export interface ResearchAgent {
+  spec: WorkerSpec;
+  weight: number;
+}
+
 export interface ResearchOptions {
   repo: string;
-  agents: WorkerSpec[];
+  agents: ResearchAgent[];
+  /** Reads the board every `leadEvery` judged runs and rewrites the team's direction; never edits train.py. */
+  lead?: WorkerSpec;
+  leadEvery: number;
   branch: string;
   queueDepth: number;
   proposeTimeoutMs: number;
@@ -152,7 +164,7 @@ class Lab {
     ensureCodexHome(swarmPaths(this.options.repo));
     if (this.board.best.valBpb === null) this.enqueue(BASELINE_AUTHOR, "baseline: train.py as checked in", "");
     this.options.log(`lab open on ${this.options.repo} (branch ${this.board.branch}); touch ${this.paths.stopFile} to stop`);
-    await Promise.all([this.proposeLoop(), this.trainLoop()]);
+    await Promise.all([this.proposeLoop(), this.trainLoop(), this.leadLoop()]);
     this.options.log("lab closed");
   }
 
@@ -191,14 +203,46 @@ class Lab {
   // ── proposing ─────────────────────────────────────────────────────────────
 
   private async proposeLoop(): Promise<void> {
-    const labels = this.options.agents.map((agent) => agent.label);
+    const shares = this.options.agents.map(({ spec, weight }) => ({ label: spec.label, weight }));
     while (!this.checkStop()) {
-      const author = this.queue.length < this.options.queueDepth ? nextAuthor(this.board, labels, this.benchedAgents()) : undefined;
+      const author = this.queue.length < this.options.queueDepth ? nextAuthor(this.board, shares, this.benchedAgents()) : undefined;
       if (!author) {
         await sleep(POLL_MS);
         continue;
       }
-      await this.propose(this.options.agents.find((agent) => agent.label === author)!);
+      await this.propose(this.options.agents.find(({ spec }) => spec.label === author)!.spec);
+    }
+  }
+
+  // ── leading ───────────────────────────────────────────────────────────────
+
+  private async leadLoop(): Promise<void> {
+    const lead = this.options.lead;
+    if (!lead) return;
+    while (!this.checkStop()) {
+      const due = needsAgenda(this.board, this.options.leadEvery) && !this.benchedAgents().has(lead.label);
+      if (due) await this.writeAgenda(lead);
+      else await sleep(POLL_MS);
+    }
+  }
+
+  private async writeAgenda(lead: WorkerSpec): Promise<void> {
+    const worktree = openWorktree(this.options.repo, this.board.best.commit, `lead-${lead.label.replace(/[^a-zA-Z0-9._-]+/g, "_")}`);
+    try {
+      this.options.log(`  ${lead.label} (lead) is reviewing the board`);
+      const afterJudged = judgedCount(this.board);
+      const prompt = leadPrompt(lead.label, renderBoard(this.board), hardwareLabel());
+      const invocation = buildInvocation(lead, "ask", prompt, { codexHome: swarmPaths(this.options.repo).codexHome });
+      const result = await runProcess(invocation, worktree, this.options.proposeTimeoutMs);
+      if (lead.backend === "codex") syncCodexAuth(swarmPaths(this.options.repo));
+      const output = parseWorkerOutput(lead.backend, result);
+      if (!output.ok) return this.agentFailed(lead, output.failure ?? "other", output.text);
+      this.failureStreak.delete(lead.label);
+      this.board.agenda = { at: Date.now(), author: lead.label, afterJudged, text: parseAgenda(output.text) };
+      saveBoard(this.paths, this.board);
+      this.options.log(`  ${lead.label} set a new direction after ${afterJudged} judged runs (${result.secs}s)`);
+    } finally {
+      closeWorktree(this.options.repo, worktree);
     }
   }
 

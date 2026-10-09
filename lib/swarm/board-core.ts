@@ -29,11 +29,21 @@ export interface BoardNote {
   text: string;
 }
 
+/** The lead's current research direction, rewritten every few experiments. */
+export interface Agenda {
+  at: number;
+  author: string;
+  /** How many experiments had been judged when the lead wrote it. */
+  afterJudged: number;
+  text: string;
+}
+
 export interface Board {
   branch: string;
   best: { commit: string; valBpb: number | null; experiment?: string };
   experiments: Experiment[];
   notes: BoardNote[];
+  agenda?: Agenda;
 }
 
 export const BASELINE_AUTHOR = "lab";
@@ -58,19 +68,40 @@ export function abandonUnfinished(board: Board): Board {
 
 // ── choosing who proposes next ──────────────────────────────────────────────
 
-/** The available agent with the fewest proposals so far, so turns stay fair. */
+export interface TurnShare {
+  label: string;
+  /** Relative share of proposals: weight 3 proposes three times as often as weight 1. */
+  weight: number;
+}
+
+const WEIGHT_SUFFIX = /@(\d+(?:\.\d+)?)$/;
+
+/** Splits `backend:model@3` into the worker text and its turn weight (default 1). */
+export function splitTurnWeight(raw: string): { worker: string; weight: number } {
+  const trimmed = raw.trim();
+  const match = trimmed.match(WEIGHT_SUFFIX);
+  const weight = match ? Number(match[1]) : 1;
+  if (!(weight > 0)) throw new Error(`turn weight must be positive in "${trimmed}"`);
+  return { worker: match ? trimmed.slice(0, match.index) : trimmed, weight };
+}
+
+/**
+ * The available agent furthest behind its share: lowest proposals / weight.
+ * Ties go to the heavier agent, then to list order.
+ */
 export function nextAuthor(
   board: Board,
-  agents: readonly string[],
+  agents: readonly TurnShare[],
   unavailable: ReadonlySet<string>,
 ): string | undefined {
-  const counts = new Map(agents.map((agent) => [agent, 0]));
+  const counts = new Map(agents.map((agent) => [agent.label, 0]));
   for (const experiment of board.experiments) {
     if (counts.has(experiment.author)) counts.set(experiment.author, (counts.get(experiment.author) ?? 0) + 1);
   }
+  const load = (agent: TurnShare) => (counts.get(agent.label) ?? 0) / agent.weight;
   return agents
-    .filter((agent) => !unavailable.has(agent))
-    .sort((a, b) => (counts.get(a) ?? 0) - (counts.get(b) ?? 0))[0];
+    .filter((agent) => !unavailable.has(agent.label))
+    .sort((a, b) => load(a) - load(b) || b.weight - a.weight)[0]?.label;
 }
 
 const BASE_BENCH_MS = 60 * 1000;
@@ -122,6 +153,19 @@ export function resultsTsvRow(commit: string, experiment: Experiment): string {
   return [commit.slice(0, 7), bpb, memory, status, description].join("\t");
 }
 
+const JUDGED_STATUSES: ReadonlySet<ExperimentStatus> = new Set(["kept", "discarded", "crashed"]);
+
+export function judgedCount(board: Board): number {
+  return board.experiments.filter((experiment) => JUDGED_STATUSES.has(experiment.status)).length;
+}
+
+/** The lead writes its first agenda once the baseline is in, then every `every` judged runs. */
+export function needsAgenda(board: Board, every: number): boolean {
+  const judged = judgedCount(board);
+  if (!board.agenda) return judged > 0;
+  return judged - board.agenda.afterJudged >= every;
+}
+
 export const RESULTS_TSV_HEADER = "commit\tval_bpb\tmemory_gb\tstatus\tdescription";
 
 // ── what agents read ────────────────────────────────────────────────────────
@@ -147,9 +191,13 @@ export function renderBoard(board: Board): string {
       : `Best so far: val_bpb ${board.best.valBpb.toFixed(4)} (${board.best.experiment ?? "baseline"}, commit ${board.best.commit.slice(0, 7)}). Your change is applied on top of this.`;
   const rows = board.experiments.map(experimentRow);
   const notes = board.notes.slice(-NOTES_SHOWN).map((note) => `- ${note.author}: ${note.text}`);
+  const agenda = board.agenda
+    ? [`## Research direction from the lead (${board.agenda.author}, after ${board.agenda.afterJudged} judged runs)`, board.agenda.text]
+    : [];
   return [
     "# Research board",
     best,
+    ...agenda,
     "## Experiments (delta is against the best at the time it ran; negative is better)",
     "| id | author | status | val_bpb | delta | change |",
     "|---|---|---|---|---|---|",
@@ -169,12 +217,36 @@ export function researchPrompt(author: string, boardMarkdown: string, hardware: 
       "- Propose ONE experiment that no one has tried or queued. Build on what was kept, learn from what was discarded or crashed, and follow up on near-misses rather than repeating them.",
       "- Edit only train.py in the current directory. Do not modify prepare.py and do not add dependencies.",
       "- Do not run training or any other long command. The lab runs your change and posts the result to the board.",
+      "- If the board has a research direction from the lead, choose your experiment from it, preferring anything addressed to you, unless the results give you a concrete reason not to.",
       "- Simpler is better: a small readable change beats a hack for a tiny gain.",
       "- For background you may read README.md, prepare.py and program.md (ignore program.md's git and logging steps; the lab handles those).",
     ].join("\n"),
     boardMarkdown,
     'When you have finished editing, end your reply with one line of JSON: {"hypothesis":"<one sentence: what you changed and why it should lower val_bpb>","note":"<a lesson for teammates, or empty>"}',
   ].join("\n\n");
+}
+
+export function leadPrompt(author: string, boardMarkdown: string, hardware: string): string {
+  return [
+    `You are ${author}, the research lead for a team of AI researchers sharing one GPU (${hardware}).`,
+    "The team is trying to get the lowest val_bpb (validation bits per byte; lower is better) from train.py within a fixed 5-minute training budget. Researchers take turns proposing one train.py change each; the lab trains it and keeps it only if val_bpb drops.",
+    "You do not edit files. Read train.py, program.md and the board below, then write the team's research direction for the next several experiments:",
+    [
+      "- What the results so far show, including which directions look exhausted and should stop.",
+      "- Three to six concrete experiments, most promising first, each specific enough to implement as one small train.py change.",
+      "- Optionally assign directions to researchers by name, matching bolder ideas to stronger models.",
+    ].join("\n"),
+    boardMarkdown,
+    'Keep it under 300 words. End your reply with one line of JSON: {"agenda":"<the full direction, as plain text>"}',
+  ].join("\n\n");
+}
+
+const AGENDA_MAX_CHARS = 3000;
+
+export function parseAgenda(reply: string): string {
+  const parsed = lastJsonWith(reply, "agenda");
+  const agenda = String(parsed?.agenda ?? "").trim() || reply.trim();
+  return agenda.slice(0, AGENDA_MAX_CHARS);
 }
 
 export interface Proposal {
