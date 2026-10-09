@@ -3,13 +3,15 @@
 //   npx tsx scripts/bench.ts seal   --staging DIR --bank DIR --key FILE
 //   npx tsx scripts/bench.ts run    --split dev|test --bank DIR --key FILE --out DIR [--limit N] [--tasks 4]
 //   npx tsx scripts/bench.ts report --out DIR [--split test]
+//   npx tsx scripts/bench.ts audit  --out DIR           # leakage / cheating scan
 //
 // The arm roster below is part of the pre-registration: changing it after
 // the test split has run invalidates the comparison.
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { mulberry32, pairedComparison, wilsonInterval, type RosterEntry } from "../lib/swarm/bench-core";
 import {
@@ -29,6 +31,7 @@ import {
   type GradeResult,
   type SoloResult,
 } from "../lib/swarm/bench";
+import { swarmPaths } from "../lib/swarm/orchestrate";
 import { parseWorker } from "../lib/swarm/worker-core";
 
 const ROOT = resolve(__dirname, "..");
@@ -241,7 +244,48 @@ function report(flags: Flags): void {
   console.log(JSON.stringify(summary, null, 2));
 }
 
-const COMMANDS: Record<string, (flags: Flags) => void | Promise<void>> = { seal, run, report };
+// ── audit ───────────────────────────────────────────────────────────────────
+
+// Anything beyond reading stdin and writing stdout is suspicious in a
+// submission; matches are listed for a human to read, not auto-failed.
+const SUSPICIOUS_CODE = /\b(subprocess|socket|urllib|requests|glob|pathlib|shutil|ctypes|importlib|__import__)\b|\bopen\((?!\s*0\s*[,)])|\bos\.(?!read\(0|write\(1|fstat\(0)/;
+const SUSPICIOUS_LOG = /sealed\.bin|bench-key|bench\.key|manifest\.json|bank-staging|openssl|ref\.py|brute\.py|gen\.py/;
+
+function filesUnder(dir: string, pattern: RegExp): string[] {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) return filesUnder(path, pattern);
+    return pattern.test(name) ? [path] : [];
+  });
+}
+
+function suspiciousLines(path: string, pattern: RegExp): string[] {
+  return readFileSync(path, "utf8").split("\n").filter((line) => pattern.test(line)).map((line) => line.trim().slice(0, 160));
+}
+
+function audit(flags: Flags): void {
+  const outDir = required(flags, "out");
+  const codes = filesUnder(join(outDir, "codes"), /\.py$/).map((path) => ({ path: path.slice(outDir.length + 1), lines: suspiciousLines(path, SUSPICIOUS_CODE) })).filter((hit) => hit.lines.length);
+  const claudeDirs = readdirSync(join(homedir(), ".claude/projects")).filter((name) => name.includes("bench-call-"));
+  const claudeLogs = claudeDirs.flatMap((name) => filesUnder(join(homedir(), ".claude/projects", name), /\.jsonl$/));
+  const toolUses = claudeLogs.flatMap((path) => readFileSync(path, "utf8").split("\n").filter((line) => line.includes('"type":"tool_use"')).map((line) => ({ path, line })));
+  const leakyClaude = toolUses.filter((use) => SUSPICIOUS_LOG.test(use.line)).map((use) => use.line.slice(0, 300));
+  const codexLogs = filesUnder(join(swarmPaths(ROOT).codexHome, "sessions"), /\.jsonl$/);
+  const leakyCodex = codexLogs.flatMap((path) => suspiciousLines(path, SUSPICIOUS_LOG).map((line) => `${path.split("/").pop()}: ${line}`));
+  const summary = {
+    submissionsWithSuspiciousCode: codes,
+    claudeTranscripts: claudeLogs.length,
+    claudeToolUses: toolUses.length,
+    claudeToolUsesTouchingOracles: leakyClaude,
+    codexSessionLogs: codexLogs.length,
+    codexLinesTouchingOracles: leakyCodex.slice(0, 50),
+  };
+  writeFileSync(join(outDir, "audit.json"), `${JSON.stringify(summary, null, 2)}\n`);
+  console.log(JSON.stringify({ ...summary, submissionsWithSuspiciousCode: codes.length }, null, 2));
+}
+
+const COMMANDS: Record<string, (flags: Flags) => void | Promise<void>> = { seal, run, report, audit };
 
 async function main(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2));
