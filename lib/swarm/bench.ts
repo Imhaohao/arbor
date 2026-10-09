@@ -296,6 +296,18 @@ interface TesterKit {
   code: string;
 }
 
+// A brute force may legitimately time out on a huge statement example (N up
+// to 1e18), so a timeout is not evidence against it; a wrong answer or a
+// crash is, and at least one example must actually match.
+function bruteAgreesWithExamples(task: PublicTask, runs: readonly RunOutcome[]): boolean {
+  const verdicts = task.examples.map((example, i) => {
+    const run = runs[i];
+    if (run?.status === "timeout") return "skipped";
+    return run?.status === "ok" && outputsMatch(example.output, run.stdout ?? "", task.checker) ? "match" : "wrong";
+  });
+  return verdicts.includes("match") && !verdicts.includes("wrong");
+}
+
 async function buildTesters(config: BenchConfig, task: PublicTask, testers: readonly WorkerSpec[], calls: CallRecord[]): Promise<TesterKit[]> {
   const replies = await Promise.all(testers.map((spec) => callModel(config, spec, "tester", testerPrompt(task))));
   const kits: TesterKit[] = [];
@@ -304,8 +316,7 @@ async function buildTesters(config: BenchConfig, task: PublicTask, testers: read
     const code = extractPython(reply.text);
     if (!code) continue;
     const runs = await callHelper(config, code, "brute", task.examples.map((example) => example.input), HELPER_SECONDS);
-    const bruteMatchesExamples = task.examples.every((example, i) => runs[i]?.status === "ok" && outputsMatch(example.output, runs[i].stdout ?? "", task.checker));
-    if (bruteMatchesExamples) kits.push({ label: testers[index].label, code });
+    if (bruteAgreesWithExamples(task, runs)) kits.push({ label: testers[index].label, code });
   }
   return kits;
 }
