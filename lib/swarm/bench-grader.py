@@ -31,6 +31,11 @@ import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
 
+# tarfile's extraction filter (safe unpacking of sealed oracles) needs 3.12+;
+# macOS's /usr/bin/python3 is older, so fail before touching the bank.
+if sys.version_info < (3, 12):
+    raise SystemExit(f"bench-grader needs Python 3.12+, got {sys.version.split()[0]} at {sys.executable}")
+
 ORACLE_FILES = ("gen.py", "brute.py", "ref.py", "meta.json")
 PUBLIC_FILES = ("statement.md", "examples.json")
 VALIDATE_SMALL = 300
