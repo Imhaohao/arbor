@@ -80,6 +80,21 @@ encrypted archive outside the repo (SHA-256
 cd5352b566a3fc6c05a9e7222ee8731ed96a0be7d72cd2f06bf8a332dba54d55) and are
 revealed after the test run.
 
+## Deviations (recorded before the test run)
+
+1. **DeepSeek-R1 14B removed from the team and the solo arms.** On the first
+   dev task it hit the 8-minute call limit on both calls on the M5 Pro
+   laptop; the run then moved to compute-box (M1 Pro, slower) because the
+   benchmark overloaded the laptop. One local request at a time at over 8
+   minutes each would add roughly 9 hours to the test split while
+   contributing no programs. The team is now 4 members: Haiku 5.5,
+   Sonnet 5.5, Grok 4.7, Gemini 3.8 Flash.
+2. **Grading machine is compute-box (M1 Pro)**, while time limits were
+   measured on the laptop at sealing time (4x the reference). The tighter
+   effective limit applies identically to every arm.
+3. **Fix:** a model call that fails (timeout, auth) no longer triggers a
+   second full solve; one failed call ends that solo attempt.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the

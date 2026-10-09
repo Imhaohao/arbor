@@ -275,6 +275,9 @@ export async function soloAttempt(config: BenchConfig, spec: WorkerSpec, task: P
   const calls: CallRecord[] = [];
   const first = await callModel(config, spec, "solve", solvePrompt(task));
   calls.push(first.record);
+  // A call that failed (timeout, auth) produced no answer to repair; asking
+  // again would just repeat the same wait.
+  if (!first.record.ok) return { label: spec.label, code: undefined, examplesPassed: false, calls };
   let code = extractPython(first.text);
   for (let round = 0; ; round += 1) {
     const failures = code ? await exampleFailures(config, task, code) : [{ input: "", got: "(no ```python block found in your reply)", note: "format" }];

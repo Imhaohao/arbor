@@ -42,7 +42,6 @@ export const SMALL_TEAM = [
   "claude:claude-sonnet-5-5",
   "cursor:grok-4.7-high",
   "antigravity:gemini-3.8-flash-high",
-  "ollama:deepseek-r1:14b",
 ];
 export const FRONTIER = ["claude:claude-opus-5-5", "codex:gpt-6-astra"];
 const TESTERS = ["claude:claude-sonnet-5-5", "cursor:grok-4.7-high"];
