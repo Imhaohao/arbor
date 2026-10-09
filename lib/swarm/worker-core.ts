@@ -206,7 +206,7 @@ export function stripAnsi(text: string): string {
 
 const FAILURE_PATTERNS: ReadonlyArray<[RegExp, FailureKind]> = [
   [/rate.?limit|usage limit|quota|\b429\b|too many requests|limit reached/i, "rate_limit"],
-  [/authenticat|\blog(?:ged)? ?in\b|oauth|\b40[13]\b|unauthori|auth type/i, "auth"],
+  [/authenticat|\blog(?:ged)? ?in\b|oauth|\b40[13]\b|unauthori|auth (?:type|method)|api[_ ]?key/i, "auth"],
 ];
 
 export function classifyFailure(text: string): FailureKind {

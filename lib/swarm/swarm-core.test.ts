@@ -1177,4 +1177,10 @@ assert.equal(benchMs("rate_limit", 2), MAX_BENCH_MS);
 assert.equal(benchMs("other", 50), MAX_BENCH_MS);
 assert.equal(benchMs("other", 0), 60 * 1000);
 
+// The exact error Gemini CLI 0.63 prints over SSH before anyone has logged in.
+assert.equal(
+  classifyFailure("Please set an Auth method in your settings.json or specify one of the following environment variables before running: GEMINI_API_KEY, GOOGLE_GENAI_USE_VERTEXAI, GOOGLE_GENAI_USE_GCA"),
+  "auth",
+);
+
 console.log("swarm-core tests passed");
