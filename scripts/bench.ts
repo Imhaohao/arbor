@@ -1,6 +1,6 @@
 // Small-team-vs-frontier benchmark CLI.
 //
-//   npx tsx scripts/bench.ts seal   --staging DIR --bank DIR --key FILE
+//   npx tsx scripts/bench.ts seal   --staging DIR --bank DIR --key FILE [--dev 12]
 //   npx tsx scripts/bench.ts run    --split dev|test --bank DIR --key FILE --out DIR [--limit N] [--tasks 4]
 //   npx tsx scripts/bench.ts report --out DIR [--split test]
 //   npx tsx scripts/bench.ts audit  --out DIR           # leakage / cheating scan
@@ -47,7 +47,7 @@ export const FRONTIER = ["claude:claude-opus-5-5", "codex:gpt-6-astra"];
 const TESTERS = ["claude:claude-sonnet-5-5", "cursor:grok-4.7-medium"];
 const REPAIRER = "claude:claude-sonnet-5-5";
 const CONDUCTOR = "antigravity:gemini-3.8-flash-high";
-const DEV_TASKS = 12;
+const DEFAULT_DEV_TASKS = 12;
 const SPLIT_SEED = 20261009;
 const CALL_TIMEOUT_MS = 8 * 60 * 1000;
 
@@ -87,7 +87,8 @@ function seal(flags: Flags): void {
   const report = execFileSync("python3", [GRADER, "seal", required(flags, "staging"), bank, required(flags, "key")], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   console.log(report.trim());
   const order = shuffled(bankTaskIds(bank), SPLIT_SEED);
-  const split = { seed: SPLIT_SEED, dev: order.slice(0, DEV_TASKS).sort(), test: order.slice(DEV_TASKS).sort() };
+  const devTasks = Number(flags.values.get("dev") ?? DEFAULT_DEV_TASKS);
+  const split = { seed: SPLIT_SEED, dev: order.slice(0, devTasks).sort(), test: order.slice(devTasks).sort() };
   writeFileSync(join(bank, "split.json"), `${JSON.stringify(split, null, 2)}\n`);
   console.log(`split: ${split.dev.length} dev, ${split.test.length} test`);
 }
