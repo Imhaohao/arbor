@@ -37,6 +37,9 @@ if sys.version_info < (3, 12):
     raise SystemExit(f"bench-grader needs Python 3.12+, got {sys.version.split()[0]} at {sys.executable}")
 
 ORACLE_FILES = ("gen.py", "brute.py", "ref.py", "meta.json")
+# Optional trap: the tempting wrong or too-slow approach. When present it
+# must FAIL, which proves the task is not solved by the obvious idea.
+NAIVE_FILE = "naive.py"
 PUBLIC_FILES = ("statement.md", "examples.json")
 VALIDATE_SMALL = 300
 HIDDEN_COUNTS = {"small": 40, "medium": 10, "large": 5}
@@ -227,7 +230,40 @@ def validate(task_dir):
             break
         large_secs.append(time.perf_counter() - started)
     worst = max(large_secs) if large_secs else None
-    return {"ok": not problems, "problems": problems, "ref_large_secs": worst, "checker": checker}
+    naive_path = os.path.join(task_dir, NAIVE_FILE)
+    if worst is not None and os.path.exists(naive_path) and not naive_fails(task_dir, gen, brute, ref, checker, worst):
+        problems.append("naive.py passes every check, so the obvious approach already solves the task")
+    return {"ok": not problems, "problems": problems, "ref_large_secs": worst, "checker": checker, "has_naive": os.path.exists(naive_path)}
+
+
+def naive_wrong_on_small(naive, gen, brute, checker):
+    for index in range(VALIDATE_SMALL):
+        inp = gen.generate(random.Random(30_000 + index), "small")
+        try:
+            with time_limit(5):
+                if not outputs_match(brute.solve(inp), naive.solve(inp), checker):
+                    return True
+        except Exception:
+            return True
+    return False
+
+
+def naive_too_slow_on_large(naive, gen, ref, checker, ref_worst):
+    budget = max(MIN_TIME_LIMIT_S, TIME_LIMIT_FACTOR * ref_worst)
+    for index in range(3):
+        inp = gen.generate(random.Random(20_000 + index), "large")
+        try:
+            with time_limit(budget):
+                if not outputs_match(ref.solve(inp), naive.solve(inp), checker):
+                    return True
+        except Exception:
+            return True
+    return False
+
+
+def naive_fails(task_dir, gen, brute, ref, checker, ref_worst):
+    naive = load_module(os.path.join(task_dir, NAIVE_FILE), "naive")
+    return naive_wrong_on_small(naive, gen, brute, checker) or naive_too_slow_on_large(naive, gen, ref, checker, ref_worst)
 
 
 def validate_isolated(task_dir):
@@ -298,7 +334,8 @@ def seal(staging, bank, key):
             "examples": json.load(open(os.path.join(task_dir, "examples.json"))),
         }
         json.dump(public, open(os.path.join(out_dir, "public.json"), "w"), indent=2)
-        plain = tar_bytes(task_dir, ORACLE_FILES)
+        extras = (NAIVE_FILE,) if report.get("has_naive") else ()
+        plain = tar_bytes(task_dir, ORACLE_FILES + extras)
         open(os.path.join(out_dir, "sealed.bin"), "wb").write(openssl(["-salt", "-pass", f"file:{key}"], plain))
         manifest["tasks"].append({"id": task_id, "oracle_sha256": hashlib.sha256(plain).hexdigest(), "time_limit_s": time_limit_s})
     json.dump(manifest, open(os.path.join(bank, "manifest.json"), "w"), indent=2)

@@ -95,6 +95,29 @@ revealed after the test run.
 3. **Fix:** a model call that fails (timeout, auth) no longer triggers a
    second full solve; one failed call ends that solo attempt.
 
+## Bank v1 result and bank v2 (decided 2026-10-09, before any test task ran)
+
+Bank v1's dev split hit the ceiling: Opus 5.5, GPT-6-Astra, Haiku 5.5,
+Sonnet 5.5, Gemini 3.8 Flash and the team each solved 12/12 (Wilson 95%
+interval 0.76-1.00); Grok 4.7 High solved 5/12, mostly by exceeding the
+8-minute limit (median 504 s). The cheapest member alone matched both
+frontier models at about a fifth of Opus's Claude-reported cost ($0.47 vs
+$2.53), so the v1 test split cannot separate the arms and is not run.
+
+Bank v2 replaces it under the same hypotheses, metric and decision rule:
+
+- **Authors:** Claude Fable 5.1 agents, the strongest available model and
+  in no arm (v1 was written by Sonnet, a team member).
+- **Brief:** Codeforces ~2600-3200, at least two non-obvious insights,
+  hard by algorithm not by ambiguous wording.
+- **Trap gate:** each task ships `naive.py`, the tempting wrong or too-slow
+  approach; the grader rejects any task whose naive solution passes the
+  brute-force and large-input checks. No model's score is consulted.
+- **Grok** runs as `cursor:grok-4.7-medium` (solo and tester).
+- **Cost** for the team now includes every member's attempts; the router's
+  includes its chosen member's.
+- Split: shuffled with the same seed; first 8 dev, rest test.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the

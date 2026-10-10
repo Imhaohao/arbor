@@ -1,0 +1,57 @@
+09:52:49 dev: 12 tasks to run (0 already done); router off (no dev results)
+09:52:49 task a1-t01 (Mirror Pairs): solving
+09:52:49 task a2-t01 (Closing a Depot): solving
+09:52:49 task a3-t06 (Two Lathes): solving
+09:52:49 task a4-t01 (Squarefree Climbs): solving
+(node:97401) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+10:00:49     ollama:deepseek-r1:14b solve failed (timeout); retrying
+10:00:49     ollama:deepseek-r1:14b solve failed (timeout); retrying
+10:00:49     ollama:deepseek-r1:14b solve failed (timeout); retrying
+10:00:50     cursor:grok-4.7-high solve failed (timeout); retrying
+10:00:50     cursor:grok-4.7-high solve failed (timeout); retrying
+10:04:30     cursor:grok-4.7-high tester failed (timeout); retrying
+10:08:49     ollama:deepseek-r1:14b solve failed (timeout); retrying
+10:09:19     ollama:deepseek-r1:14b solve failed (timeout); retrying
+10:09:19     ollama:deepseek-r1:14b solve failed (timeout); retrying
+10:12:31     cursor:grok-4.7-high solve failed (timeout); retrying
+10:14:14     cursor:grok-4.7-high tester failed (timeout); retrying
+10:15:12     cursor:grok-4.7-high solve failed (timeout); retrying
+10:16:49     ollama:deepseek-r1:14b solve failed (timeout); retrying
+10:17:19     ollama:deepseek-r1:14b solve failed (timeout); retrying
+10:20:31     cursor:grok-4.7-high solve failed (timeout); retrying
+10:22:15     cursor:grok-4.7-high tester failed (timeout); retrying
+20:36:43 dev: 11 tasks to run (1 already done); router off (no dev results)
+20:36:43 task a1-t01 (Mirror Pairs): solving
+20:36:43 task a3-t06 (Two Lathes): solving
+20:36:43 task a4-t01 (Squarefree Climbs): solving
+20:42:23 task a3-t06: team selecting (60 trusted inputs from 2 testers)
+20:42:54 task a3-t06: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, cursor:grok-4.7-high, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive
+20:42:54 task a4-t03 (Bracelet With Special Beads): solving
+20:44:43 task a1-t01: team selecting (30 trusted inputs from 1 testers)
+20:45:01 task a1-t01: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive
+20:45:01 task a4-t07 (Even Square Subsets): solving
+20:50:22 task a4-t01: team selecting (30 trusted inputs from 1 testers)
+20:50:51 task a4-t01: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive
+20:50:51 task a4-t10 (Distinct Tuples With Small LCM): solving
+20:55:53 task a4-t03: team selecting (30 trusted inputs from 1 testers)
+20:56:15 task a4-t03: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive
+20:56:15 task a6-t10 (Out of Stock): solving
+20:58:22 task a4-t07: team selecting (60 trusted inputs from 2 testers)
+20:58:34 task a4-t10: team selecting (60 trusted inputs from 2 testers)
+20:59:05 task a4-t07: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive
+20:59:05 task a7-t05 (Quartet Tricks): solving
+20:59:07 task a4-t10: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, cursor:grok-4.7-high, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive
+20:59:07 task a7-t10 (Big Kalah): solving
+21:01:35 task a6-t10: team selecting (60 trusted inputs from 2 testers)
+21:02:22 task a6-t10: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, cursor:grok-4.7-high, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive
+21:02:22 task a8-t05 (Crossing Lines in a Rectangle): solving
+21:07:05 task a7-t05: team selecting (30 trusted inputs from 1 testers)
+21:07:25 task a7-t05: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive
+21:07:25 task a8-t10 (Carryless Fibonacci Distance): solving
+21:14:16 task a7-t10: team selecting (30 trusted inputs from 1 testers)
+21:14:28 task a7-t10: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, cursor:grok-4.7-high, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive
+21:15:57 task a8-t05: team selecting (30 trusted inputs from 1 testers)
+21:17:09 task a8-t05: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive
+21:22:12 task a8-t10: team selecting (60 trusted inputs from 2 testers)
+21:22:59 task a8-t10: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive

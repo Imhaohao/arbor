@@ -40,11 +40,11 @@ const GRADER = join(ROOT, "lib/swarm/bench-grader.py");
 export const SMALL_TEAM = [
   "claude:claude-haiku-5-5",
   "claude:claude-sonnet-5-5",
-  "cursor:grok-4.7-high",
+  "cursor:grok-4.7-medium",
   "antigravity:gemini-3.8-flash-high",
 ];
 export const FRONTIER = ["claude:claude-opus-5-5", "codex:gpt-6-astra"];
-const TESTERS = ["claude:claude-sonnet-5-5", "cursor:grok-4.7-high"];
+const TESTERS = ["claude:claude-sonnet-5-5", "cursor:grok-4.7-medium"];
 const REPAIRER = "claude:claude-sonnet-5-5";
 const CONDUCTOR = "antigravity:gemini-3.8-flash-high";
 const DEV_TASKS = 12;
@@ -172,8 +172,19 @@ async function run(flags: Flags): Promise<void> {
 
 // ── report ──────────────────────────────────────────────────────────────────
 
-function armCost(arm: ArmRecord | undefined): { usd: number; usdCovered: number; calls: number } {
-  const calls = arm?.calls ?? [];
+/**
+ * Every call an arm's answer depended on: the team pays for all of its
+ * members' attempts plus its own test tools and repairs; the router pays for
+ * its conductor plus the member it picked.
+ */
+function armCalls(arms: Record<string, ArmRecord>, arm: string): CallRecord[] {
+  const own = arms[arm]?.calls ?? [];
+  if (arm === "hive") return [...SMALL_TEAM.flatMap((member) => arms[member]?.calls ?? []), ...own];
+  if (arm === "router") return [...own, ...(arms[String(arms.router?.choice)]?.calls ?? [])];
+  return own;
+}
+
+function armCost(calls: readonly CallRecord[]): { usd: number; usdCovered: number; calls: number } {
   const priced = calls.filter((call) => typeof call.costUsd === "number");
   return { usd: priced.reduce((total, call) => total + (call.costUsd ?? 0), 0), usdCovered: priced.length, calls: calls.length };
 }
@@ -219,7 +230,7 @@ function report(flags: Flags): void {
   const table = armNames.map((arm) => {
     const wins = solved(arm).filter(Boolean).length;
     const [low, high] = wilsonInterval(wins, valid.length);
-    const cost = valid.map((row) => armCost((row.arms as Record<string, ArmRecord>)[arm]));
+    const cost = valid.map((row) => armCost(armCalls(row.arms as Record<string, ArmRecord>, arm)));
     return { arm, solved: wins, of: valid.length, rate: +(wins / Math.max(1, valid.length)).toFixed(3), ci95: [+low.toFixed(3), +high.toFixed(3)], claudeUsd: +cost.reduce((t, c) => t + c.usd, 0).toFixed(2), calls: cost.reduce((t, c) => t + c.calls, 0) };
   });
   const comparisons = Object.fromEntries(
