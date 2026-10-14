@@ -21,8 +21,11 @@ still see audit tasks as ordinary tasks in the auction.
 
 ## Honesty / data gaps behind visible UI
 
-- Dashboard stat cards and "Recent tasks" rows are illustrative (labeled), not
-  live buyer analytics.
+- ~~Dashboard stat cards and "Recent tasks" rows are illustrative~~ FIXED
+  2026-10-13: the cards read `buyerAnalytics.overview` (tasks posted, in
+  progress, delivery rate, average turnaround with its sample size) and the
+  rows read `taskList.recentTasks`. No week-over-week deltas are shown,
+  because the schema has no period snapshot to compute them from.
 - ~~ValueImpactPanel fake savings/efficiency claims~~ FIXED 2026-08-04: panel
   now shows measured counterfactual savings (`lib/honest-savings.ts`) and
   lifecycle-measured execution time; headroom is labeled "Budget unspent",

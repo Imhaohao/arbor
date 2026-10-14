@@ -3,13 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import {
-  ListChecks,
-  Coins,
-  Trophy,
-  Timer,
-  ArrowUpRight,
-} from "lucide-react";
+import Link from "next/link";
+import { ListChecks, Trophy, Timer, Activity, type LucideIcon } from "lucide-react";
 import {
   SidebarInset,
   SidebarProvider,
@@ -23,7 +18,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/shadcn/card";
-import { Badge } from "@/components/ui/shadcn/badge";
+import { StatusBadge } from "@/components/task/StatusBadge";
+import { formatDuration, formatMoney } from "@/lib/utils";
 import { HivePayouts } from "@/components/dashboard/HivePayouts";
 import { SpecialistReadiness } from "@/components/dashboard/SpecialistReadiness";
 
@@ -33,26 +29,39 @@ interface LiveAgent {
   total_tasks_completed: number;
 }
 
-const stats = [
-  { label: "Active tasks", value: "3", delta: "+1 today", icon: ListChecks },
-  { label: "Credits", value: "2,400", delta: "+200 this week", icon: Coins },
-  { label: "Win acceptance", value: "92%", delta: "+4 pts", icon: Trophy },
-  { label: "Avg turnaround", value: "2m 14s", delta: "-18s", icon: Timer },
-];
+type Overview = NonNullable<ReturnType<typeof useOverview>>;
 
-const recentTasks = [
-  { title: "Rewrite landing hero copy", specialist: "Conversion Copy AI", status: "completed" as const, amount: "$55" },
-  { title: "Generate a pricing page in v0", specialist: "Vercel v0", status: "in-progress" as const, amount: "$120" },
-  { title: "Draft outreach sequence", specialist: "Reacher Social", status: "in-progress" as const, amount: "$48" },
-  { title: "Extract tables from PDF report", specialist: "Tensorlake", status: "pending" as const, amount: "$30" },
-];
+interface Stat {
+  label: string;
+  value: string;
+  detail: string;
+  icon: LucideIcon;
+}
 
-function statusVariant(status: "completed" | "in-progress" | "pending") {
-  return status === "completed"
-    ? "default"
-    : status === "in-progress"
-      ? "secondary"
-      : "outline";
+const RECENT_TASK_LIMIT = 4;
+
+function useOverview() {
+  return useQuery(api.buyerAnalytics.overview, {});
+}
+
+/** Every figure is measured by buyerAnalytics.overview; nothing is a placeholder. */
+function statsFrom(o: Overview): Stat[] {
+  return [
+    { label: "Tasks posted", value: o.total_tasks.toLocaleString(), detail: `${o.completed_tasks.toLocaleString()} delivered`, icon: ListChecks },
+    { label: "In progress", value: o.active_tasks.toLocaleString(), detail: "bidding, running or being judged", icon: Activity },
+    {
+      label: "Delivery rate",
+      value: o.completion_rate === null ? "No data" : `${Math.round(o.completion_rate * 100)}%`,
+      detail: `${o.completed_tasks.toLocaleString()} of ${o.terminal_tasks.toLocaleString()} finished tasks`,
+      icon: Trophy,
+    },
+    {
+      label: "Avg turnaround",
+      value: o.avg_turnaround_ms === null ? "No data" : formatDuration(o.avg_turnaround_ms),
+      detail: `latest ${o.turnaround_sample_size} settled tasks`,
+      icon: Timer,
+    },
+  ];
 }
 
 function prettyAgent(id: string) {
@@ -64,6 +73,8 @@ function prettyAgent(id: string) {
 export default function DashboardPage() {
   const router = useRouter();
   const live = (useQuery(api.agents.list, {}) ?? []) as LiveAgent[];
+  const overview = useOverview();
+  const recentTasks = useQuery(api.taskList.recentTasks, { limit: RECENT_TASK_LIMIT });
   const topSpecialists = [...live]
     .sort((a, b) => b.reputation_score - a.reputation_score)
     .slice(0, 5);
@@ -95,14 +106,11 @@ export default function DashboardPage() {
             <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
               Marketplace overview
             </h1>
-            <p className="mt-1 text-sm text-ink-muted">
-              Top specialists load live. Summary cards and task rows below are illustrative until buyer analytics are connected.
-            </p>
           </div>
 
           {/* Stat cards */}
           <div className="stagger-children mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((s) => {
+            {(overview ? statsFrom(overview) : []).map((s) => {
               const Icon = s.icon;
               return (
                 <Card
@@ -121,10 +129,7 @@ export default function DashboardPage() {
                     <div className="mt-3 font-display text-2xl font-semibold tracking-tight text-ink">
                       {s.value}
                     </div>
-                    <div className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-success">
-                      <ArrowUpRight size={12} />
-                      {s.delta}
-                    </div>
+                    <div className="mt-1 text-xs text-ink-muted">{s.detail}</div>
                   </CardContent>
                 </Card>
               );
@@ -139,7 +144,6 @@ export default function DashboardPage() {
                 <CardTitle className="text-base font-semibold text-ink">
                   Recent tasks
                 </CardTitle>
-                <Badge variant="outline">Illustrative</Badge>
                 <button
                   onClick={() => router.push("/tasks")}
                   className="text-xs font-medium text-brand-700 hover:text-brand-800"
@@ -148,34 +152,32 @@ export default function DashboardPage() {
                 </button>
               </CardHeader>
               <CardContent className="p-5 pt-3">
-                <ul className="divide-y divide-line">
-                  {recentTasks.map((t) => (
-                    <li
-                      key={t.title}
-                      className="flex items-center justify-between gap-3 py-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-ink">
-                          {t.title}
-                        </p>
-                        <p className="truncate text-xs text-ink-muted">
-                          {t.specialist}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <Badge
-                          variant={statusVariant(t.status)}
-                          className="capitalize"
+                {recentTasks?.length === 0 ? (
+                  <p className="py-6 text-center text-xs text-ink-muted">
+                    No tasks posted yet.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-line">
+                    {(recentTasks ?? []).map((t) => (
+                      <li key={t.task_id}>
+                        <Link
+                          href={`/task/${t.task_id}`}
+                          className="flex items-center justify-between gap-3 py-3 hover:text-brand-700"
                         >
-                          {t.status.replace("-", " ")}
-                        </Badge>
-                        <span className="w-12 text-right font-mono text-sm text-ink">
-                          {t.amount}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                          <p className="min-w-0 truncate text-sm font-medium text-ink">
+                            {t.prompt}
+                          </p>
+                          <div className="flex shrink-0 items-center gap-3">
+                            <StatusBadge status={t.status} />
+                            <span className="w-14 text-right font-mono text-sm text-ink">
+                              {formatMoney(t.price_paid ?? t.max_budget)}
+                            </span>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </CardContent>
             </Card>
 
