@@ -84,6 +84,21 @@ const SECTIONED = [
   assert.equal(task.checker, "tokens");
 }
 
+// The v1 strings author wrote examples as "Example N" plus two bare fences.
+{
+  const task = expectTask(
+    parseMarkdownProblem("# Pairs\n\nCount pairs.\n\n## Examples\n\nExample 1\n\n```\n7 5 6\nabcdcba\n```\n\n```\n26\n```\n\nExample 2\n\n```\n1 1 1\na\n```\n\n```\n0\n```\n"),
+  );
+  assert.deepEqual(task.examples, [
+    { input: "7 5 6\nabcdcba\n", output: "26\n" },
+    { input: "1 1 1\na\n", output: "0\n" },
+  ]);
+  assert.equal(task.statement, "Count pairs.");
+}
+
+// An odd number of bare fences cannot be paired safely, so it is refused.
+assert.equal(parseMarkdownProblem("# Odd\n\nText.\n\n## Examples\n\n```\n1\n```\n").ok, false);
+
 assert.equal(parseJsonProblem({ statement: "No examples here.", examples: [] }).ok, false);
 assert.equal(parseJsonProblem({ examples: [{ input: "1", output: "1" }] }).ok, false);
 assert.equal(parseProblem("{ not json at all").ok, false);

@@ -14,8 +14,24 @@ function ensureTrailingNewline(text: string): string {
   return text.endsWith("\n") ? text : `${text}\n`;
 }
 
-function extractExamples(markdown: string): Example[] {
+const FENCED_BLOCK = /```[^\n]*\n([\s\S]*?)```/g;
+
+function labelledExamples(markdown: string): Example[] {
   return [...markdown.matchAll(EXAMPLE_PAIR)].map((match) => ({ input: ensureTrailingNewline(match[1]), output: ensureTrailingNewline(match[2]) }));
+}
+
+/** "Example N" followed by two bare fences: input, then output. Ambiguous (odd) layouts yield none. */
+function unlabelledExamples(markdown: string): Example[] {
+  const start = markdown.search(EXAMPLES_START);
+  if (start === -1) return [];
+  const blocks = [...markdown.slice(start).matchAll(FENCED_BLOCK)].map((match) => ensureTrailingNewline(match[1]));
+  if (blocks.length === 0 || blocks.length % 2 !== 0) return [];
+  return blocks.flatMap((block, index): Example[] => (index % 2 === 0 ? [{ input: block, output: blocks[index + 1] }] : []));
+}
+
+function extractExamples(markdown: string): Example[] {
+  const labelled = labelledExamples(markdown);
+  return labelled.length > 0 ? labelled : unlabelledExamples(markdown);
 }
 
 function statementBody(markdown: string): string {
