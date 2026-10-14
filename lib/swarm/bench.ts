@@ -36,11 +36,15 @@ const GRADER = join(__dirname, "bench-grader.py");
 
 export interface BenchConfig {
   root: string;
-  bank: string;
-  key: string;
+  denyReads: string[];
   outDir: string;
   callTimeoutMs: number;
   log: (line: string) => void;
+}
+
+export interface GradingConfig extends BenchConfig {
+  bank: string;
+  key: string;
 }
 
 // ── concurrency ─────────────────────────────────────────────────────────────
@@ -202,7 +206,7 @@ function cleanup(...paths: string[]): void {
 }
 
 function denyEnv(config: BenchConfig): Record<string, string> {
-  return { BENCH_DENY_READ: [config.bank, dirname(config.key)].join(":") };
+  return { BENCH_DENY_READ: config.denyReads.join(":") };
 }
 
 export async function runPrograms(config: BenchConfig, code: string, inputs: readonly string[], seconds: number): Promise<RunOutcome[]> {
@@ -238,7 +242,7 @@ export interface GradeResult {
   seed: string;
 }
 
-export async function gradeCode(config: BenchConfig, taskId: string, code: string | undefined, seed: string): Promise<GradeResult> {
+export async function gradeCode(config: GradingConfig, taskId: string, code: string | undefined, seed: string): Promise<GradeResult> {
   if (!code) return { passed: false, tests: 0, counts: {}, first_failure: { size: "-", verdict: "no_code" }, oracle_conflicts: 0, seed };
   const solution = scratchFile("solution.py", code);
   try {

@@ -29,6 +29,7 @@ import { TENSORLAKE_A2A_CONFIG } from "./tensorlake-a2a";
 import { DEVIN_A2A_CONFIG } from "./devin-a2a";
 import { CONVEX_A2A_CONFIG } from "./convex-a2a";
 import { WORKER_A2A_CONFIG } from "./worker-a2a";
+import { CODE_TEAM_A2A_CONFIG } from "./code-team-a2a";
 import { makeMcpForwardingSpecialist } from "./mcp-forwarding";
 import { makeA2aForwardingSpecialist } from "./a2a-forwarding";
 import { makeMockSpecialist } from "./base";
@@ -143,6 +144,7 @@ const BASE_SPECIALISTS: SpecialistConfig[] = [
   DEVIN_A2A_CONFIG,
   CONVEX_A2A_CONFIG,
   WORKER_A2A_CONFIG,
+  CODE_TEAM_A2A_CONFIG,
 ].filter((s) => s.tier !== "disabled");
 
 const ALL_STATIC_SPECIALISTS = [

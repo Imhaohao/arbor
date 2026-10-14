@@ -247,6 +247,8 @@ Twilio Docs, Cloudflare Docs).
 | `CONVEX_A2A_ENDPOINT`, `CONVEX_A2A_AGENT_CARD_URL`, `CONVEX_A2A_API_KEY` | Next, Convex if called from actions | Optional | Enables custom Convex A2A deployments; key only if the card requires auth. |
 | `ARBOR_WORKER_A2A_ENDPOINT`, `ARBOR_WORKER_A2A_AGENT_CARD_URL` | Next / worker runtime | Optional | Standalone Arbor A2A worker endpoint/card. |
 | `ARBOR_WORKER_BEARER` | Next / worker runtime | Optional | Standalone Arbor A2A worker bearer auth. |
+| `ARBOR_CODE_TEAM_A2A_ENDPOINT`, `ARBOR_CODE_TEAM_A2A_AGENT_CARD_URL` | Next runtime | Optional | Arbor Code Team A2A service (`npm run code-team:a2a`) endpoint/card; the specialist is disabled when the endpoint is unset. |
+| `ARBOR_CODE_TEAM_BEARER` | Next / code-team service | Optional | Bearer auth: the service requires it when set and Arbor sends it. |
 | `ARBOR_A2A_DIRECTORY` | Next, Convex if discovery runs there | Optional | Comma-separated runtime A2A discovery URLs. |
 | `ARBOR_A2A_HMAC_REQUIRED` | Next | Optional | Requires HMAC validation on `/api/a2a/market`. |
 | `ARBOR_A2A_CARD_SIGNING_JWK` | Next | Optional | Private JWK (EC P-256 -> ES256, or RSA -> RS256) as a JSON string. When set, the market agent card is JWS-signed (A2A v1.0 JCS procedure) and the public key is served at `/.well-known/jwks.json`. Unset = card served unsigned. Generate: `node -e "const k=require('crypto').generateKeyPairSync('ec',{namedCurve:'prime256v1'});console.log(JSON.stringify(k.privateKey.export({format:'jwk'})))"`. |

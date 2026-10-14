@@ -12,7 +12,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { mulberry32, pairedComparison, wilsonInterval, type RosterEntry } from "../lib/swarm/bench-core";
 import {
   appendResult,
@@ -26,26 +26,20 @@ import {
   readResults,
   routerAttempt,
   soloAttempt,
-  type BenchConfig,
+  type GradingConfig,
   type CallRecord,
   type GradeResult,
   type SoloResult,
 } from "../lib/swarm/bench";
 import { swarmPaths } from "../lib/swarm/orchestrate";
+import { REPAIRER, SMALL_TEAM, TESTERS } from "../lib/swarm/team-roster";
 import { parseWorker } from "../lib/swarm/worker-core";
 
 const ROOT = resolve(__dirname, "..");
 const GRADER = join(ROOT, "lib/swarm/bench-grader.py");
 
-export const SMALL_TEAM = [
-  "claude:claude-haiku-5-5",
-  "claude:claude-sonnet-5-5",
-  "cursor:grok-4.7-medium",
-  "antigravity:gemini-3.8-flash-high",
-];
+export { SMALL_TEAM };
 export const FRONTIER = ["claude:claude-opus-5-5", "codex:gpt-6-astra"];
-const TESTERS = ["claude:claude-sonnet-5-5", "cursor:grok-4.7-medium"];
-const REPAIRER = "claude:claude-sonnet-5-5";
 const CONDUCTOR = "antigravity:gemini-3.8-flash-high";
 const DEFAULT_DEV_TASKS = 12;
 const SPLIT_SEED = 20261009;
@@ -124,7 +118,7 @@ function rosterFromDev(outDir: string): RosterEntry[] | undefined {
   });
 }
 
-async function runTask(config: BenchConfig, taskId: string, split: string, roster: RosterEntry[] | undefined): Promise<void> {
+async function runTask(config: GradingConfig, taskId: string, split: string, roster: RosterEntry[] | undefined): Promise<void> {
   const [task] = loadTasks(config.bank, [taskId]);
   log(`task ${taskId} (${task.title}): solving`);
   const soloSpecs = [...SMALL_TEAM, ...FRONTIER].map(parseWorker);
@@ -147,7 +141,7 @@ async function runTask(config: BenchConfig, taskId: string, split: string, roste
   log(`task ${taskId}: passed by ${passed.join(", ") || "nobody"}`);
 }
 
-async function gradedSolo(config: BenchConfig, taskId: string, solo: SoloResult, seed: string): Promise<ArmRecord> {
+async function gradedSolo(config: GradingConfig, taskId: string, solo: SoloResult, seed: string): Promise<ArmRecord> {
   return { code_sha: sha(solo.code), examplesPassed: solo.examplesPassed, grade: await gradeCode(config, taskId, solo.code, seed), calls: solo.calls };
 }
 
@@ -159,7 +153,8 @@ async function run(flags: Flags): Promise<void> {
   const done = new Set(readResults(join(outDir, `results-${splitName}.jsonl`)).map((row) => row.task as string));
   const limit = Number(flags.values.get("limit") ?? Infinity);
   const queue = split[splitName].filter((id) => !done.has(id)).slice(0, limit);
-  const config: BenchConfig = { root: ROOT, bank, key: required(flags, "key"), outDir, callTimeoutMs: CALL_TIMEOUT_MS, log };
+  const key = required(flags, "key");
+  const config: GradingConfig = { root: ROOT, bank, key, denyReads: [bank, dirname(key)], outDir, callTimeoutMs: CALL_TIMEOUT_MS, log };
   ensureBenchCodexHome(ROOT);
   const roster = splitName === "test" ? rosterFromDev(outDir) : undefined;
   log(`${splitName}: ${queue.length} tasks to run (${done.size} already done); router ${roster ? "on" : "off (no dev results)"}`);
