@@ -218,6 +218,7 @@ def validate(task_dir):
         problems.append(f"ref disagrees with brute on {disagreements}/{VALIDATE_SMALL} small inputs")
     if len(distinct) < 3:
         problems.append("small outputs are nearly constant")
+    problems.extend(generator_crashes(gen))
     large_secs = []
     for index in range(3):
         inp = gen.generate(random.Random(20_000 + index), "large")
@@ -234,6 +235,22 @@ def validate(task_dir):
     if worst is not None and os.path.exists(naive_path) and not naive_fails(task_dir, gen, brute, ref, checker, worst):
         problems.append("naive.py passes every check, so the obvious approach already solves the task")
     return {"ok": not problems, "problems": problems, "ref_large_secs": worst, "checker": checker, "has_naive": os.path.exists(naive_path)}
+
+
+GEN_CHECK_SEEDS = {"medium": 20, "large": 10}
+
+
+def generator_crashes(gen):
+    """Hidden tests draw medium and large inputs from fresh seeds; a
+    generator that crashes on any of them would break grading for every arm."""
+    for size, count in GEN_CHECK_SEEDS.items():
+        for index in range(count):
+            seed = 40_000 + index
+            try:
+                gen.generate(random.Random(seed), size)
+            except Exception as error:
+                return [f"gen crashes on a {size} input (seed {seed}): {type(error).__name__}: {error}"]
+    return []
 
 
 def naive_wrong_on_small(naive, gen, brute, checker):
