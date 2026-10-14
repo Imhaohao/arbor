@@ -180,3 +180,12 @@ export interface SettledPayload {
   new_score: number;
   price_paid?: number;
 }
+
+/**
+ * The amount a buyer actually paid. `price_paid` is the Vickrey clearing
+ * price locked into escrow at award, before judging; escrow is released only
+ * for accepted work and refunded otherwise, so any other status paid nothing.
+ */
+export function amountPaid(task: { status: string; price_paid?: number }): number | undefined {
+  return task.status === "complete" ? task.price_paid : undefined;
+}

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { executionElapsedMs } from "./task-view";
+import { amountPaid, executionElapsedMs } from "./task-view";
 
 const ev = (event_type: string, timestamp: number) => ({ event_type, timestamp });
 
@@ -36,5 +36,14 @@ assert.equal(
   ]),
   0,
 );
+
+// Escrow on dev, 2026-10-14: judge-rejected and failed tasks were refunded,
+// yet /tasks labelled their locked price "paid". Only accepted work is paid.
+{
+  assert.equal(amountPaid({ status: "complete", price_paid: 0.35 }), 0.35);
+  assert.equal(amountPaid({ status: "disputed", price_paid: 0.82 }), undefined);
+  assert.equal(amountPaid({ status: "failed", price_paid: 0.4 }), undefined);
+  assert.equal(amountPaid({ status: "complete" }), undefined);
+}
 
 console.log("task-view.test.ts: all assertions passed");

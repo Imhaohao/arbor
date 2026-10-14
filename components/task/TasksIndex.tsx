@@ -8,6 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { CaretRight, MagnifyingGlass } from "@phosphor-icons/react";
 import { cn, formatMoney } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
+import { amountPaid } from "@/lib/task-view";
 
 // Mirrors the StatusBucket union + STATUS_BUCKETS grouping in
 // convex/taskList.ts. Kept as a plain literal union here (rather than
@@ -26,6 +27,11 @@ const FILTERS: Array<{ key: StatusBucket | "all"; label: string }> = [
 ];
 
 const ROW_LIMIT = 25;
+
+function paidSuffix(row: { status: string; price_paid?: number }): string {
+  const paid = amountPaid(row);
+  return paid === undefined ? "" : ` · paid ${formatMoney(paid)}`;
+}
 const SEARCH_DEBOUNCE_MS = 300;
 
 function EmptyState({ children }: { children: React.ReactNode }) {
@@ -147,9 +153,7 @@ export function TasksIndex() {
                       <StatusBadge status={row.status} />
                       <span className="text-[11px] text-ink-muted">
                         {row.task_type} · budget {formatMoney(row.max_budget)}
-                        {row.price_paid !== undefined
-                          ? ` · paid ${formatMoney(row.price_paid)}`
-                          : ""}
+                        {paidSuffix(row)}
                       </span>
                     </div>
                     <p className="truncate text-sm text-ink">{row.prompt}</p>

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/shadcn/card";
 import { StatusBadge } from "@/components/task/StatusBadge";
 import { formatDuration, formatMoney } from "@/lib/utils";
+import { amountPaid } from "@/lib/task-view";
 import { HivePayouts } from "@/components/dashboard/HivePayouts";
 import { SpecialistReadiness } from "@/components/dashboard/SpecialistReadiness";
 
@@ -39,6 +40,12 @@ interface Stat {
 }
 
 const RECENT_TASK_LIMIT = 4;
+
+/** Only accepted work is paid; a rejected task's escrow was refunded. */
+function paidAmount(task: { status: string; price_paid?: number }): string {
+  const paid = amountPaid(task);
+  return paid === undefined ? "" : formatMoney(paid);
+}
 
 function useOverview() {
   return useQuery(api.buyerAnalytics.overview, {});
@@ -170,7 +177,7 @@ export default function DashboardPage() {
                           <div className="flex shrink-0 items-center gap-3">
                             <StatusBadge status={t.status} />
                             <span className="w-14 text-right font-mono text-sm text-ink">
-                              {formatMoney(t.price_paid ?? t.max_budget)}
+                              {paidAmount(t)}
                             </span>
                           </div>
                         </Link>
