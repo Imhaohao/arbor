@@ -29,8 +29,29 @@ brief_for() {
       -e "s|t01, t02, ... t$1|t$1|" -e "s|\"author\": \"codex:gpt-6.1-sol\"|\"author\": \"$AUTHOR_TAG\"|" "$BASE/brief.txt"
 }
 
-# Start a fresh author session on a prompt; prints the output and sets SESSION.
+RETRIES=3
+RETRY_WAIT_S=90
+TRANSIENT='Provider Error|NonRetriableError|trouble connecting|usage limit|rate limit|Connection lost'
+
+# Start a fresh author session on a prompt; sets SESSION. Retries when the
+# provider fails or no statement was written.
 author_start() {
+  for attempt in $(seq 1 $RETRIES); do
+    author_start_once "$1"
+    [ -f "$DIR/t$NN/statement.md" ] && ! echo "$OUT" | grep -qE "$TRANSIENT" && return 0
+    echo "t$NN start attempt $attempt failed; waiting ${RETRY_WAIT_S}s" >> $LOG; sleep $RETRY_WAIT_S
+  done
+}
+
+author_continue() {
+  for attempt in $(seq 1 $RETRIES); do
+    author_continue_once "$1"
+    echo "$OUT" | grep -qE "$TRANSIENT" || return 0
+    echo "t$NN continue attempt $attempt hit a provider error; waiting ${RETRY_WAIT_S}s" >> $LOG; sleep $RETRY_WAIT_S
+  done
+}
+
+author_start_once() {
   if [ "$BACKEND" = cursor ]; then
     SESSION=$(cursor-agent create-chat 2>/dev/null | tail -1 | tr -d '[:space:]')
     OUT=$(cursor-agent -p --trust --force --model $CURSOR_MODEL --resume "$SESSION" "$1" < /dev/null 2>&1)
@@ -41,7 +62,7 @@ author_start() {
   echo "$OUT" >> $LOG
 }
 
-author_continue() {
+author_continue_once() {
   if [ "$BACKEND" = cursor ]; then
     OUT=$(cursor-agent -p --trust --force --model $CURSOR_MODEL --resume "$SESSION" "$1" < /dev/null 2>&1)
   else
@@ -59,6 +80,7 @@ for i in $(seq 1 $COUNT); do
   NN=$(printf '%02d' $i)
   [ -f "$DIR/t$NN/.kept" ] && continue
   author_start "$(brief_for $NN)"
+  [ -f "$DIR/t$NN/statement.md" ] || { echo "t$NN skipped: author never produced it" >> $LOG; continue; }
   for round in $(seq 0 $HARDEN_ROUNDS); do
     RESULT=$(probe "$DIR/t$NN"); echo "probe t$NN round $round: $(echo $RESULT | head -c 300)" >> $LOG
     VALID=$(echo "$RESULT" | python3 -c 'import json,sys
