@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { RANK_SYSTEM_PROMPT } from "../lib/specialists/suggest";
+import { RANK_LIMIT, RANK_SYSTEM_PROMPT } from "../lib/specialists/suggest";
 import { MCP_CATALOG, type CatalogEntry } from "../lib/specialists/catalog";
 import { ROUTER_TASKS, type RouterTask } from "../eval/router-bench/tasks";
 import { HARD_TASKS } from "../eval/router-bench/tasks-hard";
@@ -79,6 +79,7 @@ function buildSuggesterAssistant(task: RouterTask, pool: CatalogEntry[]): string
       };
     })
     .sort((a, b) => b.fit_score - a.fit_score || a.index - b.index)
+    .slice(0, RANK_LIMIT)
     .map(({ index: _index, ...item }) => item);
 
   return JSON.stringify({ ranked });

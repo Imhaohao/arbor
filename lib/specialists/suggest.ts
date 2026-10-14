@@ -93,6 +93,9 @@ interface RankResponse {
   ranked: RankedItem[];
 }
 
+/** The ranker names only its top picks; asking for every agent overflowed maxTokens. */
+export const RANK_LIMIT = 8;
+
 export const RANK_SYSTEM_PROMPT = `You are the routing layer of a general-purpose marketplace where specialist agents bid on any kind of work — payments, design, code, research, marketing, data, ops, anything. The user describes a goal in plain language; you score how well each available specialist agent fits the goal.
 
 Hard rules:
@@ -105,7 +108,7 @@ Use only the capabilities, sponsor, one_liner, and tags you are shown. Never inv
 
 Output JSON only with shape:
 { "ranked": [ { "agent_id": "<id>", "fit_score": <0..1>, "fit_reasoning": "<one short sentence describing the actual capability match>" }, ... ] }
-Score 1.0 = directly built for this goal. 0.5 = tangentially relevant. 0.1 = unrelated. Include every agent you were given exactly once.`;
+Score 1.0 = directly built for this goal. 0.5 = tangentially relevant. 0.1 = unrelated. List only the ${RANK_LIMIT} best-fitting agents, best first, each at most once; every agent you leave out is treated as unrelated.`;
 
 function describeSpec(spec: CandidateSpec): string {
   return [
@@ -243,65 +246,75 @@ function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
 }
 
+/** Words too common to identify a sponsor or carry topical overlap. */
+const GENERIC_WORDS = new Set([
+  "the", "and", "for", "with", "from", "into", "that", "this", "your", "our",
+  "open", "data", "labs", "team", "project", "agent", "agents", "tools",
+  "foundation", "inc", "company", "community", "global", "digital", "cloud",
+]);
+
+function words(text: string): string[] {
+  return text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+}
+
+/** True when `phrase` occurs in `haystack` as whole consecutive words. */
+function hasPhrase(haystack: readonly string[], phrase: readonly string[]): boolean {
+  if (phrase.length === 0) return false;
+  for (let start = 0; start + phrase.length <= haystack.length; start += 1) {
+    if (phrase.every((word, offset) => haystack[start + offset] === word)) return true;
+  }
+  return false;
+}
+
+/**
+ * A sponsor is mentioned when its full name appears, or its first word does
+ * and that word is distinctive ("stripe" yes; "the", "acc", "open" no).
+ */
+function mentionsSponsor(queryWords: readonly string[], sponsor: string): boolean {
+  const name = words(sponsor.replace(/\(.*?\)/g, " "));
+  if (hasPhrase(queryWords, name)) return true;
+  const root = name[0];
+  return !!root && root.length >= 4 && !GENERIC_WORDS.has(root) && queryWords.includes(root);
+}
+
 /**
  * Keyword fallback used when the LLM ranker fails. Cheap heuristic, but
  * meaningful: a direct sponsor-name or capability-tag match in the prompt
  * is treated as a strong signal, so "set up stripe" pulls stripe-payments
- * to the top even when the LLM call dies.
+ * to the top even when the LLM call dies. Matching is by whole words, so
+ * "Fibonacci" does not mention "ACC Foundation".
  */
-function fallbackKeywordRank(
+export function fallbackKeywordRank(
   query: string,
   pool: CandidateSpec[],
 ): RankedItem[] {
-  const lowerQuery = query.toLowerCase();
-  const tokens = new Set(
-    lowerQuery.split(/[^a-z0-9]+/).filter((t) => t.length > 2),
-  );
+  const queryWords = words(query);
+  const tokens = queryWords.filter((t) => t.length > 2 && !GENERIC_WORDS.has(t));
   return pool.map((s) => {
-    const sponsor = s.sponsor.toLowerCase();
-    const sponsorRoot = sponsor.split(/[\s(]/)[0];
-    const tagSet = new Set([
-      ...s.capabilities.map((c) => c.toLowerCase()),
-      ...(s.tags ?? []).map((t) => t.toLowerCase()),
-    ]);
-
-    let score = 0;
     const reasons: string[] = [];
-
     // Direct sponsor-name match — by far the strongest signal.
-    if (sponsorRoot.length > 2 && lowerQuery.includes(sponsorRoot)) {
-      score += 0.85;
-      reasons.push(`mentions ${s.sponsor}`);
-    }
-
+    const sponsorScore = mentionsSponsor(queryWords, s.sponsor) ? 0.85 : 0;
+    if (sponsorScore) reasons.push(`mentions ${s.sponsor}`);
     // Domain-tag matches (e.g. "payments", "design") count strongly.
-    let tagHits = 0;
-    for (const tag of tagSet) {
-      if (tag.length > 2 && lowerQuery.includes(tag)) tagHits += 1;
-    }
-    if (tagHits > 0) {
-      score += Math.min(0.4, 0.18 * tagHits);
-      reasons.push(`${tagHits} capability/tag match`);
-    }
-
+    const tagHits = countTagHits(queryWords, [...s.capabilities, ...(s.tags ?? [])]);
+    if (tagHits) reasons.push(`${tagHits} capability/tag match`);
     // Generic token overlap with the one-liner — weakest signal.
-    const oneLiner = s.one_liner.toLowerCase();
-    let oneLinerHits = 0;
-    for (const t of tokens) if (oneLiner.includes(t)) oneLinerHits += 1;
-    if (oneLinerHits > 0) {
-      score += Math.min(0.15, 0.04 * oneLinerHits);
-    }
+    const oneLiner = new Set(words(s.one_liner));
+    const oneLinerHits = new Set(tokens.filter((t) => oneLiner.has(t))).size;
 
-    if (score === 0) {
-      reasons.push("no keyword overlap");
-    }
-
+    const score = sponsorScore + Math.min(0.4, 0.18 * tagHits) + Math.min(0.15, 0.04 * oneLinerHits);
+    if (score === 0) reasons.push("no keyword overlap");
     return {
       agent_id: s.agent_id,
       fit_score: clamp01(score),
       fit_reasoning: reasons.join(" · "),
     };
   });
+}
+
+function countTagHits(queryWords: readonly string[], tags: readonly string[]): number {
+  const distinct = new Set(tags.map((tag) => tag.toLowerCase()).filter((tag) => tag.length > 2));
+  return [...distinct].filter((tag) => hasPhrase(queryWords, words(tag))).length;
 }
 
 export async function suggestSpecialists(
