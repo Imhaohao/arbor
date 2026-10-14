@@ -221,6 +221,16 @@ async function screenOne(config: GradingConfig, bank: string, taskId: string, sc
 }
 
 /**
+ * A task counts as screened once its latest row is a real verdict. A
+ * no_code row means the screener's call failed (timeout, provider error),
+ * which says nothing about difficulty, so the task is screened again.
+ */
+function screenedTasks(rows: ReadonlyArray<Record<string, unknown>>): Set<string> {
+  const latest = new Map(rows.map((row) => [row.task as string, row.verdict as string]));
+  return new Set([...latest].filter(([, verdict]) => verdict !== "no_code").map(([task]) => task));
+}
+
+/**
  * Author-side difficulty probe: seal one staged task into a throwaway bank
  * and run the screener on it. Prints {valid, passed, verdict, code} so an
  * authoring loop can ask for a harder revision. A probe never admits a task
@@ -254,7 +264,7 @@ async function screen(flags: Flags): Promise<void> {
   const bank = required(flags, "bank");
   const outFile = join(required(flags, "out"), "screen.jsonl");
   const screener = requireScreener(flags);
-  const done = new Set(readResults(outFile).map((row) => row.task as string));
+  const done = screenedTasks(readResults(outFile));
   const queue = bankTaskIds(bank).filter((id) => !done.has(id));
   const config = gradingConfig(flags, bank, dirname(outFile));
   log(`screen: ${queue.length} tasks with ${screener} (${done.size} already done)`);
