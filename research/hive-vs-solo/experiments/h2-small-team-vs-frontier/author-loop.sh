@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Adversarial authoring loop for bank v3.
-# usage: author-loop.sh <author-id> <count> <topic text...>
+# usage: AUTHOR_BACKEND=codex|cursor author-loop.sh <author-id> <count> <topic text...>
 # For each problem: Codex writes and validates it (sandboxed, no network);
 # this script probes it with the screener (outside the sandbox); if the
 # screener solved it, the same Codex session is resumed with the screener's
@@ -17,13 +17,37 @@ LOG=$BASE/logs/$AUTHOR.log
 mkdir -p "$DIR" "$BASE/codex-author-home"
 [ -e "$BASE/codex-author-home/auth.json" ] || ln -s "$HOME/.codex/auth.json" "$BASE/codex-author-home/auth.json"
 export CODEX_HOME=$BASE/codex-author-home
+BACKEND=${AUTHOR_BACKEND:-codex}
+CURSOR_MODEL=gemini-4-argon-high
+AUTHOR_TAG=$([ "$BACKEND" = cursor ] && echo "cursor:$CURSOR_MODEL+probe" || echo "codex:gpt-6.1-sol+probe")
 CODEX_ARGS=(-m gpt-6.1-sol -c 'model_provider="caveman"'
   -c 'model_providers.caveman={name="Caveman",base_url="http://127.0.0.1:8787/chatgpt",wire_api="responses",requires_openai_auth=true}'
   -c model_reasoning_effort=high -c 'sandbox_mode="workspace-write"' --skip-git-repo-check)
 
 brief_for() {
   sed -e "s|{TOPIC}|$TOPIC|g" -e "s|{COUNT}|1|g" -e "s|{LAST}|$1|g" -e "s|{GRADER}|$GRADER|g" \
-      -e "s|t01, t02, ... t$1|t$1|" -e 's|"author": "codex:gpt-6.1-sol"|"author": "codex:gpt-6.1-sol+probe"|' "$BASE/brief.txt"
+      -e "s|t01, t02, ... t$1|t$1|" -e "s|\"author\": \"codex:gpt-6.1-sol\"|\"author\": \"$AUTHOR_TAG\"|" "$BASE/brief.txt"
+}
+
+# Start a fresh author session on a prompt; prints the output and sets SESSION.
+author_start() {
+  if [ "$BACKEND" = cursor ]; then
+    SESSION=$(cursor-agent create-chat 2>/dev/null | tail -1 | tr -d '[:space:]')
+    OUT=$(cursor-agent -p --trust --force --model $CURSOR_MODEL --resume "$SESSION" "$1" < /dev/null 2>&1)
+  else
+    OUT=$(codex exec "${CODEX_ARGS[@]}" "$1" 2>&1)
+    SESSION=$(echo "$OUT" | grep -m1 -o 'session id: [0-9a-f-]*' | cut -d' ' -f3)
+  fi
+  echo "$OUT" >> $LOG
+}
+
+author_continue() {
+  if [ "$BACKEND" = cursor ]; then
+    OUT=$(cursor-agent -p --trust --force --model $CURSOR_MODEL --resume "$SESSION" "$1" < /dev/null 2>&1)
+  else
+    OUT=$(codex exec resume "${CODEX_ARGS[@]}" "$SESSION" "$1" 2>&1)
+  fi
+  echo "$OUT" >> $LOG
 }
 
 probe() {
@@ -34,8 +58,7 @@ cd "$DIR"
 for i in $(seq 1 $COUNT); do
   NN=$(printf '%02d' $i)
   [ -f "$DIR/t$NN/.kept" ] && continue
-  OUT=$(codex exec "${CODEX_ARGS[@]}" "$(brief_for $NN)" 2>&1); echo "$OUT" >> $LOG
-  SESSION=$(echo "$OUT" | grep -m1 -o 'session id: [0-9a-f-]*' | cut -d' ' -f3)
+  author_start "$(brief_for $NN)"
   for round in $(seq 0 $HARDEN_ROUNDS); do
     RESULT=$(probe "$DIR/t$NN"); echo "probe t$NN round $round: $(echo $RESULT | head -c 300)" >> $LOG
     VALID=$(echo "$RESULT" | python3 -c 'import json,sys
@@ -57,7 +80,7 @@ except Exception: print("error")')
 $CODE
 \`\`\`"
     fi
-    OUT=$(codex exec resume "${CODEX_ARGS[@]}" "$SESSION" "$FEEDBACK" 2>&1); echo "$OUT" >> $LOG
+    author_continue "$FEEDBACK"
   done
 done
 echo "author $AUTHOR done" >> $LOG
