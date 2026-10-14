@@ -206,6 +206,38 @@ adversarial benchmarks:
   task harder. Every task still passes the formal `bench screen` before it
   can be sealed; probe runs never admit a task.
 
+## Bank v3 dev result and bank v4 (decided 2026-10-14, before any v3 or v4 test task ran)
+
+v3 dev (8 tasks, Astra skipped): Sonnet 5.5 7/8, Opus 5.5 7/8, team 7/8,
+Haiku 5.5 5/8, Gemini 3.8 Flash 5/8, Grok 4.7 Medium 0/8 (every call hit
+the 8-minute limit). Sonnet alone solved everything the team solved, so a
+router that picks Sonnet ties the team on tasks like these. The v3 test
+split is not run. Re-screening the v3 candidates with a stronger model
+dropped 12 of 17, so Gemini 3.7 Flash, which is older and weaker than the
+team members, does not select tasks that are hard for the members.
+
+Bank v4:
+
+- **Screener:** Gemini 4 Argon Medium (Cursor). It is in no arm and is a
+  newer generation than every member. A task enters only if Argon Medium
+  fails it on hidden tests in `bench screen`. A screen row whose call
+  failed (`no_code` from a timeout or provider error) is re-screened, never
+  kept.
+- **Pool:** survivors of the 3.7 screen that also fail Argon, plus new
+  tasks from the authoring loop, which now probes against Argon Medium (4
+  Argon authors `g1`-`g4`, 4 Codex authors `f5`-`f8`).
+- **Dev:** v4 has no dev split of its own. The router's member profiles
+  come from the v3 dev results (`runs-v3/results-dev.jsonl`), and every
+  v4 task is a test task. Tasks that ran in v3 dev are excluded from v4.
+- **Run conditions:** the test split runs with no authoring or screening
+  jobs on the machine and at most 2 tasks at a time, because v3 dev showed
+  call timeouts under load (`no_code` for Haiku, Gemini and Grok on
+  `d2-t01`; both repair calls on `e8-t01`). Failed calls now record the
+  CLI's error text.
+- **Size:** the test run starts once at least 40 tasks have survived, or
+  stops at whatever has survived by 2026-10-14 12:00 PDT, whichever comes
+  first. That count is fixed before any test task runs.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the
