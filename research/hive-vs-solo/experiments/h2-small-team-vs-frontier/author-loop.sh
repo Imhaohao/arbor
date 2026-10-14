@@ -10,7 +10,7 @@ AUTHOR=$1; COUNT=$2; shift 2; TOPIC="$*"
 BASE=$HOME/.arbor-bench/v3
 REPO=/Users/yanzihao/Documents/miyohacks-research
 GRADER=$REPO/lib/swarm/bench-grader.py
-SCREENER=cursor:gemini-3.7-flash-high
+SCREENER=cursor:gemini-4-argon-medium
 HARDEN_ROUNDS=3
 DIR=$BASE/staging/$AUTHOR
 LOG=$BASE/logs/$AUTHOR.log

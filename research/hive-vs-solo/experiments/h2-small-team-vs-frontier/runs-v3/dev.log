@@ -1,0 +1,31 @@
+05:12:30 dev: 8 tasks to run (0 already done); router off (no dev results)
+05:12:30 task c3-t01 (Cryogenic Commit Scheduling): solving
+05:12:30 task c7-t03 (Dual-Portal Stabilized Tree Tunnels): solving
+05:12:30 task c8-t03 (Tri-Reflected Polygonal Chain): solving
+05:12:30 task d2-t01 (Phase-Inverted Relay Jamming): solving
+(node:40962) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+05:20:30 task c3-t01: team selecting (60 trusted inputs from 2 testers)
+05:21:03 task c3-t01: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+05:21:03 task d7-t03 (Apex-Bounded Tree Hops): solving
+05:22:46 task c7-t03: team selecting (60 trusted inputs from 2 testers)
+05:23:16 task c7-t03: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+05:23:16 task e1-t05 (Imbalanced Relay Cascade): solving
+05:28:31 task c8-t03: team selecting (60 trusted inputs from 2 testers)
+05:28:44 task c8-t03: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+05:28:45 task e1-t06 (Biphasic Pivot Partition): solving
+05:34:04 task d2-t01: team selecting (30 trusted inputs from 1 testers)
+05:34:33 task d2-t01: passed by claude:claude-sonnet-5-5, claude:claude-opus-5-5, hive
+05:34:33 task e8-t01 (Quotient-Step Nim): solving
+05:37:07 task d7-t03: team selecting (30 trusted inputs from 1 testers)
+05:37:26 task d7-t03: passed by claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+05:42:04 task e1-t05: team selecting (60 trusted inputs from 2 testers)
+05:42:17 task e1-t05: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+05:49:25 task e1-t06: team selecting (30 trusted inputs from 1 testers)
+05:49:45 task e1-t06: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, claude:claude-opus-5-5, hive
+05:50:46 task e8-t01: team selecting (60 trusted inputs from 2 testers)
+05:50:51     claude:claude-sonnet-5-5 repair failed (other); retrying
+05:51:23     claude:claude-sonnet-5-5 repair failed (other); retrying
+05:53:27     claude:claude-sonnet-5-5 repair failed (other); retrying
+05:53:59     claude:claude-sonnet-5-5 repair failed (other); retrying
+05:56:09 task e8-t01: passed by nobody

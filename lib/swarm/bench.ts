@@ -78,6 +78,8 @@ export interface CallRecord {
   role: "solve" | "repair" | "tester" | "conductor";
   ok: boolean;
   failure?: string;
+  /** Tail of the CLI's own error output when the call failed, for diagnosis only. */
+  detail?: string;
   secs: number;
   attempts: number;
   costUsd?: number;
@@ -151,6 +153,13 @@ function withToolNote(spec: WorkerSpec, prompt: string): string {
   return note ? `${prompt}\n\n${note}` : prompt;
 }
 
+const DETAIL_CHARS = 300;
+
+function failureDetail(result: CliOutput): string | undefined {
+  const text = `${result.stderr}\n${result.stdout}`.replace(/\s+/g, " ").trim();
+  return text ? text.slice(-DETAIL_CHARS) : undefined;
+}
+
 export async function callModel(
   config: BenchConfig,
   spec: WorkerSpec,
@@ -170,7 +179,8 @@ export async function callModel(
       const done = output.ok || !RETRYABLE.has(output.failure ?? "other") || attempts > RETRY_DELAYS_MS.length;
       if (done) {
         const secs = Math.round((Date.now() - started) / 1000);
-        return { text: output.text, record: { label: spec.label, role, ok: output.ok, failure: output.failure, secs, attempts, ...usage } };
+        const detail = output.ok ? undefined : failureDetail(result);
+        return { text: output.text, record: { label: spec.label, role, ok: output.ok, failure: output.failure, detail, secs, attempts, ...usage } };
       }
       config.log(`    ${spec.label} ${role} failed (${output.failure}); retrying`);
     } finally {
