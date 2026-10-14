@@ -1,0 +1,28 @@
+{
+  "id": "d7-t03",
+  "title": "Apex-Bounded Tree Hops",
+  "topic": [
+    "trees",
+    "lca",
+    "binary-lifting",
+    "greedy"
+  ],
+  "author": "cursor:gemini-4-argon-high",
+  "checker": "tokens",
+  "time_limit_s": 2.84,
+  "statement": "# Apex-Bounded Tree Hops\n\nYou are given a weighted tree with $n$ vertices numbered $1$ through $n$, rooted at vertex $1$. Each vertex $x$ has a non-negative integer range $r_x$, and each edge $e$ has a positive integer length $w_e$.\n\nFor any two vertices $a$ and $b$, let $\\operatorname{dist}(a, b)$ denote the sum of edge lengths along the unique simple path between $a$ and $b$, and let $\\operatorname{LCA}(a, b)$ denote their lowest common ancestor in the tree rooted at $1$.\n\nA packet can make a **direct hop** between two vertices $a$ and $b$ if and only if, for $z = \\operatorname{LCA}(a, b)$, all three of the following conditions hold:\n\n1. $\\operatorname{dist}(a, z) \\le r_a$,\n2. $\\operatorname{dist}(b, z) \\le r_b$, and\n3. $\\operatorname{dist}(a, b) \\le \\max(r_a, r_b)$.\n\nYou are given $q$ queries. In each query, you are given two vertices $u$ and $v$. Let $x_0, x_1, \\dots, x_m$ ($x_0 = u$, $x_m = v$) be the sequence of vertices along the unique simple path from $u$ to $v$ in the tree. You must travel from $u$ to $v$ by choosing a subsequence of indices $0 = i_0 < i_1 < \\dots < i_k = m$ such that for each $t \\in \\{0, 1, \\dots, k - 1\\}$, a direct hop between $x_{i_t}$ and $x_{i_{t+1}}$ is valid.\n\nFor each query, find the minimum number of hops $k$ needed to reach $v$ from $u$ along their simple path, or output `-1` if it is impossible.\n\n## Input\n\nThe first line contains two integers $n$ and $q$ ($1 \\le n, q \\le 50\\,000$) \u2014 the number of vertices and the number of queries.\n\nThe second line contains $n$ integers $r_1, r_2, \\dots, r_n$ ($0 \\le r_i \\le 10^6$) \u2014 the ranges of the vertices.\n\nEach of the next $n - 1$ lines contains three integers $a$, $b$, and $w$ ($1 \\le a, b \\le n$, $a \\neq b$, $1 \\le w \\le 10^4$), describing an undirected edge between $a$ and $b$ of length $w$.\n\nEach of the next $q$ lines contains two integers $u$ and $v$ ($1 \\le u, v \\le n$), describing a query.\n\n## Output\n\nFor each query, print a single line containing the minimum number of hops needed to travel from $u$ to $v$ along their simple path, or `-1` if it is impossible.\n\n## Constraints\n\n- $1 \\le n, q \\le 50\\,000$\n- $0 \\le r_i \\le 10^6$\n- $1 \\le w \\le 10^4$\n- The given edges form a tree.\n\n## Examples\n\n### Example 1\n\n#### Input\n```\n4 3\n0 3 2 4\n1 2 2\n1 3 2\n3 4 2\n2 4\n2 1\n4 1\n```\n\n#### Output\n```\n2\n1\n1\n```\n\n### Example 2\n\n#### Input\n```\n5 3\n0 2 5 1 4\n1 2 2\n2 3 2\n1 4 3\n4 5 2\n3 5\n2 4\n3 1\n```\n\n#### Output\n```\n-1\n-1\n1\n```\n\n### Example 3\n\n#### Input\n```\n5 3\n0 4 4 2 3\n1 2 3\n1 3 3\n2 4 2\n3 5 2\n4 5\n4 3\n2 2\n```\n\n#### Output\n```\n4\n3\n0\n```\n",
+  "examples": [
+    {
+      "input": "4 3\n0 3 2 4\n1 2 2\n1 3 2\n3 4 2\n2 4\n2 1\n4 1\n",
+      "output": "2\n1\n1\n"
+    },
+    {
+      "input": "5 3\n0 2 5 1 4\n1 2 2\n2 3 2\n1 4 3\n4 5 2\n3 5\n2 4\n3 1\n",
+      "output": "-1\n-1\n1\n"
+    },
+    {
+      "input": "5 3\n0 4 4 2 3\n1 2 3\n1 3 3\n2 4 2\n3 5 2\n4 5\n4 3\n2 2\n",
+      "output": "4\n3\n0\n"
+    }
+  ]
+}

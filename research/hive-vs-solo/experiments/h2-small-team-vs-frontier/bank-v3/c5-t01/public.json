@@ -1,0 +1,29 @@
+{
+  "id": "c5-t01",
+  "title": "Triptych Prefix Folding",
+  "topic": [
+    "strings",
+    "kmp",
+    "z-function",
+    "trees",
+    "data-structures"
+  ],
+  "author": "cursor:gemini-4-argon-high",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Triptych Prefix Folding\n\nYou are given a string $S$ of length $n$ (1-indexed) and an integer weight $w_i$ for each prefix length $i \\in \\{1, 2, \\dots, n\\}$.\n\nFor a prefix $S[1..i]$ of length $i$, an integer $b$ ($1 \\le b \\le \\lfloor i / 2 \\rfloor$) is called a **triptych anchor** of $S[1..i]$ if $S[1..i]$ can be written as the concatenation\n\n$$S[1..i] = U \\cdot V \\cdot U$$\n\nwhere:\n- $U = S[1..b]$ is the prefix of $S$ of length $b$, and\n- $V = S[1..i - 2b]$ is the prefix of $S$ of length $i - 2b$ (when $i = 2b$, $V$ is the empty string).\n\nStarting from a chosen prefix length $x_0 = i$, you may perform zero or more folding steps. In each step, if your current prefix length is $x$, you may replace $x$ with any triptych anchor $b$ of $S[1..x]$. You may stop at any time.\n\nThe **score** of a sequence of visited prefix lengths $i = x_0 > x_1 > \\dots > x_k$ ($k \\ge 0$) is the sum of their weights:\n\n$$\\sum_{j=0}^{k} w_{x_j}$$\n\nFor every $i$ from $1$ to $n$, compute the maximum possible score of a valid folding sequence starting at $x_0 = i$.\n\n## Input\n\nThe first line contains a single integer $n$ \u2014 the length of the string $S$.\n\nThe second line contains the string $S$ of length $n$, consisting of lowercase English letters.\n\nThe third line contains $n$ space-separated integers $w_1, w_2, \\dots, w_n$ \u2014 the weights of the prefixes.\n\n## Output\n\nPrint $n$ space-separated integers $f_1, f_2, \\dots, f_n$ on a single line, where $f_i$ is the maximum score of a valid folding sequence starting at prefix length $i$.\n\n## Constraints\n\n- $1 \\le n \\le 10^5$\n- $S$ consists of lowercase English letters (`a`\u2013`z`).\n- $-10^9 \\le w_i \\le 10^9$ for all $1 \\le i \\le n$.\n\n## Examples\n\n### Example 1\n\nInput:\n```\n7\nababaab\n3 5 4 -1 -5 2 6\n```\n\nOutput:\n```\n3 5 4 4 -5 2 11\n```\n\n### Example 2\n\nInput:\n```\n6\naaaaaa\n10 -3 4 -8 2 1\n```\n\nOutput:\n```\n10 7 14 2 12 15\n```\n\n### Example 3\n\nInput:\n```\n8\nabaababa\n-4 3 5 -2 1 -6 4 2\n```\n\nOutput:\n```\n-4 3 5 -2 4 -1 4 7\n```\n",
+  "examples": [
+    {
+      "input": "7\nababaab\n3 5 4 -1 -5 2 6\n",
+      "output": "3 5 4 4 -5 2 11\n"
+    },
+    {
+      "input": "6\naaaaaa\n10 -3 4 -8 2 1\n",
+      "output": "10 7 14 2 12 15\n"
+    },
+    {
+      "input": "8\nabaababa\n-4 3 5 -2 1 -6 4 2\n",
+      "output": "-4 3 5 -2 4 -1 4 7\n"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "c3-t01",
+  "title": "Cryogenic Commit Scheduling",
+  "topic": [
+    "binary search on the answer",
+    "greedy and exchange arguments",
+    "sorting with clever keys",
+    "scheduling"
+  ],
+  "author": "cursor:gemini-4-argon-high",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Cryogenic Commit Scheduling\n\nA quantum control processor must execute $n$ jobs sequentially on its primary bus, starting at time $t = 0$.\n\nEach job $i$ ($1 \\le i \\le n$) is characterized by six integers:\n\n- $a_i$: normal primary-bus execution time,\n- $\\Delta_i$: execution time reduction if job $i$ is **overclocked** ($0 \\le \\Delta_i \\le a_i$),\n- $b_i$: off-bus verification duration,\n- $c_i$: post-execution primary-bus cryogenic flush duration,\n- $d_i$: target completion time,\n- $w_i$: urgency weight.\n\nYou must choose a permutation $\\pi = (\\pi_1, \\pi_2, \\dots, \\pi_n)$ of $\\{1, 2, \\dots, n\\}$ and a subset $S \\subseteq \\{1, 2, \\dots, n\\}$ of at most $k$ jobs to overclock ($|S| \\le k$). For each job $i$, its effective primary-bus execution time is\n\n$$a'_i = \\begin{cases} a_i - \\Delta_i & \\text{if } i \\in S, \\\\ a_i & \\text{if } i \\notin S. \\end{cases}$$\n\nWhen the jobs are executed in the order $\\pi_1, \\pi_2, \\dots, \\pi_n$:\n\n1. Job $\\pi_1$ begins execution on the primary bus at time $U_1 = 0$.\n2. In general, if job $\\pi_j$ begins execution on the primary bus at time $U_j$, it occupies the primary bus for $a'_{\\pi_j}$ time units until time $U_j + a'_{\\pi_j}$.\n3. At time $U_j + a'_{\\pi_j}$, two things happen simultaneously:\n   - Job $\\pi_j$ is handed off to a parallel verification unit (which can verify any number of jobs concurrently) for $b_{\\pi_j}$ time units, completing verification at time\n     $$V_{\\pi_j} = U_j + a'_{\\pi_j} + b_{\\pi_j}.$$\n   - The primary bus undergoes a mandatory cryogenic flush for $c_{\\pi_j}$ time units before the next job can begin. Thus, for $j < n$, job $\\pi_{j+1}$ begins execution on the primary bus at time\n     $$U_{j+1} = U_j + a'_{\\pi_j} + c_{\\pi_j}.$$\n\nThe **weighted drift** of job $i$ is defined as $w_i \\cdot (V_i - d_i)$, which may be negative, zero, or positive. Determine the minimum possible value of\n\n$$\\max_{1 \\le i \\le n} w_i \\cdot (V_i - d_i)$$\n\nover all permutations $\\pi$ and all subsets $S$ with $|S| \\le k$.\n\n## Input\n\nThe first line contains two integers $n$ and $k$ ($1 \\le n \\le 25\\,000$, $0 \\le k \\le n$) \u2014 the number of jobs and the maximum number of overclocked jobs.\n\nEach of the next $n$ lines contains six integers $a_i, \\Delta_i, b_i, c_i, d_i, w_i$ describing job $i$.\n\n## Output\n\nPrint a single integer \u2014 the minimum possible value of $\\max_{1 \\le i \\le n} w_i \\cdot (V_i - d_i)$.\n\n## Constraints\n\n- $1 \\le n \\le 25\\,000$\n- $0 \\le k \\le n$\n- $1 \\le a_i \\le 5 \\cdot 10^5$\n- $0 \\le \\Delta_i \\le a_i$\n- $0 \\le b_i, c_i \\le 5 \\cdot 10^5$\n- $1 \\le d_i \\le 5 \\cdot 10^{10}$\n- $1 \\le w_i \\le 10^4$\n\n## Examples\n\n### Example 1\n\nInput\n```\n3 1\n4 2 5 6 10 2\n5 3 1 0 9 2\n12 10 2 1 30 1\n```\n\nOutput\n```\n2\n```\n\n### Example 2\n\nInput\n```\n2 0\n6 4 2 5 10 3\n4 2 7 1 12 1\n```\n\nOutput\n```\n9\n```\n\n### Example 3\n\nInput\n```\n4 2\n7 5 3 4 25 4\n6 4 8 1 30 2\n5 2 2 6 28 3\n8 6 4 2 35 5\n```\n\nOutput\n```\n-24\n```\n",
+  "examples": [
+    {
+      "input": "3 1\n4 2 5 6 10 2\n5 3 1 0 9 2\n12 10 2 1 30 1\n",
+      "output": "2\n"
+    },
+    {
+      "input": "2 0\n6 4 2 5 10 3\n4 2 7 1 12 1\n",
+      "output": "9\n"
+    },
+    {
+      "input": "4 2\n7 5 3 4 25 4\n6 4 8 1 30 2\n5 2 2 6 28 3\n8 6 4 2 35 5\n",
+      "output": "-24\n"
+    }
+  ]
+}

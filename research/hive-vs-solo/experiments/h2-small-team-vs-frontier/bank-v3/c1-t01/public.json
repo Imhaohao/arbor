@@ -1,0 +1,26 @@
+{
+  "id": "c1-t01",
+  "title": "Catalyzed Phase Annihilation",
+  "topic": [
+    "dynamic-programming",
+    "interval-dp"
+  ],
+  "author": "cursor:gemini-4-argon-high",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Catalyzed Phase Annihilation\n\nYou are given $n$ particles arranged in a row, numbered $1, 2, \\dots, n$ from left to right. Initially, particle $i$ has a binary phase $p_i \\in \\{0, 1\\}$, a left-discharge value $L_i$, and a right-discharge value $R_i$. You are also given a fixed catalysis constant $K$.\n\nYou may repeatedly apply the following two operations to the current sequence of remaining particles (or stop at any time, including after zero operations):\n\n1. **Direct Annihilation**: Choose two **currently adjacent** particles $u$ (on the left) and $v$ (on the right) whose **current** phases are opposite ($p_u \\ne p_v$). Remove both $u$ and $v$ from the sequence. This operation adds $L_u + R_v$ to your total score.\n2. **Catalyzed Annihilation**: Choose three **currently adjacent** particles $u, x, v$ (in that order from left to right) whose **current** phases are all equal ($p_u = p_x = p_v$). Remove the outer two particles $u$ and $v$ from the sequence, while the middle particle $x$ remains in place with its phase flipped ($p_x \\gets 1 - p_x$). This operation adds $L_u + R_v + K$ to your total score.\n\nWhenever particles are removed, the remaining particles close the gap, so previously separated particles may become adjacent. Any particles left in the sequence when you stop contribute $0$ additional score.\n\nCompute the maximum total score obtainable over all valid sequences of operations.\n\n## Input\n\nThe first line contains two integers $n$ and $K$ ($1 \\le n \\le 180$, $-10^9 \\le K \\le 10^9$) \u2014 the number of particles and the catalysis constant.\n\nEach of the next $n$ lines contains three integers $p_i$, $L_i$, and $R_i$ ($p_i \\in \\{0, 1\\}$, $-10^9 \\le L_i, R_i \\le 10^9$) \u2014 the initial phase, left-discharge value, and right-discharge value of particle $i$.\n\n## Output\n\nPrint a single integer \u2014 the maximum total score obtainable.\n\n## Constraints\n\n- $1 \\le n \\le 180$\n- $-10^9 \\le K \\le 10^9$\n- $p_i \\in \\{0, 1\\}$ for all $1 \\le i \\le n$\n- $-10^9 \\le L_i, R_i \\le 10^9$ for all $1 \\le i \\le n$\n\n## Examples\n\n### Example 1\n\nInput:\n```\n4 5\n0 10 1\n0 2 2\n0 1 10\n0 1 20\n```\n\nOutput:\n```\n47\n```\n\nExplanation:\nInitially all four particles have phase $0$. First apply Catalyzed Annihilation to $(1, 2, 3)$: particles $1$ and $3$ are removed for $L_1 + R_3 + K = 10 + 10 + 5 = 25$, while particle $2$ remains and flips its phase from $0$ to $1$. The remaining sequence is $(2, 4)$ with phases $(1, 0)$. Next apply Direct Annihilation to $(2, 4)$ for $L_2 + R_4 = 2 + 20 = 22$, reaching a total score of $25 + 22 = 47$.\n\n### Example 2\n\nInput:\n```\n5 -3\n0 8 -5\n1 -4 9\n0 6 6\n0 7 1\n0 -2 11\n```\n\nOutput:\n```\n31\n```\n\n### Example 3\n\nInput:\n```\n2 10\n1 -5 -5\n0 -5 -5\n```\n\nOutput:\n```\n0\n```\n",
+  "examples": [
+    {
+      "input": "4 5\n0 10 1\n0 2 2\n0 1 10\n0 1 20\n",
+      "output": "47\n"
+    },
+    {
+      "input": "5 -3\n0 8 -5\n1 -4 9\n0 6 6\n0 7 1\n0 -2 11\n",
+      "output": "31\n"
+    },
+    {
+      "input": "2 10\n1 -5 -5\n0 -5 -5\n",
+      "output": "0\n"
+    }
+  ]
+}

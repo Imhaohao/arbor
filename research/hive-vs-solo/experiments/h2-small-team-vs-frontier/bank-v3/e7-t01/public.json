@@ -1,0 +1,28 @@
+{
+  "id": "e7-t01",
+  "title": "Polarity Cascade",
+  "topic": [
+    "trees",
+    "rerooting",
+    "dynamic-programming",
+    "greedy"
+  ],
+  "author": "cursor:gemini-4-argon-high",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Polarity Cascade\n\nYou are given a tree with $n$ vertices numbered $1$ to $n$. Each vertex $u$ has an initial integer weight $a_u$.\n\nFor a fixed root $r \\in \\{1, 2, \\dots, n\\}$, consider the following reduction process on the tree rooted at $r$:\n\n1. Initially, every vertex $u$ has charge $c_u = a_u$ and polarity $s_u = 0$.\n2. While the tree has more than one vertex, choose any current leaf $v \\ne r$ (a vertex $v \\ne r$ that currently has no children), remove $v$ from the tree, and update its parent $u$ according to the current polarity $s_v$ of $v$ and $s_u$ of $u$:\n   - If $s_v = 0$: set $c_u \\leftarrow c_v - c_u$ and $s_u \\leftarrow 1$.\n   - If $s_v = 1$ and $s_u = 0$: set $c_u \\leftarrow c_u + c_v$ (and $s_u$ remains $0$).\n   - If $s_v = 1$ and $s_u = 1$: set $c_u \\leftarrow c_u - c_v$ (and $s_u$ remains $1$).\n\nAfter $n - 1$ removals, only the root $r$ remains. Let $f(r)$ be the maximum possible final charge $c_r$ of vertex $r$ over all valid sequences of $n - 1$ leaf removals.\n\nCompute $f(1), f(2), \\dots, f(n)$.\n\n## Input\n\nThe first line contains a single integer $n$ ($1 \\le n \\le 10^5$) \u2014 the number of vertices.\n\nThe second line contains $n$ space-separated integers $a_1, a_2, \\dots, a_n$ ($-10^9 \\le a_u \\le 10^9$) \u2014 the initial weights of the vertices.\n\nEach of the next $n - 1$ lines contains two integers $u$ and $v$ ($1 \\le u, v \\le n$, $u \\ne v$), denoting an undirected edge between vertices $u$ and $v$. It is guaranteed that the given edges form a tree.\n\n## Output\n\nPrint $n$ space-separated integers $f(1), f(2), \\dots, f(n)$ on a single line.\n\n## Constraints\n\n- $1 \\le n \\le 10^5$\n- $-10^9 \\le a_u \\le 10^9$\n\n## Examples\n\n### Example 1\n\nInput:\n```\n1\n5\n```\n\nOutput:\n```\n5\n```\n\n### Example 2\n\nInput:\n```\n3\n4 7 2\n1 2\n1 3\n```\n\nOutput:\n```\n9 5 5\n```\n\n### Example 3\n\nInput:\n```\n4\n3 5 -2 -6\n1 2\n2 3\n3 4\n```\n\nOutput:\n```\n-2 2 -2 2\n```\n",
+  "examples": [
+    {
+      "input": "1\n5\n",
+      "output": "5\n"
+    },
+    {
+      "input": "3\n4 7 2\n1 2\n1 3\n",
+      "output": "9 5 5\n"
+    },
+    {
+      "input": "4\n3 5 -2 -6\n1 2\n2 3\n3 4\n",
+      "output": "-2 2 -2 2\n"
+    }
+  ]
+}

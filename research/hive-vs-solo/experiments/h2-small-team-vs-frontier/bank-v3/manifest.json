@@ -1,0 +1,70 @@
+{
+  "tasks": [
+    {
+      "id": "c1-t01",
+      "oracle_sha256": "27b53820ea1e5e15bae5aad3beaa54d25b1b283fb61c9f71c8f5cde5039c240d",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "c3-t01",
+      "oracle_sha256": "3eb07f4623a984419c5f8ae7e93e4656277960fb58623ee0ce21f2e73c4f01f8",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "c5-t01",
+      "oracle_sha256": "9248c913540f9607f4eeb41cf71a42cce0da158bfa6ff645f0437552221a85cb",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "c6-t03",
+      "oracle_sha256": "340583b97b849c57b3ff30fcfcef3f55905fd32e70bfb5cb9ce4a22d086b85bc",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "c7-t03",
+      "oracle_sha256": "e449c94219fa99a6b8d35ca0d63994c5d104889a0a396df8a387ac0a3afb0037",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "c8-t02",
+      "oracle_sha256": "b707161412216523096cf6ddbc87ceff90e9e75c1bb1fe3f564d97dfae9bd8dd",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "c8-t03",
+      "oracle_sha256": "f05645550394c7297d5b1df47a4bef01237e291f36c97755e8203ea14b3dc410",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "d2-t01",
+      "oracle_sha256": "428e60f8e38e75eb29cb3ef612c72cb0fa8a406471bfcd6aaacd85fba4a0473f",
+      "time_limit_s": 5.33
+    },
+    {
+      "id": "d7-t03",
+      "oracle_sha256": "02c4efc34f10231deece68e5d35585bb6871522507147ca9b2919234da929379",
+      "time_limit_s": 2.84
+    },
+    {
+      "id": "e1-t05",
+      "oracle_sha256": "3ab19af74300123dbc828f6168d806afe8e0ff4ae0e6ce6addf7fba524c9aa8f",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "e1-t06",
+      "oracle_sha256": "b740b01970020424ea17c8f895a66ca65f34ac9fb6f764bbcabccd2f01d7780e",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "e7-t01",
+      "oracle_sha256": "e3c32fbc2d5a6ca64e2223f98594557d5e1f3fa02320522133e8811f91f4163c",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "e8-t01",
+      "oracle_sha256": "42dd89932e94bcd426cba90318e850f6369adab4c2949eded86979168654a78d",
+      "time_limit_s": 2.0
+    }
+  ],
+  "rejected": []
+}

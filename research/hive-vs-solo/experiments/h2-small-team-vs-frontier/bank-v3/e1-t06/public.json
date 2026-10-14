@@ -1,0 +1,28 @@
+{
+  "id": "e1-t06",
+  "title": "Biphasic Pivot Partition",
+  "topic": [
+    "dynamic-programming",
+    "divide-and-conquer-dp",
+    "monge-property",
+    "rmq"
+  ],
+  "author": "cursor:gemini-4-argon-high",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Biphasic Pivot Partition\n\nThere are $n$ processing units arranged in a line, numbered $1$ to $n$. Unit $i$ has four positive integer load coefficients $a_i, b_i, c_i, d_i$ and two integer calibration offsets $p_i, q_i$.\n\nYou must partition the $n$ units into $K$ non-empty contiguous segments\n$$[l_1, r_1], [l_2, r_2], \\dots, [l_K, r_K]$$\nsuch that $l_1 = 1$, $r_K = n$, $l_t \\le r_t$ for all $1 \\le t \\le K$, and $l_t = r_{t-1} + 1$ for all $2 \\le t \\le K$.\n\nInside each segment $[l, r]$, you must choose a single pivot unit $m \\in \\{l, l+1, \\dots, r\\}$. For any sequence $x_1, \\dots, x_n$, denote the left and right sub-segment sums around $m$ by\n$$L_x = \\sum_{i=l}^{m} x_i \\quad \\text{and} \\quad R_x = \\sum_{i=m+1}^{r} x_i$$\n(where $R_x = 0$ when $m = r$).\n\nGiven the segment $[l, r]$ and pivot $m$, define the two channel potentials:\n$$U(l, m, r) = L_a L_b + R_a R_b + L_a R_b + R_a L_b + (L_a - R_a) - (L_b - R_b) + p_m,$$\n$$V(l, m, r) = L_c L_d + R_c R_d + L_c R_d + R_c L_d + (L_c - R_c) - (L_d - R_d) + q_m.$$\n\nThe cost of segment $[l, r]$ with pivot $m$ is\n$$W(l, m, r) = U(l, m, r) + V(l, m, r) - \\bigl|U(l, m, r) - V(l, m, r)\\bigr|,$$\nand the cost of segment $[l, r]$ is\n$$C(l, r) = \\min_{l \\le m \\le r} W(l, m, r).$$\n\nFind the minimum possible total cost $\\sum_{t=1}^{K} C(l_t, r_t)$ over all valid partitions of $1, \\dots, n$ into $K$ contiguous segments.\n\n## Input\n\nThe first line contains two integers $n$ and $K$ ($1 \\le K \\le n \\le 2500$, $K \\le 35$).\n\nThe $i$-th of the next $n$ lines contains six integers $a_i, b_i, c_i, d_i, p_i, q_i$ ($1 \\le a_i, b_i, c_i, d_i \\le 10^4$, $-10^9 \\le p_i, q_i \\le 10^9$).\n\n## Output\n\nPrint a single integer \u2014 the minimum possible total cost of partitioning the $n$ units into $K$ contiguous segments.\n\n## Constraints\n\n- $1 \\le K \\le n \\le 2500$\n- $1 \\le K \\le 35$\n- $1 \\le a_i, b_i, c_i, d_i \\le 10^4$\n- $-10^9 \\le p_i, q_i \\le 10^9$\n\n## Examples\n\n### Example 1\n\nInput:\n```\n3 2\n2 1 1 2 0 1\n1 3 2 1 -2 0\n2 2 1 1 1 -3\n```\n\nOutput:\n```\n12\n```\n\n### Example 2\n\nInput:\n```\n2 1\n2 1 1 2 0 1\n1 3 2 1 -2 0\n```\n\nOutput:\n```\n16\n```\n\n### Example 3\n\nInput:\n```\n3 3\n2 1 1 2 0 1\n1 3 2 1 -2 0\n2 2 1 1 1 -3\n```\n\nOutput:\n```\n-2\n```\n",
+  "examples": [
+    {
+      "input": "3 2\n2 1 1 2 0 1\n1 3 2 1 -2 0\n2 2 1 1 1 -3\n",
+      "output": "12\n"
+    },
+    {
+      "input": "2 1\n2 1 1 2 0 1\n1 3 2 1 -2 0\n",
+      "output": "16\n"
+    },
+    {
+      "input": "3 3\n2 1 1 2 0 1\n1 3 2 1 -2 0\n2 2 1 1 1 -3\n",
+      "output": "-2\n"
+    }
+  ]
+}

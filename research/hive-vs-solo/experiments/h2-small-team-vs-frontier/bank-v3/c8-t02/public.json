@@ -1,0 +1,29 @@
+{
+  "id": "c8-t02",
+  "title": "Acute Zonotope Lattice",
+  "topic": [
+    "geometry",
+    "convex-hull",
+    "sweep-line",
+    "integer-geometry",
+    "minkowski-sum"
+  ],
+  "author": "cursor:gemini-4-argon-high",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Acute Zonotope Lattice\n\nYou are given a set $P$ of $N$ points with integer coordinates in the plane, and a sequence of $M$ non-zero integer shift vectors $a_1, a_2, \\dots, a_M \\in \\mathbb{Z}^2 \\setminus \\{(0, 0)\\}$.\n\nAn unordered pair of indices $\\{i, j\\}$ ($1 \\le i < j \\le M$) is called **acute-compatible** if the dot product of $a_i$ and $a_j$ is non-negative:\n$$a_{i,x} a_{j,x} + a_{i,y} a_{j,y} \\ge 0.$$\n\nFor each acute-compatible pair $\\{i, j\\}$, form the four-translate point set\n$$S_{i, j} = \\{ p + \\varepsilon_1 a_i + \\varepsilon_2 a_j : p \\in P,\\; \\varepsilon_1, \\varepsilon_2 \\in \\{0, 1\\} \\},$$\nand let $\\operatorname{conv}(S_{i, j})$ denote its convex hull (which may be a two-dimensional convex polygon, a line segment, or a single point). Let $L(S_{i, j})$ be the number of integer lattice points $(x, y) \\in \\mathbb{Z}^2$ that lie inside or on the boundary of $\\operatorname{conv}(S_{i, j})$.\n\nCompute the sum of $L(S_{i, j})$ over all acute-compatible pairs $\\{i, j\\}$ ($1 \\le i < j \\le M$).\n\n## Input\n\nThe first line contains two space-separated integers $N$ and $M$.\n\nEach of the next $N$ lines contains two space-separated integers $x_k$ and $y_k$, the coordinates of the $k$-th point in $P$.\n\nEach of the next $M$ lines contains two space-separated integers $a_{i,x}$ and $a_{i,y}$, the coordinates of the $i$-th shift vector.\n\n## Output\n\nPrint a single integer: the sum of $L(S_{i, j})$ over all acute-compatible pairs $1 \\le i < j \\le M$.\n\n## Constraints\n\n- $1 \\le N \\le 3 \\cdot 10^4$\n- $2 \\le M \\le 3 \\cdot 10^4$\n- $-10^6 \\le x_k, y_k \\le 10^6$\n- $-10^6 \\le a_{i,x}, a_{i,y} \\le 10^6$, and $(a_{i,x}, a_{i,y}) \\ne (0, 0)$\n\n## Examples\n\n### Example 1\n\nInput:\n```\n3 3\n0 0\n1 0\n0 1\n2 0\n0 2\n-1 -1\n```\n\nOutput:\n```\n15\n```\n\nExplanation:\nOnly the pair $\\{1, 2\\}$ with $a_1 = (2, 0)$ and $a_2 = (0, 2)$ satisfies $a_1 \\cdot a_2 = 0 \\ge 0$. Shifting the triangle $P = \\{(0,0), (1,0), (0,1)\\}$ by $\\{0, (2,0), (0,2), (2,2)\\}$ produces a convex hull containing $15$ integer lattice points.\n\n### Example 2\n\nInput:\n```\n2 2\n0 0\n1 0\n2 0\n3 0\n```\n\nOutput:\n```\n7\n```\n\nExplanation:\nFor the pair $\\{1, 2\\}$, $a_1 \\cdot a_2 = 6 \\ge 0$, and $\\operatorname{conv}(S_{1, 2})$ is the horizontal segment from $(0, 0)$ to $(6, 0)$, which contains $7$ integer lattice points.\n\n### Example 3\n\nInput:\n```\n4 4\n-1 0\n1 0\n0 2\n0 -1\n3 0\n2 2\n0 3\n-2 2\n```\n\nOutput:\n```\n156\n```\n",
+  "examples": [
+    {
+      "input": "3 3\n0 0\n1 0\n0 1\n2 0\n0 2\n-1 -1\n",
+      "output": "15\n"
+    },
+    {
+      "input": "2 2\n0 0\n1 0\n2 0\n3 0\n",
+      "output": "7\n"
+    },
+    {
+      "input": "4 4\n-1 0\n1 0\n0 2\n0 -1\n3 0\n2 2\n0 3\n-2 2\n",
+      "output": "156\n"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "c6-t03",
+  "title": "Bit-Slack Subarray Counting",
+  "topic": [
+    "sparse-table",
+    "fenwick-tree",
+    "offline-queries",
+    "bitmasks"
+  ],
+  "author": "cursor:gemini-4-argon-high",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Bit-Slack Subarray Counting\n\nYou are given an array of non-negative integers $a_1, a_2, \\dots, a_n$ and a non-negative integer tolerance $K$.\n\nFor any nonempty contiguous subarray $[u, v]$ ($1 \\le u \\le v \\le n$), define:\n\n- $\\operatorname{OR}(u, v) = a_u \\mathbin{|} a_{u+1} \\mathbin{|} \\dots \\mathbin{|} a_v$ (bitwise OR),\n- $\\operatorname{AND}(u, v) = a_u \\mathbin{\\&} a_{u+1} \\mathbin{\\&} \\dots \\mathbin{\\&} a_v$ (bitwise AND),\n- $\\operatorname{MAX}(u, v) = \\max_{u \\le i \\le v} a_i$,\n- $\\operatorname{MIN}(u, v) = \\min_{u \\le i \\le v} a_i$.\n\nThe **bit-slack** of $[u, v]$ is defined as\n\n$$\\Delta(u, v) = \\big(\\operatorname{OR}(u, v) \\oplus \\operatorname{AND}(u, v)\\big) - \\big(\\operatorname{MAX}(u, v) - \\operatorname{MIN}(u, v)\\big),$$\n\nwhere $\\oplus$ denotes bitwise XOR. A subarray $[u, v]$ is called **$K$-tight** if $\\Delta(u, v) \\le K$.\n\nYou are given $q$ queries. The $j$-th query specifies a range $[l_j, r_j]$ ($1 \\le l_j \\le r_j \\le n$) and asks for the number of pairs $(u, v)$ with $l_j \\le u \\le v \\le r_j$ such that the subarray $[u, v]$ is $K$-tight.\n\n## Input\n\nThe first line contains three integers $n$, $q$, and $K$ ($1 \\le n, q \\le 6 \\cdot 10^4$, $0 \\le K \\le 10^6$).\n\nThe second line contains $n$ integers $a_1, a_2, \\dots, a_n$ ($0 \\le a_i < 2^{20}$).\n\nEach of the next $q$ lines contains two integers $l_j$ and $r_j$ ($1 \\le l_j \\le r_j \\le n$) describing a query.\n\n## Output\n\nOutput $q$ lines. The $j$-th line must contain a single integer \u2014 the number of $K$-tight subarrays $[u, v]$ satisfying $l_j \\le u \\le v \\le r_j$.\n\n## Constraints\n\n- $1 \\le n, q \\le 6 \\cdot 10^4$\n- $0 \\le K \\le 10^6$\n- $0 \\le a_i < 2^{20}$\n- $1 \\le l_j \\le r_j \\le n$\n\n## Examples\n\n### Example 1\n\n#### Input\n```\n4 3 0\n1 2 3 0\n1 3\n1 4\n2 4\n```\n\n#### Output\n```\n4\n8\n6\n```\n\n### Example 2\n\n#### Input\n```\n4 2 1\n1 2 3 0\n1 3\n1 4\n```\n\n#### Output\n```\n5\n9\n```\n\n### Example 3\n\n#### Input\n```\n6 3 1\n5 1 6 3 2 7\n1 4\n2 6\n1 6\n```\n\n#### Output\n```\n5\n11\n14\n```\n",
+  "examples": [
+    {
+      "input": "4 3 0\n1 2 3 0\n1 3\n1 4\n2 4\n",
+      "output": "4\n8\n6\n"
+    },
+    {
+      "input": "4 2 1\n1 2 3 0\n1 3\n1 4\n",
+      "output": "5\n9\n"
+    },
+    {
+      "input": "6 3 1\n5 1 6 3 2 7\n1 4\n2 6\n1 6\n",
+      "output": "5\n11\n14\n"
+    }
+  ]
+}

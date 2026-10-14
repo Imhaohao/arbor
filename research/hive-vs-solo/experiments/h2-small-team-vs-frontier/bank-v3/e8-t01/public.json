@@ -1,0 +1,28 @@
+{
+  "id": "e8-t01",
+  "title": "Quotient-Step Nim",
+  "topic": [
+    "games",
+    "sprague-grundy",
+    "invariants",
+    "math"
+  ],
+  "author": "cursor:gemini-4-argon-high",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Quotient-Step Nim\n\nTwo players, Alice and Bob, play a game with $m$ piles of stones. The $i$-th pile initially contains $n_i$ stones and has a fixed integer step parameter $k_i \\ge 2$.\n\nAlice and Bob alternate turns, with Alice moving first. On a turn, a player chooses one non-empty pile $i$ (so $n_i > 0$) and replaces its current size $n_i$ with a new integer size $n'_i$ satisfying at least one of the following two conditions:\n\n1. **Bounded subtraction:** $n_i - k_i \\le n'_i \\le n_i - 1$ and $n'_i \\ge 0$.\n2. **Exact division:** $n_i$ is divisible by $k_i$ and $n'_i = n_i / k_i$.\n\nThe game is played under normal play convention: the first player unable to make a legal move loses.\n\nTwo opening moves $(i, n'_i)$ and $(j, n'_j)$ are considered distinct if $i \\ne j$ or $n'_i \\ne n'_j$ (in particular, if both a subtraction move and a division move on the same pile $i$ produce the exact same resulting size $n'_i$, this counts as a single move $(i, n'_i)$).\n\nDetermine the total number of distinct opening moves $(i, n'_i)$ available to Alice that guarantee her a win assuming both players play optimally.\n\n## Input\n\nThe first line contains a single integer $m$ ($1 \\le m \\le 5 \\cdot 10^4$) \u2014 the number of piles.\n\nEach of the next $m$ lines contains two integers $n_i$ and $k_i$ ($1 \\le n_i \\le 10^{18}$, $2 \\le k_i \\le 10^9$) \u2014 the initial number of stones and the step parameter of the $i$-th pile.\n\n## Output\n\nPrint a single integer \u2014 the number of winning opening moves $(i, n'_i)$ for Alice.\n\n## Constraints\n\n- $1 \\le m \\le 5 \\cdot 10^4$\n- $1 \\le n_i \\le 10^{18}$\n- $2 \\le k_i \\le 10^9$\n\n## Examples\n\n### Example 1\n\nInput\n```\n2\n4 3\n3 2\n```\n\nOutput\n```\n0\n```\n\n### Example 2\n\nInput\n```\n1\n5 3\n```\n\nOutput\n```\n1\n```\n\n### Example 3\n\nInput\n```\n2\n12 4\n3 4\n```\n\nOutput\n```\n3\n```\n",
+  "examples": [
+    {
+      "input": "2\n4 3\n3 2\n",
+      "output": "0\n"
+    },
+    {
+      "input": "1\n5 3\n",
+      "output": "1\n"
+    },
+    {
+      "input": "2\n12 4\n3 4\n",
+      "output": "3\n"
+    }
+  ]
+}
