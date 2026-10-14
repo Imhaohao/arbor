@@ -160,6 +160,35 @@ seed). Time limits come from this laptop, the same machine that grades.
   neither the team nor the router reads frontier dev results. The test
   split runs every arm.
 
+## Bank v2 result and bank v3 (decided 2026-10-13, before any v2 test task ran)
+
+Bank v2's dev split also hit the ceiling. Opus 5.5, Haiku 5.5, Sonnet 5.5,
+Gemini 3.8 Flash and the team each solved 8/8; Grok 4.7 Medium solved
+fewer. GPT-6-Astra was skipped (no Codex quota). The v2 test split is not
+run. Model-written problems rated 2200-3000 by their authors are too easy
+for these models, so an author's own difficulty claim is not enough.
+
+Bank v3 adds a difficulty screen, the standard construction for
+adversarial benchmarks:
+
+- **Pool:** the 22 unseen v2 test tasks, the 24 Gemini 4 Argon extension
+  tasks (`c1`-`c8`, v2 brief), and new tasks from 8 Argon authors on a
+  harder brief (`d1`-`d8`: Codeforces 2800-3500, two insights, examples
+  that do not reveal the trick). v2 dev tasks are excluded because every
+  arm has seen them.
+- **Screen:** `bench screen` gives each pool task one solo attempt, with
+  the same example feedback and single repair every solo arm gets, by
+  Gemini 3.7 Flash High (via Cursor). That model is in no arm. Tasks it
+  solves on hidden tests are dropped. The command refuses any screener
+  that is an arm, tester, repairer or conductor. Screen results are kept in
+  `~/.arbor-bench/v3/screen/screen.jsonl` and published with the run.
+- **Bias:** the screener is an older sibling of the Gemini 3.8 Flash
+  member, so surviving tasks may be harder for that member. That affects
+  the router and the team equally, because both draw on the same pool.
+- **Seal:** survivors are sealed fresh into `bank-v3/` under a new key,
+  with the same seed and an 8-task dev split. Hypotheses, metric, arms and
+  decision rule are unchanged.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the

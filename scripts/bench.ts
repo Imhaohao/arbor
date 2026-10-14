@@ -2,6 +2,7 @@
 //
 //   npx tsx scripts/bench.ts seal   --staging DIR --bank DIR --key FILE [--dev 12]
 //   npx tsx scripts/bench.ts run    --split dev|test --bank DIR --key FILE --out DIR [--limit N] [--tasks 4] [--skip ARM]   (--skip: dev only, frontier arms only)
+//   npx tsx scripts/bench.ts screen --bank DIR --key FILE --out DIR --screener LABEL [--tasks 4]   (difficulty screen, before sealing)
 //   npx tsx scripts/bench.ts report --out DIR [--split test]
 //   npx tsx scripts/bench.ts audit  --out DIR           # leakage / cheating scan
 //
@@ -182,18 +183,52 @@ async function run(flags: Flags): Promise<void> {
   const done = new Set(readResults(join(outDir, `results-${splitName}.jsonl`)).map((row) => row.task as string));
   const limit = Number(flags.values.get("limit") ?? Infinity);
   const queue = split[splitName].filter((id) => !done.has(id)).slice(0, limit);
-  const key = required(flags, "key");
-  const config: GradingConfig = { root: ROOT, bank, key, denyReads: [bank, dirname(key)], outDir, callTimeoutMs: CALL_TIMEOUT_MS, log };
+  const config = gradingConfig(flags, bank, outDir);
   ensureBenchCodexHome(ROOT);
   const roster = splitName === "test" ? rosterFromDev(outDir) : undefined;
   const skipped = skippedFrontierArms(flags, splitName);
   log(`${splitName}: ${queue.length} tasks to run (${done.size} already done); router ${roster ? "on" : "off (no dev results)"}`);
-  const workers = Number(flags.values.get("tasks") ?? 4);
+  await drain(queue, Number(flags.values.get("tasks") ?? 4), (taskId) => runTask(config, taskId, splitName, roster, skipped));
+}
+
+function gradingConfig(flags: Flags, bank: string, outDir: string): GradingConfig {
+  const key = required(flags, "key");
+  return { root: ROOT, bank, key, denyReads: [bank, dirname(key)], outDir, callTimeoutMs: CALL_TIMEOUT_MS, log };
+}
+
+async function drain(queue: string[], workers: number, job: (taskId: string) => Promise<void>): Promise<void> {
   await Promise.all(Array.from({ length: workers }, async () => {
     for (let taskId = queue.shift(); taskId; taskId = queue.shift()) {
-      await runTask(config, taskId, splitName, roster, skipped).catch((error: unknown) => log(`task ${taskId} FAILED: ${error instanceof Error ? error.message : error}`));
+      await job(taskId).catch((error: unknown) => log(`task ${taskId} FAILED: ${error instanceof Error ? error.message : error}`));
     }
   }));
+}
+
+// ── screen ──────────────────────────────────────────────────────────────────
+
+/**
+ * Difficulty screen for a candidate pool, run before a bank is sealed: one
+ * solo attempt by a model that is in no arm, graded on hidden tests. Tasks
+ * the screener solves are too easy to separate the arms. No arm ever runs
+ * here, so the filter cannot favour one arm over another.
+ */
+async function screen(flags: Flags): Promise<void> {
+  const bank = required(flags, "bank");
+  const outFile = join(required(flags, "out"), "screen.jsonl");
+  const screener = flags.values.get("screener") ?? "";
+  const arms = [...SMALL_TEAM, ...FRONTIER, ...TESTERS, REPAIRER, CONDUCTOR];
+  if (!screener || arms.includes(screener)) throw new Error(`--screener must name a model in no arm (got "${screener}")`);
+  const done = new Set(readResults(outFile).map((row) => row.task as string));
+  const queue = bankTaskIds(bank).filter((id) => !done.has(id));
+  const config = gradingConfig(flags, bank, dirname(outFile));
+  log(`screen: ${queue.length} tasks with ${screener} (${done.size} already done)`);
+  await drain(queue, Number(flags.values.get("tasks") ?? 4), async (taskId) => {
+    const [task] = loadTasks(bank, [taskId]);
+    const solo = await soloAttempt(config, parseWorker(screener), task);
+    const grade = await gradeCode(config, taskId, solo.code, newSeed());
+    appendResult(outFile, { task: taskId, screener, passed: grade.passed, verdict: grade.first_failure?.verdict ?? "ok", examplesPassed: solo.examplesPassed, calls: solo.calls });
+    log(`screen ${taskId}: ${grade.passed ? "solved (drop)" : `failed (${grade.first_failure?.verdict}) (keep)`}`);
+  });
 }
 
 // ── report ──────────────────────────────────────────────────────────────────
@@ -321,7 +356,7 @@ function audit(flags: Flags): void {
   console.log(JSON.stringify({ ...summary, submissionsWithSuspiciousCode: codes.length }, null, 2));
 }
 
-const COMMANDS: Record<string, (flags: Flags) => void | Promise<void>> = { seal, run, report, audit };
+const COMMANDS: Record<string, (flags: Flags) => void | Promise<void>> = { seal, screen, run, report, audit };
 
 async function main(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2));

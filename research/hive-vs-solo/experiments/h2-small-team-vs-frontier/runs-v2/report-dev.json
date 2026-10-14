@@ -1,0 +1,333 @@
+{
+  "split": "dev",
+  "tasks": 8,
+  "excludedForOracleConflicts": 0,
+  "oracleAnySmall": 8,
+  "table": [
+    {
+      "arm": "claude:claude-opus-5-5",
+      "solved": 8,
+      "of": 8,
+      "rate": 1,
+      "ci95": [
+        0.676,
+        1
+      ],
+      "claudeUsd": 2.47,
+      "calls": 8
+    },
+    {
+      "arm": "codex:gpt-6-astra",
+      "solved": 0,
+      "of": 8,
+      "rate": 0,
+      "ci95": [
+        0,
+        0.324
+      ],
+      "claudeUsd": 0,
+      "calls": 0
+    },
+    {
+      "arm": "claude:claude-haiku-5-5",
+      "solved": 8,
+      "of": 8,
+      "rate": 1,
+      "ci95": [
+        0.676,
+        1
+      ],
+      "claudeUsd": 5.07,
+      "calls": 8
+    },
+    {
+      "arm": "claude:claude-sonnet-5-5",
+      "solved": 8,
+      "of": 8,
+      "rate": 1,
+      "ci95": [
+        0.676,
+        1
+      ],
+      "claudeUsd": 1.24,
+      "calls": 8
+    },
+    {
+      "arm": "cursor:grok-4.7-medium",
+      "solved": 4,
+      "of": 8,
+      "rate": 0.5,
+      "ci95": [
+        0.215,
+        0.785
+      ],
+      "claudeUsd": 0,
+      "calls": 8
+    },
+    {
+      "arm": "antigravity:gemini-3.8-flash-high",
+      "solved": 8,
+      "of": 8,
+      "rate": 1,
+      "ci95": [
+        0.676,
+        1
+      ],
+      "claudeUsd": 0,
+      "calls": 8
+    },
+    {
+      "arm": "router",
+      "solved": 0,
+      "of": 8,
+      "rate": 0,
+      "ci95": [
+        0,
+        0.324
+      ],
+      "claudeUsd": 0,
+      "calls": 0
+    },
+    {
+      "arm": "hive",
+      "solved": 8,
+      "of": 8,
+      "rate": 1,
+      "ci95": [
+        0.676,
+        1
+      ],
+      "claudeUsd": 7.28,
+      "calls": 48
+    }
+  ],
+  "primary": [
+    {
+      "comparison": "hive vs claude:claude-opus-5-5",
+      "tasks": 8,
+      "aSolved": 8,
+      "bSolved": 8,
+      "aOnly": 0,
+      "bOnly": 0,
+      "pOneSided": 1,
+      "diff": 0,
+      "diffCi": [
+        0,
+        0
+      ],
+      "pHolm": 1,
+      "verdict": "not shown"
+    },
+    {
+      "comparison": "hive vs codex:gpt-6-astra",
+      "tasks": 8,
+      "aSolved": 8,
+      "bSolved": 0,
+      "aOnly": 8,
+      "bOnly": 0,
+      "pOneSided": 0.003906250000000001,
+      "diff": 1,
+      "diffCi": [
+        1,
+        1
+      ],
+      "pHolm": 0.011718750000000003,
+      "verdict": "hive beats it"
+    },
+    {
+      "comparison": "hive vs router",
+      "tasks": 8,
+      "aSolved": 8,
+      "bSolved": 0,
+      "aOnly": 8,
+      "bOnly": 0,
+      "pOneSided": 0.003906250000000001,
+      "diff": 1,
+      "diffCi": [
+        1,
+        1
+      ],
+      "pHolm": 0.011718750000000003,
+      "verdict": "hive beats it"
+    }
+  ],
+  "bestDevSmall": {
+    "member": "claude:claude-haiku-5-5",
+    "tasks": 8,
+    "aSolved": 8,
+    "bSolved": 8,
+    "aOnly": 0,
+    "bOnly": 0,
+    "pOneSided": 1,
+    "diff": 0,
+    "diffCi": [
+      0,
+      0
+    ]
+  },
+  "byAuthor": {
+    "b2": {
+      "claude:claude-opus-5-5": "1/1",
+      "codex:gpt-6-astra": "0/1",
+      "claude:claude-haiku-5-5": "1/1",
+      "claude:claude-sonnet-5-5": "1/1",
+      "cursor:grok-4.7-medium": "0/1",
+      "antigravity:gemini-3.8-flash-high": "1/1",
+      "router": "0/1",
+      "hive": "1/1"
+    },
+    "b4": {
+      "claude:claude-opus-5-5": "1/1",
+      "codex:gpt-6-astra": "0/1",
+      "claude:claude-haiku-5-5": "1/1",
+      "claude:claude-sonnet-5-5": "1/1",
+      "cursor:grok-4.7-medium": "1/1",
+      "antigravity:gemini-3.8-flash-high": "1/1",
+      "router": "0/1",
+      "hive": "1/1"
+    },
+    "b3": {
+      "claude:claude-opus-5-5": "1/1",
+      "codex:gpt-6-astra": "0/1",
+      "claude:claude-haiku-5-5": "1/1",
+      "claude:claude-sonnet-5-5": "1/1",
+      "cursor:grok-4.7-medium": "1/1",
+      "antigravity:gemini-3.8-flash-high": "1/1",
+      "router": "0/1",
+      "hive": "1/1"
+    },
+    "b5": {
+      "claude:claude-opus-5-5": "1/1",
+      "codex:gpt-6-astra": "0/1",
+      "claude:claude-haiku-5-5": "1/1",
+      "claude:claude-sonnet-5-5": "1/1",
+      "cursor:grok-4.7-medium": "1/1",
+      "antigravity:gemini-3.8-flash-high": "1/1",
+      "router": "0/1",
+      "hive": "1/1"
+    },
+    "b6": {
+      "claude:claude-opus-5-5": "1/1",
+      "codex:gpt-6-astra": "0/1",
+      "claude:claude-haiku-5-5": "1/1",
+      "claude:claude-sonnet-5-5": "1/1",
+      "cursor:grok-4.7-medium": "0/1",
+      "antigravity:gemini-3.8-flash-high": "1/1",
+      "router": "0/1",
+      "hive": "1/1"
+    },
+    "b7": {
+      "claude:claude-opus-5-5": "1/1",
+      "codex:gpt-6-astra": "0/1",
+      "claude:claude-haiku-5-5": "1/1",
+      "claude:claude-sonnet-5-5": "1/1",
+      "cursor:grok-4.7-medium": "0/1",
+      "antigravity:gemini-3.8-flash-high": "1/1",
+      "router": "0/1",
+      "hive": "1/1"
+    },
+    "b8": {
+      "claude:claude-opus-5-5": "2/2",
+      "codex:gpt-6-astra": "0/2",
+      "claude:claude-haiku-5-5": "2/2",
+      "claude:claude-sonnet-5-5": "2/2",
+      "cursor:grok-4.7-medium": "1/2",
+      "antigravity:gemini-3.8-flash-high": "2/2",
+      "router": "0/2",
+      "hive": "2/2"
+    }
+  },
+  "comparisons": {
+    "hive vs claude:claude-opus-5-5": {
+      "tasks": 8,
+      "aSolved": 8,
+      "bSolved": 8,
+      "aOnly": 0,
+      "bOnly": 0,
+      "pOneSided": 1,
+      "diff": 0,
+      "diffCi": [
+        0,
+        0
+      ]
+    },
+    "hive vs codex:gpt-6-astra": {
+      "tasks": 8,
+      "aSolved": 8,
+      "bSolved": 0,
+      "aOnly": 8,
+      "bOnly": 0,
+      "pOneSided": 0.003906250000000001,
+      "diff": 1,
+      "diffCi": [
+        1,
+        1
+      ]
+    },
+    "hive vs router": {
+      "tasks": 8,
+      "aSolved": 8,
+      "bSolved": 0,
+      "aOnly": 8,
+      "bOnly": 0,
+      "pOneSided": 0.003906250000000001,
+      "diff": 1,
+      "diffCi": [
+        1,
+        1
+      ]
+    },
+    "hive vs claude:claude-haiku-5-5": {
+      "tasks": 8,
+      "aSolved": 8,
+      "bSolved": 8,
+      "aOnly": 0,
+      "bOnly": 0,
+      "pOneSided": 1,
+      "diff": 0,
+      "diffCi": [
+        0,
+        0
+      ]
+    },
+    "hive vs claude:claude-sonnet-5-5": {
+      "tasks": 8,
+      "aSolved": 8,
+      "bSolved": 8,
+      "aOnly": 0,
+      "bOnly": 0,
+      "pOneSided": 1,
+      "diff": 0,
+      "diffCi": [
+        0,
+        0
+      ]
+    },
+    "hive vs cursor:grok-4.7-medium": {
+      "tasks": 8,
+      "aSolved": 8,
+      "bSolved": 4,
+      "aOnly": 4,
+      "bOnly": 0,
+      "pOneSided": 0.0625,
+      "diff": 0.5,
+      "diffCi": [
+        0.125,
+        0.875
+      ]
+    },
+    "hive vs antigravity:gemini-3.8-flash-high": {
+      "tasks": 8,
+      "aSolved": 8,
+      "bSolved": 8,
+      "aOnly": 0,
+      "bOnly": 0,
+      "pOneSided": 1,
+      "diff": 0,
+      "diffCi": [
+        0,
+        0
+      ]
+    }
+  }
+}

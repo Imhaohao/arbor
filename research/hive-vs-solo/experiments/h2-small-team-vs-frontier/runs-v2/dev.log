@@ -1,0 +1,25 @@
+01:58:10 dev: 8 tasks to run (0 already done); router off (no dev results)
+01:58:10 task b2-t03 (Minimum Disagreement Tape): solving
+01:58:10 task b3-t03 (Two Safety Clocks): solving
+01:58:10 task b4-t01 (Self-Sized GCD): solving
+01:58:10 task b5-t02 (Alternating Carbon): solving
+02:06:10 task b2-t03: team selecting (60 trusted inputs from 2 testers)
+02:06:29 task b2-t03: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+02:06:29 task b6-t02 (Second Screen Retreat): solving
+02:08:58 task b4-t01: team selecting (60 trusted inputs from 2 testers)
+02:09:21 task b4-t01: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, cursor:grok-4.7-medium, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+02:09:21 task b7-t01 (One Broken Alternation): solving
+02:10:36 task b3-t03: team selecting (30 trusted inputs from 1 testers)
+02:11:38 task b3-t03: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, cursor:grok-4.7-medium, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+02:11:38 task b8-t01 (Alternating Suffixes): solving
+02:16:58 task b5-t02: team selecting (30 trusted inputs from 1 testers)
+02:17:46 task b5-t02: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, cursor:grok-4.7-medium, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+02:17:46 task b8-t04 (Square-Step Checkpoints): solving
+02:18:36 task b6-t02: team selecting (60 trusted inputs from 2 testers)
+02:19:05 task b6-t02: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+02:22:19 task b7-t01: team selecting (60 trusted inputs from 2 testers)
+02:22:42 task b7-t01: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+02:28:10 task b8-t01: team selecting (60 trusted inputs from 2 testers)
+02:28:35 task b8-t01: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, cursor:grok-4.7-medium, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
+02:30:19 task b8-t04: team selecting (60 trusted inputs from 2 testers)
+02:31:35 task b8-t04: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, hive
