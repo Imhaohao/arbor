@@ -6,7 +6,7 @@ export default function ReplayIndexPage() {
     <PageShell
       width="narrow"
       title="Replays"
-      subtitle="A replay is the full record of one finished run: every step attempted, every step a reviewer rejected, and what it cost. Sorted by how much disagreement each run drew — the rejections are the point."
+      subtitle="Every finished run, with each step a reviewer rejected and what it cost. Runs that drew the most disagreement come first."
     >
       <ReplayIndex />
     </PageShell>

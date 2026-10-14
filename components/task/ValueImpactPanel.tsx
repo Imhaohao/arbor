@@ -18,7 +18,7 @@ interface Props {
 /** Measured routing savings are routinely sub-cent; two-decimal money
  * formatting renders them all as $0.00 and hides the entire metric. */
 function formatUsdFine(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "Not measured";
   if (Math.abs(n) >= 0.01) return formatMoney(n);
   return `$${n.toFixed(4)}`;
 }
@@ -39,10 +39,10 @@ export function ValueImpactPanel({ task, events }: Props) {
   const elapsedMs = executionElapsedMs(events);
 
   return (
-    <Card className="animate-fade-up bg-brand-50">
+    <Card className="animate-fade-up">
       <CardHeader
         title="Specialist impact"
-        meta={<span className="text-brand-700">ROI estimate</span>}
+        meta="ROI estimate"
       />
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -58,14 +58,14 @@ export function ValueImpactPanel({ task, events }: Props) {
             value={
               display.budget_unspent_usd !== undefined
                 ? formatMoney(display.budget_unspent_usd)
-                : "—"
+                : "Not measured"
             }
             sub="not a savings figure; execution cost not measured for this run"
           />
         )}
         <Metric
           label="Execution time (measured)"
-          value={elapsedMs !== undefined ? formatElapsed(elapsedMs) : "—"}
+          value={elapsedMs !== undefined ? formatElapsed(elapsedMs) : "Not measured"}
           sub={`specialist quoted ${estimatedSeconds}s`}
         />
         <Metric
@@ -75,7 +75,7 @@ export function ValueImpactPanel({ task, events }: Props) {
         />
       </div>
 
-      <p className="mt-4 text-xs text-ink-muted">
+      <p className="mt-4 max-w-[70ch] text-[0.8125rem] text-ink-muted">
         {display.kind === "measured" ? (
           <>
             Savings are measured: the same tokens (
@@ -108,12 +108,12 @@ function Metric({
   sub: string;
 }) {
   return (
-    <div className="rounded-xl bg-white p-4 shadow-card">
-      <div className="text-xs font-medium text-ink-muted">{label}</div>
-      <div className="mt-2 truncate font-mono text-2xl font-semibold tracking-tight text-ink">
+    <dl className="rounded-control bg-surface-muted p-4">
+      <dt className="text-[0.8125rem] font-medium text-ink-muted">{label}</dt>
+      <dd className="type-data mt-2 truncate text-2xl font-semibold text-ink">
         {value}
-      </div>
-      <div className="mt-1 text-xs text-ink-muted">{sub}</div>
-    </div>
+      </dd>
+      <dd className="mt-1 text-[0.8125rem] text-ink-muted">{sub}</dd>
+    </dl>
   );
 }

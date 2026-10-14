@@ -1,7 +1,9 @@
 "use client";
 
 import { Card, CardHeader } from "@/components/ui/Card";
-import { Pill } from "@/components/ui/Pill";
+import { Pill, type PillTone } from "@/components/ui/Pill";
+import { Treeling } from "@/components/grove/Treeling";
+import { CheckCircle, CircleNotch, XCircle } from "@phosphor-icons/react";
 import { LoadingProgress, useElapsedSeconds } from "./LoadingProgress";
 import type {
   AgentToolCallDoc,
@@ -27,57 +29,62 @@ interface ResultShape {
   provenance?: SpecialistProvenance;
 }
 
-function TierBadge({ provenance }: { provenance?: SpecialistProvenance }) {
-  if (!provenance) return null;
+interface TierPresentation {
+  label: string;
+  tone: PillTone;
+}
+
+function tierPresentation(provenance: SpecialistProvenance): TierPresentation {
   const { tier, live_tools_called } = provenance;
   const count = provenance.successful_tool_call_count ?? 0;
-  if (tier === "model-backed") {
-    return (
-      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200">
-        MODEL BACKED
-      </span>
-    );
-  }
-  if (tier === "a2a-bridge") {
-    return (
-      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-        A2A BRIDGE
-      </span>
-    );
-  }
+  if (tier === "model-backed") return { label: "Model backed", tone: "info" };
+  if (tier === "a2a-bridge") return { label: "A2A bridge", tone: "info" };
   if (provenance.transport === "mcp" && count > 0) {
-    return (
-      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-        LIVE MCP
-      </span>
-    );
+    return { label: "Live MCP", tone: "success" };
   }
-  if (tier === "not-a2a-yet" && live_tools_called) {
-    return (
-      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-        LIVE API
-      </span>
-    );
+  if (tier === "not-a2a-yet") {
+    return live_tools_called
+      ? { label: "Live API", tone: "success" }
+      : { label: "MCP fallback", tone: "warning" };
   }
-  if (tier === "not-a2a-yet" && !live_tools_called) {
-    return (
-      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-        MCP FALLBACK
-      </span>
-    );
-  }
-  if (tier === "native-a2a") {
-    return (
-      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-        A2A LIVE
-      </span>
-    );
-  }
-  // mock or unknown
+  if (tier === "native-a2a") return { label: "A2A live", tone: "info" };
+  return { label: "Mock", tone: "neutral" };
+}
+
+function TierBadge({ provenance }: { provenance?: SpecialistProvenance }) {
+  if (!provenance) return null;
+  const { label, tone } = tierPresentation(provenance);
+  return <Pill tone={tone}>{label}</Pill>;
+}
+
+const CALL_STATUS_STYLE: Record<string, string> = {
+  succeeded: "text-moss-700",
+  failed: "text-danger-700",
+};
+
+function ToolCallRow({ call }: { call: AgentToolCallDoc }) {
+  const StatusIcon = call.status === "succeeded" ? CheckCircle : call.status === "failed" ? XCircle : CircleNotch;
   return (
-    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-      MOCK
-    </span>
+    <li className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem]">
+      <span
+        className={`inline-flex items-center gap-1 font-medium ${CALL_STATUS_STYLE[call.status] ?? "text-ink-muted"}`}
+      >
+        <StatusIcon size={14} weight="fill" aria-hidden="true" />
+        {call.status}
+      </span>
+      <span className="type-data text-[0.8125rem] text-ink">
+        {call.tool_name ?? call.method}
+      </span>
+      <span className="text-ink-muted">{call.endpoint_host}</span>
+      {call.duration_ms !== undefined ? (
+        <span className="type-data text-xs text-ink-muted">{call.duration_ms}ms</span>
+      ) : null}
+      {call.error_message ? (
+        <span className="min-w-0 flex-1 truncate text-danger-700">
+          {call.error_message}
+        </span>
+      ) : null}
+    </li>
   );
 }
 
@@ -100,62 +107,47 @@ function ProofSummary({
     provenance?.pr_url ?? [...toolCalls].reverse().find((call) => call.pr_url)?.pr_url;
 
   return (
-    <div className="mt-5 border-t border-line pt-4">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-        <span>Proof: {provenance?.proof_level ?? "none"}</span>
-        <span>{successful.length} successful calls</span>
-        {failed.length > 0 ? <span>{failed.length} failed calls</span> : null}
+    <div className="mt-5 pt-4 shadow-[0_-1px_0_0_oklch(var(--line))]">
+      <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.8125rem] text-ink-muted">
+        <div className="flex gap-1.5">
+          <dt>Proof</dt>
+          <dd className="text-ink">{provenance?.proof_level ?? "none"}</dd>
+        </div>
+        <div className="flex gap-1.5">
+          <dt>Successful calls</dt>
+          <dd className="type-data text-ink">{successful.length}</dd>
+        </div>
+        {failed.length > 0 ? (
+          <div className="flex gap-1.5">
+            <dt>Failed calls</dt>
+            <dd className="type-data text-danger-700">{failed.length}</dd>
+          </div>
+        ) : null}
         {sessionId ? (
-          <span>
-            Session <span className="font-mono text-ink">{sessionId}</span>
-          </span>
+          <div className="flex gap-1.5">
+            <dt>Session</dt>
+            <dd className="type-data text-ink">{sessionId}</dd>
+          </div>
         ) : null}
         {prUrl ? (
           <a
             href={prUrl}
             target="_blank"
             rel="noreferrer"
-            className="font-medium text-brand-700 hover:underline"
+            className="font-medium text-brand-700 underline underline-offset-2"
           >
             PR opened
           </a>
         ) : provenance?.external_session_id ? (
           <span>PR missing</span>
         ) : null}
-      </div>
+      </dl>
       {latest.length > 0 ? (
-        <div className="mt-3 space-y-1.5">
+        <ul className="mt-3 space-y-1.5">
           {latest.map((call) => (
-            <div
-              key={call._id}
-              className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs"
-            >
-              <span
-                className={
-                  call.status === "succeeded"
-                    ? "font-semibold text-green-700"
-                    : call.status === "failed"
-                      ? "font-semibold text-rose-700"
-                      : "font-semibold text-ink-muted"
-                }
-              >
-                {call.status}
-              </span>
-              <span className="font-mono text-ink">
-                {call.tool_name ?? call.method}
-              </span>
-              <span className="text-ink-muted">{call.endpoint_host}</span>
-              {call.duration_ms !== undefined ? (
-                <span className="text-ink-muted">{call.duration_ms}ms</span>
-              ) : null}
-              {call.error_message ? (
-                <span className="min-w-0 flex-1 truncate text-rose-700">
-                  {call.error_message}
-                </span>
-              ) : null}
-            </div>
+            <ToolCallRow key={call._id} call={call} />
           ))}
-        </div>
+        </ul>
       ) : null}
     </div>
   );
@@ -170,118 +162,215 @@ function isResult(v: unknown): v is ResultShape {
   );
 }
 
-export function ExecutionPanel({ task, events, toolCalls, probes }: Props) {
-  const started = events.find((e) => e.event_type === "execution_started");
-  const completed = events.find((e) => e.event_type === "execution_complete");
-  const failed = events.find((e) => e.event_type === "execution_failed");
-  const elapsed = useElapsedSeconds(
-    started && !completed && !failed ? started.timestamp : undefined,
-  );
+interface ExecutionEvents {
+  started: LifecycleEventDoc | undefined;
+  completed: LifecycleEventDoc | undefined;
+  failed: LifecycleEventDoc | undefined;
+}
 
-  const result = isResult(task.result) ? task.result : undefined;
-  const hasDeliverable = !!result && result.text.trim().length > 0;
+function findExecutionEvents(events: LifecycleEventDoc[]): ExecutionEvents {
+  return {
+    started: events.find((e) => e.event_type === "execution_started"),
+    completed: events.find((e) => e.event_type === "execution_complete"),
+    failed: events.find((e) => e.event_type === "execution_failed"),
+  };
+}
 
-  // Multi-step parents never emit execution_started — their lifecycle is
-  // task_posted -> plan_decided -> step_started (once per child) ->
-  // execution_complete (from the synthesizer, once every child settles) ->
-  // judge_verdict. Gating on `started` alone hid every finished multi-step
-  // deliverable behind a null render. Render whenever there is any evidence
-  // execution actually happened: a started/completed/failed event, or a
-  // result the task is already holding.
-  if (!started && !completed && !failed && !hasDeliverable) return null;
+function eventAgentId(event: LifecycleEventDoc | undefined) {
+  return (event?.payload as { agent_id?: string } | undefined)?.agent_id;
+}
 
-  const eventAgentId = (event: LifecycleEventDoc | undefined) =>
-    (event?.payload as { agent_id?: string } | undefined)?.agent_id;
-
-  const agentId =
+function resolveAgentId(
+  { started, completed, failed }: ExecutionEvents,
+  result: ResultShape | undefined,
+) {
+  return (
     eventAgentId(failed) ??
     eventAgentId(completed) ??
     eventAgentId(started) ??
     result?.agent_id ??
-    "winner";
+    "winner"
+  );
+}
 
-  // A multi-step parent's result merges every plan step's deliverable — it
-  // isn't one specialist's raw output, so attribute it as a synthesis
-  // instead of pointing at the internal "synthesizer" agent id.
-  const isSynthesized =
+function runningSince({ started, completed, failed }: ExecutionEvents) {
+  return started && !completed && !failed ? started.timestamp : undefined;
+}
+
+function hasExecutionEvidence(
+  { started, completed, failed }: ExecutionEvents,
+  hasDeliverable: boolean,
+) {
+  return Boolean(started || completed || failed || hasDeliverable);
+}
+
+function isSynthesizedResult(task: TaskDoc, agentId: string) {
+  return (
     (Array.isArray(task.task_plan) && task.task_plan.length >= 2) ||
-    agentId === "synthesizer";
+    agentId === "synthesizer"
+  );
+}
 
-  if (failed) {
-    const reason =
-      (failed.payload as { reason?: string }).reason ?? "unknown error";
-    return (
-      <Card className="animate-fade-up">
-        <CardHeader
-          title="Execution"
-          meta={<Pill tone="danger">Failed</Pill>}
-        />
-        <p className="text-sm text-ink-muted">
-          <span className="font-mono text-ink">{agentId}</span> failed: {reason}.
-          Escrow refunded.
-        </p>
-      </Card>
-    );
-  }
+function resultText(result: ResultShape | undefined, rawResult: unknown) {
+  if (result) return result.text;
+  return rawResult ? JSON.stringify(rawResult, null, 2) : "";
+}
 
-  if (!completed && !hasDeliverable) {
-    // Only "started" can be true here — multi-step parents never set it, so
-    // they never reach this branch. This is the single-step task mid-run.
-    // Real-MCP specialists (Reacher, Nia) take longer than soft ones because
-    // they make external HTTP calls. Surface that expectation in the status.
-    const isMcpForwarder =
-      agentId === "reacher-social" ||
-      agentId === "nia-context" ||
-      agentId === "devin-engineer";
-    return (
-      <Card className="animate-fade-up">
-        <CardHeader
-          title="Execution"
-          meta={<Pill tone="brand" pulse>Running</Pill>}
-        />
-        <LoadingProgress
-          label={`${agentId} is working`}
-          status={
-            agentId === "devin-engineer"
-              ? "Creating a Devin bridge session and waiting for verifiable session or PR evidence."
-              : isMcpForwarder
-              ? "Forwarding to the live MCP server. Each tool call adds a few seconds."
-              : "Generating the work product against the enriched context."
-          }
-          details={
-            agentId === "devin-engineer"
-              ? [
-                  "Requires devin_session_create to return a session id.",
-                  "PR proof appears only after Arbor captures a verified PR URL.",
-                ]
-              : isMcpForwarder
-              ? [
-                  "Calling remote MCP tools and synthesizing the result.",
-                  "Will surface the final answer when the agent stops calling tools.",
-                ]
-              : [
-                  "Reads the Hyperspell + Nia context packet from the prompt.",
-                  "Output streams in once execution_complete fires.",
-                ]
-          }
-          elapsedSeconds={elapsed}
-          tone="brand"
-        />
-        <div className="mt-4 space-y-2">
-          <div className="shimmer h-3 w-full rounded" />
-          <div className="shimmer h-3 w-5/6 rounded" />
-          <div className="shimmer h-3 w-2/3 rounded" />
+const MCP_FORWARDER_AGENT_IDS = new Set([
+  "reacher-social",
+  "nia-context",
+  "devin-engineer",
+]);
+
+interface RunningCopy {
+  status: string;
+  details: string[];
+}
+
+const DEVIN_RUNNING_COPY: RunningCopy = {
+  status:
+    "Creating a Devin bridge session and waiting for verifiable session or PR evidence.",
+  details: [
+    "Requires devin_session_create to return a session id.",
+    "PR proof appears only after Arbor captures a verified PR URL.",
+  ],
+};
+
+const MCP_RUNNING_COPY: RunningCopy = {
+  status: "Forwarding to the live MCP server. Each tool call adds a few seconds.",
+  details: [
+    "Calling remote MCP tools and synthesizing the result.",
+    "Will surface the final answer when the agent stops calling tools.",
+  ],
+};
+
+const DEFAULT_RUNNING_COPY: RunningCopy = {
+  status: "Generating the work product against the enriched context.",
+  details: [
+    "Reads the Hyperspell + Nia context packet from the prompt.",
+    "Output streams in once execution_complete fires.",
+  ],
+};
+
+function runningCopyFor(agentId: string): RunningCopy {
+  if (agentId === "devin-engineer") return DEVIN_RUNNING_COPY;
+  if (MCP_FORWARDER_AGENT_IDS.has(agentId)) return MCP_RUNNING_COPY;
+  return DEFAULT_RUNNING_COPY;
+}
+
+function ExecutionFailed({
+  agentId,
+  failed,
+}: {
+  agentId: string;
+  failed: LifecycleEventDoc;
+}) {
+  const reason =
+    (failed.payload as { reason?: string }).reason ?? "unknown error";
+  return (
+    <Card className="animate-fade-up">
+      <CardHeader
+        title="Execution"
+        meta={<Pill tone="danger">Failed</Pill>}
+      />
+      <p role="alert" className="flex items-center gap-3 rounded-control bg-danger-50 p-3 text-sm text-danger-700">
+        <Treeling seed={agentId} size={40} alive={false} asleep />
+        <span className="min-w-0 [overflow-wrap:anywhere]"><span className="type-data text-ink">{agentId}</span> failed: {reason}.
+        Escrow refunded.</span>
+      </p>
+    </Card>
+  );
+}
+
+function ExecutionRunning({
+  agentId,
+  elapsed,
+}: {
+  agentId: string;
+  elapsed: number;
+}) {
+  const { status, details } = runningCopyFor(agentId);
+  return (
+    <Card className="animate-fade-up">
+      <CardHeader
+        title="Execution"
+        meta={<Pill tone="live">Running</Pill>}
+      />
+      <LoadingProgress
+        label={`${agentId} is working`}
+        status={status}
+        details={details}
+        elapsedSeconds={elapsed}
+        tone="brand"
+      />
+      <div className="mt-4 flex items-end gap-4">
+        <Treeling seed={agentId} size={56} lantern pose="raised" label={`${agentId} is working`} />
+        <div className="streaming-caret flex-1 space-y-2 pb-1">
+          <div className="shimmer h-3 w-full rounded-full" />
+          <div className="shimmer h-3 w-5/6 rounded-full" />
+          <div className="shimmer h-3 w-2/3 rounded-full" />
         </div>
-      </Card>
+      </div>
+    </Card>
+  );
+}
+
+function CompleteMeta({
+  task,
+  agentId,
+  isSynthesized,
+  provenance,
+}: {
+  task: TaskDoc;
+  agentId: string;
+  isSynthesized: boolean;
+  provenance: SpecialistProvenance | undefined;
+}) {
+  if (isSynthesized) {
+    return (
+      <Pill tone="success">
+        Combined from {task.task_plan?.length ?? 0} steps
+      </Pill>
     );
   }
+  return (
+    <span className="flex items-center gap-2">
+      <TierBadge provenance={provenance} />
+      <Treeling seed={agentId} size={28} alive={false} />
+      <span className="type-data text-ink">{agentId}</span>
+    </span>
+  );
+}
 
-  const text = result
-    ? result.text
-    : task.result
-      ? JSON.stringify(task.result, null, 2)
-      : "";
-  const artifact = result?.artifact;
+function DeliverableBody({
+  artifact,
+  text,
+}: {
+  artifact: ExecutionArtifact | undefined;
+  text: string;
+}) {
+  if (artifact?.kind === "campaign_launch") {
+    return <LaunchProduct artifact={artifact} />;
+  }
+  if (text) return <MarkdownLite text={text} />;
+  return <p className="text-sm text-ink-muted">No output captured</p>;
+}
+
+function ExecutionComplete({
+  task,
+  agentId,
+  result,
+  toolCalls,
+  probes,
+}: {
+  task: TaskDoc;
+  agentId: string;
+  result: ResultShape | undefined;
+  toolCalls: AgentToolCallDoc[];
+  probes: BidProbeDoc[];
+}) {
+  const isSynthesized = isSynthesizedResult(task, agentId);
+  const text = resultText(result, task.result);
   const provenance = result?.provenance;
 
   return (
@@ -289,32 +378,22 @@ export function ExecutionPanel({ task, events, toolCalls, probes }: Props) {
       <CardHeader
         title={isSynthesized ? "Final deliverable" : "Execution complete"}
         meta={
-          isSynthesized ? (
-            <Pill tone="success">
-              Combined from {task.task_plan?.length ?? 0} steps
-            </Pill>
-          ) : (
-            <span className="flex items-center gap-2">
-              <TierBadge provenance={provenance} />
-              By <span className="font-mono text-ink">{agentId}</span>
-            </span>
-          )
+          <CompleteMeta
+            task={task}
+            agentId={agentId}
+            isSynthesized={isSynthesized}
+            provenance={provenance}
+          />
         }
       />
       {isSynthesized ? (
-        <p className="mb-4 text-sm text-ink-muted">
+        <p className="type-body mb-4 text-ink-muted">
           This is the final answer to your request. It combines the work from
           every step of the plan above into one deliverable, not the raw
           output of a single specialist.
         </p>
       ) : null}
-      {artifact?.kind === "campaign_launch" ? (
-        <LaunchProduct artifact={artifact} />
-      ) : text ? (
-        <MarkdownLite text={text} />
-      ) : (
-        <p className="text-sm text-ink-muted">No output captured</p>
-      )}
+      <DeliverableBody artifact={result?.artifact} text={text} />
       {isSynthesized ? null : (
         <>
           <ProofSummary provenance={provenance} toolCalls={toolCalls} />
@@ -329,5 +408,42 @@ export function ExecutionPanel({ task, events, toolCalls, probes }: Props) {
         </>
       )}
     </Card>
+  );
+}
+
+export function ExecutionPanel({ task, events, toolCalls, probes }: Props) {
+  const executionEvents = findExecutionEvents(events);
+  const elapsed = useElapsedSeconds(runningSince(executionEvents));
+
+  const result = isResult(task.result) ? task.result : undefined;
+  const hasDeliverable = !!result && result.text.trim().length > 0;
+
+  // Multi-step parents never emit execution_started — their lifecycle is
+  // task_posted -> plan_decided -> step_started (once per child) ->
+  // execution_complete (from the synthesizer, once every child settles) ->
+  // judge_verdict. Gating on `started` alone hid every finished multi-step
+  // deliverable behind a null render. Render whenever there is any evidence
+  // execution actually happened: a started/completed/failed event, or a
+  // result the task is already holding.
+  if (!hasExecutionEvidence(executionEvents, hasDeliverable)) return null;
+
+  const agentId = resolveAgentId(executionEvents, result);
+
+  if (executionEvents.failed) {
+    return <ExecutionFailed agentId={agentId} failed={executionEvents.failed} />;
+  }
+
+  if (!executionEvents.completed && !hasDeliverable) {
+    return <ExecutionRunning agentId={agentId} elapsed={elapsed} />;
+  }
+
+  return (
+    <ExecutionComplete
+      task={task}
+      agentId={agentId}
+      result={result}
+      toolCalls={toolCalls}
+      probes={probes}
+    />
   );
 }

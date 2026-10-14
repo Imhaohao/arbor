@@ -58,7 +58,7 @@ function formatDuration(ms?: number): string | null {
 function ArtifactMedia({ artifact }: { artifact: MediaArtifactRow }) {
   if (!artifact.download_url) {
     return (
-      <div className="flex h-24 items-center justify-center rounded-lg bg-surface-muted text-xs text-ink-muted">
+      <div className="flex h-24 items-center justify-center rounded-control bg-surface-muted text-[0.8125rem] text-ink-muted">
         File unavailable
       </div>
     );
@@ -70,7 +70,7 @@ function ArtifactMedia({ artifact }: { artifact: MediaArtifactRow }) {
       <img
         src={artifact.download_url}
         alt={artifact.file_name}
-        className="max-h-64 w-full rounded-lg object-contain"
+        className="max-h-64 w-full rounded-control object-contain outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
         loading="lazy"
       />
     );
@@ -87,7 +87,7 @@ function ArtifactMedia({ artifact }: { artifact: MediaArtifactRow }) {
       <video
         controls
         preload="metadata"
-        className="max-h-72 w-full rounded-lg bg-black"
+        className="max-h-72 w-full rounded-control bg-black outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
       >
         <source src={artifact.download_url} type={artifact.mime_type} />
       </video>
@@ -97,7 +97,7 @@ function ArtifactMedia({ artifact }: { artifact: MediaArtifactRow }) {
     <a
       href={artifact.download_url}
       download={artifact.file_name}
-      className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline"
+      className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 underline underline-offset-2"
     >
       <DownloadSimple size={14} weight="bold" />
       Download {artifact.file_name}
@@ -134,7 +134,7 @@ export function MediaArtifactsPanel({ taskId }: Props) {
           return (
             <div
               key={artifact._id}
-              className="space-y-2 rounded-xl bg-surface-subtle p-3"
+              className="space-y-2 rounded-control bg-surface-muted p-3"
             >
               <ArtifactMedia artifact={artifact} />
               <div className="flex items-start justify-between gap-2">
@@ -146,12 +146,12 @@ export function MediaArtifactsPanel({ taskId }: Props) {
                     <Icon size={14} className="shrink-0 text-ink-muted" />
                     {artifact.file_name}
                   </p>
-                  <p className="mt-0.5 text-xs text-ink-muted">
-                    {artifact.created_by_agent_id}
-                    {artifact.provider ? ` · ${artifact.provider}` : ""}
-                    {size ? ` · ${size}` : ""}
-                    {duration ? ` · ${duration}` : ""}
-                  </p>
+                  <dl className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-ink-muted">
+                    <dd className="type-data">{artifact.created_by_agent_id}</dd>
+                    {artifact.provider && <dd>{artifact.provider}</dd>}
+                    {size && <dd className="type-data">{size}</dd>}
+                    {duration && <dd className="type-data">{duration}</dd>}
+                  </dl>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <Pill tone="neutral">{artifact.media_kind}</Pill>
@@ -160,7 +160,7 @@ export function MediaArtifactsPanel({ taskId }: Props) {
                       href={artifact.download_url}
                       download={artifact.file_name}
                       aria-label={`Download ${artifact.file_name}`}
-                      className="rounded-md p-1 text-ink-muted transition-colors hover:bg-black/5 hover:text-brand-700"
+                      className="flex size-8 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-ink/[0.06] hover:text-brand-700"
                     >
                       <DownloadSimple size={15} weight="bold" />
                     </a>
@@ -175,7 +175,7 @@ export function MediaArtifactsPanel({ taskId }: Props) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-3 text-sm font-medium text-brand-700 hover:underline"
+          className="mt-3 text-sm font-medium text-brand-700 underline underline-offset-2"
         >
           {expanded ? "Show fewer" : `Show all ${artifacts.length}`}
         </button>

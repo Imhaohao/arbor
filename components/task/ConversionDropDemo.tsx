@@ -1,7 +1,8 @@
 "use client";
 
 import { Card, CardHeader } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClasses } from "@/components/ui/Button";
+import { Treeling } from "@/components/grove/Treeling";
 import { Pill } from "@/components/ui/Pill";
 import { MarkdownLite } from "./MarkdownLite";
 import {
@@ -130,44 +131,65 @@ function findAll(events: LifecycleEventDoc[], type: string) {
   return events.filter((e) => e.event_type === type);
 }
 
-export function ConversionDropDemo({ task, events }: Props) {
-  const triggered = find(events, "demo_triggered");
-  const diagnoseStarted = find(events, "demo_diagnose_started");
-  const driveDocFound = find(events, "demo_drive_doc_found");
-  const hyperspellDone = find(events, "demo_hyperspell_done");
-  const hyperspellSkipped = find(events, "demo_hyperspell_skipped");
-  const niaDone = find(events, "demo_nia_done");
-  const niaSkipped = find(events, "demo_nia_skipped");
-  const diagnosisReady = find(events, "demo_diagnosis_ready");
-  const bidReceived = findAll(events, "bid_received");
-  const bidDeclined = findAll(events, "bid_declined");
-  const auctionResolved = find(events, "auction_resolved");
-  const paymentRequested = find(events, "demo_payment_requested");
-  const paymentConfirmed = find(events, "demo_payment_confirmed");
-  const v0Started = find(events, "demo_v0_started");
-  const v0Done = find(events, "demo_v0_done");
-  const fixStarted = find(events, "demo_fix_started");
-  const prOpened = find(events, "demo_pr_opened");
-  const failed = find(events, "demo_failed");
+interface DemoEvents {
+  triggered: LifecycleEventDoc | undefined;
+  diagnoseStarted: LifecycleEventDoc | undefined;
+  driveDocFound: LifecycleEventDoc | undefined;
+  hyperspellDone: LifecycleEventDoc | undefined;
+  hyperspellSkipped: LifecycleEventDoc | undefined;
+  niaDone: LifecycleEventDoc | undefined;
+  niaSkipped: LifecycleEventDoc | undefined;
+  diagnosisReady: LifecycleEventDoc | undefined;
+  bidReceived: LifecycleEventDoc[];
+  bidDeclined: LifecycleEventDoc[];
+  auctionResolved: LifecycleEventDoc | undefined;
+  paymentRequested: LifecycleEventDoc | undefined;
+  paymentConfirmed: LifecycleEventDoc | undefined;
+  v0Started: LifecycleEventDoc | undefined;
+  v0Done: LifecycleEventDoc | undefined;
+  fixStarted: LifecycleEventDoc | undefined;
+  prOpened: LifecycleEventDoc | undefined;
+  failed: LifecycleEventDoc | undefined;
+}
 
-  const diagnosisPayload = diagnosisReady?.payload as
-    | DiagnosisReadyPayload
-    | undefined;
-  const drivePayload = driveDocFound?.payload as
-    | DriveDocPayload
-    | undefined;
-  const v0StartedPayload = v0Started?.payload as V0StartedPayload | undefined;
-  const v0DonePayload = v0Done?.payload as V0DonePayload | undefined;
-  const prPayload = prOpened?.payload as PrOpenedPayload | undefined;
-  const auctionPayload = auctionResolved?.payload as
-    | AuctionResolvedPayload
-    | undefined;
-  const auctionStarted = bidReceived.length > 0 || bidDeclined.length > 0;
-  const evaluatedCount = bidReceived.length + bidDeclined.length;
+function selectDemoEvents(events: LifecycleEventDoc[]): DemoEvents {
+  return {
+    triggered: find(events, "demo_triggered"),
+    diagnoseStarted: find(events, "demo_diagnose_started"),
+    driveDocFound: find(events, "demo_drive_doc_found"),
+    hyperspellDone: find(events, "demo_hyperspell_done"),
+    hyperspellSkipped: find(events, "demo_hyperspell_skipped"),
+    niaDone: find(events, "demo_nia_done"),
+    niaSkipped: find(events, "demo_nia_skipped"),
+    diagnosisReady: find(events, "demo_diagnosis_ready"),
+    bidReceived: findAll(events, "bid_received"),
+    bidDeclined: findAll(events, "bid_declined"),
+    auctionResolved: find(events, "auction_resolved"),
+    paymentRequested: find(events, "demo_payment_requested"),
+    paymentConfirmed: find(events, "demo_payment_confirmed"),
+    v0Started: find(events, "demo_v0_started"),
+    v0Done: find(events, "demo_v0_done"),
+    fixStarted: find(events, "demo_fix_started"),
+    prOpened: find(events, "demo_pr_opened"),
+    failed: find(events, "demo_failed"),
+  };
+}
+
+function auctionPayloadOf(demo: DemoEvents) {
+  return demo.auctionResolved?.payload as AuctionResolvedPayload | undefined;
+}
+
+function prPayloadOf(demo: DemoEvents) {
+  return demo.prOpened?.payload as PrOpenedPayload | undefined;
+}
+
+export function ConversionDropDemo({ task, events }: Props) {
+  const demo = selectDemoEvents(events);
+  const prPayload = prPayloadOf(demo);
 
   // Track a single signal that flips whenever any new content lands so the
   // auto-scroll fires at every meaningful step of the demo.
-  const streamSignal = `${events.length}:${Boolean(prOpened)}:${Boolean(paymentConfirmed)}`;
+  const streamSignal = `${events.length}:${Boolean(demo.prOpened)}:${Boolean(demo.paymentConfirmed)}`;
   const { sentinelRef, hasNewBelow, scrollToLatest } =
     useStickToLatest(streamSignal);
 
@@ -178,168 +200,13 @@ export function ConversionDropDemo({ task, events }: Props) {
         <p className="text-sm text-ink-soft">{task.prompt}</p>
       </Card>
 
-      <Card className="animate-fade-up [animation-delay:60ms]">
-        <CardHeader
-          title="Step 1 — Diagnose"
-          meta={
-            <DiagnoseStatusPill
-              started={Boolean(diagnoseStarted || triggered)}
-              ready={Boolean(diagnosisReady)}
-            />
-          }
-        />
-        <div className="space-y-3">
-          {drivePayload && <DriveDocRow payload={drivePayload} />}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <SourceRow
-              name="Hyperspell"
-              done={hyperspellDone?.payload as SourceDonePayload | undefined}
-              skippedReason={
-                hyperspellSkipped
-                  ? (hyperspellSkipped.payload as { reason?: string }).reason
-                  : undefined
-              }
-              pending={Boolean(diagnoseStarted) && !hyperspellDone && !hyperspellSkipped}
-              kind="business"
-            />
-            <SourceRow
-              name="Nia"
-              done={niaDone?.payload as SourceDonePayload | undefined}
-              skippedReason={
-                niaSkipped
-                  ? (niaSkipped.payload as { reason?: string }).reason
-                  : undefined
-              }
-              pending={Boolean(diagnoseStarted) && !niaDone && !niaSkipped}
-              kind="repo"
-            />
-          </div>
-
-          {diagnosisPayload ? (
-            <div className="rounded-xl bg-surface-muted p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-ink-muted">
-                  Diagnosis
-                </span>
-                <DiagnosisSourcePill payload={diagnosisPayload} />
-              </div>
-              <MarkdownLite text={diagnosisPayload.diagnosis} />
-            </div>
-          ) : diagnoseStarted ? (
-            <PendingRow text="Reading the analysis doc…" />
-          ) : null}
-        </div>
-      </Card>
-
-      <Card className="animate-fade-up [animation-delay:120ms]">
-        <CardHeader
-          title="Step 2 — Specialist auction"
-          meta={
-            <AuctionStatusPill
-              started={auctionStarted}
-              resolved={Boolean(auctionResolved)}
-            />
-          }
-        />
-        {auctionStarted ? (
-          <AuctionPanel
-            bidReceived={bidReceived.map(
-              (e) => e.payload as unknown as BidReceivedPayload,
-            )}
-            bidDeclined={bidDeclined.map(
-              (e) => e.payload as unknown as BidDeclinedPayload,
-            )}
-            resolved={auctionPayload}
-            evaluatedCount={evaluatedCount}
-          />
-        ) : (
-          <p className="text-sm text-ink-muted">
-            Opening sealed-bid auction across the marketplace…
-          </p>
-        )}
-      </Card>
-
-      <Card className="animate-fade-up [animation-delay:180ms]">
-        <CardHeader
-          title="Step 3 — Confirm and pay"
-          meta={
-            <PaymentStatusPill
-              requested={Boolean(paymentRequested)}
-              confirmed={Boolean(paymentConfirmed)}
-            />
-          }
-        />
-        {paymentConfirmed ? (
-          <PaymentConfirmedRow
-            winnerAgentId={auctionPayload?.winner.agent_id}
-            pricePaid={auctionPayload?.vickrey.price_paid ?? task.price_paid}
-          />
-        ) : paymentRequested && auctionPayload ? (
-          <ConfirmAndPayForm
-            taskId={task._id as Id<"tasks">}
-            winnerAgentId={auctionPayload.winner.agent_id}
-            winnerBidPrice={auctionPayload.winner.bid_price}
-            pricePaid={auctionPayload.vickrey.price_paid}
-            rule={auctionPayload.vickrey.rule}
-          />
-        ) : (
-          <p className="text-sm text-ink-muted">
-            Waiting for the auction to resolve.
-          </p>
-        )}
-      </Card>
-
-      <Card className="animate-fade-up [animation-delay:240ms]">
-        <CardHeader
-          title="Step 4 — Winner ships the fix"
-          meta={
-            <FixStatusPill
-              started={Boolean(fixStarted || v0StartedPayload)}
-              pr={Boolean(prOpened)}
-              failed={Boolean(failed)}
-            />
-          }
-        />
-        {failed ? (
-          <div className="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">
-            <div className="mb-1 flex items-center gap-2 font-medium">
-              <Warning size={14} weight="bold" /> Fix step failed
-            </div>
-            {(failed.payload as { reason?: string }).reason}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {v0DonePayload ? (
-              <V0Result payload={v0DonePayload} />
-            ) : v0StartedPayload ? (
-              <V0Calling payload={v0StartedPayload} />
-            ) : !paymentConfirmed ? (
-              <p className="text-sm text-ink-muted">
-                Waiting for payment confirmation.
-              </p>
-            ) : (
-              <PendingRow text="Handing the diagnosis to the winner…" />
-            )}
-
-            {prPayload ? (
-              <a
-                href={prPayload.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-ink/90"
-              >
-                <GithubLogo size={16} weight="fill" />
-                View PR on GitHub
-              </a>
-            ) : v0DonePayload ? (
-              <PendingRow text="Committing the patch and opening the PR…" />
-            ) : null}
-          </div>
-        )}
-      </Card>
+      <DiagnoseCard demo={demo} />
+      <AuctionCard demo={demo} />
+      <PaymentCard demo={demo} task={task} />
+      <FixCard demo={demo} />
 
       {prPayload && (
-        <FeedbackCard winnerAgentId={auctionPayload?.winner.agent_id} />
+        <FeedbackCard winnerAgentId={auctionPayloadOf(demo)?.winner.agent_id} />
       )}
 
       <div ref={sentinelRef} aria-hidden className="h-px" />
@@ -348,13 +215,246 @@ export function ConversionDropDemo({ task, events }: Props) {
         <button
           type="button"
           onClick={scrollToLatest}
-          className="fixed bottom-6 left-1/2 z-30 inline-flex -translate-x-1/2 animate-fade-up items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white shadow-lg hover:bg-ink/90"
+          className={buttonClasses({ variant: "primary", className: "fixed bottom-6 left-1/2 z-30 -translate-x-1/2 animate-fade-up shadow-float" })}
         >
           <ArrowDown size={14} weight="bold" />
           See latest
         </button>
       )}
     </div>
+  );
+}
+
+function sourceStatusProps(
+  done: LifecycleEventDoc | undefined,
+  skipped: LifecycleEventDoc | undefined,
+  diagnoseStarted: boolean,
+) {
+  return {
+    done: done?.payload as SourceDonePayload | undefined,
+    skippedReason: skipped
+      ? (skipped.payload as { reason?: string }).reason
+      : undefined,
+    pending: diagnoseStarted && !done && !skipped,
+  };
+}
+
+function DiagnoseSources({ demo }: { demo: DemoEvents }) {
+  const diagnoseStarted = Boolean(demo.diagnoseStarted);
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <SourceRow
+        name="Hyperspell"
+        kind="business"
+        {...sourceStatusProps(demo.hyperspellDone, demo.hyperspellSkipped, diagnoseStarted)}
+      />
+      <SourceRow
+        name="Nia"
+        kind="repo"
+        {...sourceStatusProps(demo.niaDone, demo.niaSkipped, diagnoseStarted)}
+      />
+    </div>
+  );
+}
+
+function DiagnosisBody({
+  payload,
+  started,
+}: {
+  payload: DiagnosisReadyPayload | undefined;
+  started: boolean;
+}) {
+  if (payload) {
+    return (
+      <div className="rounded-control bg-surface-muted p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="text-xs font-medium text-ink-muted">Diagnosis</span>
+          <DiagnosisSourcePill payload={payload} />
+        </div>
+        <MarkdownLite text={payload.diagnosis} />
+      </div>
+    );
+  }
+  if (started) return <PendingRow text="Reading the analysis doc…" />;
+  return null;
+}
+
+function DiagnoseCard({ demo }: { demo: DemoEvents }) {
+  const drivePayload = demo.driveDocFound?.payload as
+    | DriveDocPayload
+    | undefined;
+  const diagnosisPayload = demo.diagnosisReady?.payload as
+    | DiagnosisReadyPayload
+    | undefined;
+  return (
+    <Card className="animate-fade-up [animation-delay:60ms]">
+      <CardHeader
+        title="Diagnose"
+        meta={
+          <DiagnoseStatusPill
+            started={Boolean(demo.diagnoseStarted || demo.triggered)}
+            ready={Boolean(demo.diagnosisReady)}
+          />
+        }
+      />
+      <div className="space-y-3">
+        {drivePayload && <DriveDocRow payload={drivePayload} />}
+        <DiagnoseSources demo={demo} />
+        <DiagnosisBody
+          payload={diagnosisPayload}
+          started={Boolean(demo.diagnoseStarted)}
+        />
+      </div>
+    </Card>
+  );
+}
+
+function AuctionCard({ demo }: { demo: DemoEvents }) {
+  const { bidReceived, bidDeclined } = demo;
+  const auctionStarted = bidReceived.length > 0 || bidDeclined.length > 0;
+  return (
+    <Card className="animate-fade-up [animation-delay:120ms]">
+      <CardHeader
+        title="Specialist auction"
+        meta={
+          <AuctionStatusPill
+            started={auctionStarted}
+            resolved={Boolean(demo.auctionResolved)}
+          />
+        }
+      />
+      {auctionStarted ? (
+        <AuctionPanel
+          bidReceived={bidReceived.map(
+            (e) => e.payload as unknown as BidReceivedPayload,
+          )}
+          bidDeclined={bidDeclined.map(
+            (e) => e.payload as unknown as BidDeclinedPayload,
+          )}
+          resolved={auctionPayloadOf(demo)}
+          evaluatedCount={bidReceived.length + bidDeclined.length}
+        />
+      ) : (
+        <p className="text-sm text-ink-muted">
+          Opening sealed-bid auction across the marketplace…
+        </p>
+      )}
+    </Card>
+  );
+}
+
+function PaymentBody({ demo, task }: { demo: DemoEvents; task: TaskDoc }) {
+  const auctionPayload = auctionPayloadOf(demo);
+  if (demo.paymentConfirmed) {
+    return (
+      <PaymentConfirmedRow
+        winnerAgentId={auctionPayload?.winner.agent_id}
+        pricePaid={auctionPayload?.vickrey.price_paid ?? task.price_paid}
+      />
+    );
+  }
+  if (demo.paymentRequested && auctionPayload) {
+    return (
+      <ConfirmAndPayForm
+        taskId={task._id as Id<"tasks">}
+        winnerAgentId={auctionPayload.winner.agent_id}
+        winnerBidPrice={auctionPayload.winner.bid_price}
+        pricePaid={auctionPayload.vickrey.price_paid}
+        rule={auctionPayload.vickrey.rule}
+      />
+    );
+  }
+  return (
+    <p className="text-sm text-ink-muted">Waiting for the auction to resolve.</p>
+  );
+}
+
+function PaymentCard({ demo, task }: { demo: DemoEvents; task: TaskDoc }) {
+  return (
+    <Card className="animate-fade-up [animation-delay:180ms]">
+      <CardHeader
+        title="Confirm and pay"
+        meta={
+          <PaymentStatusPill
+            requested={Boolean(demo.paymentRequested)}
+            confirmed={Boolean(demo.paymentConfirmed)}
+          />
+        }
+      />
+      <PaymentBody demo={demo} task={task} />
+    </Card>
+  );
+}
+
+function FixFailed({ failed }: { failed: LifecycleEventDoc }) {
+  return (
+    <div className="rounded-control bg-danger-50 p-4 text-sm text-danger-700">
+      <div className="mb-1 flex items-center gap-2 font-medium">
+        <Warning size={14} weight="bold" /> Fix step failed
+      </div>
+      {(failed.payload as { reason?: string }).reason}
+    </div>
+  );
+}
+
+function FixProgress({ demo }: { demo: DemoEvents }) {
+  const v0DonePayload = demo.v0Done?.payload as V0DonePayload | undefined;
+  const v0StartedPayload = demo.v0Started?.payload as
+    | V0StartedPayload
+    | undefined;
+  if (v0DonePayload) return <V0Result payload={v0DonePayload} />;
+  if (v0StartedPayload) return <V0Calling payload={v0StartedPayload} />;
+  if (!demo.paymentConfirmed) {
+    return (
+      <p className="text-sm text-ink-muted">Waiting for payment confirmation.</p>
+    );
+  }
+  return <PendingRow text="Handing the diagnosis to the winner…" />;
+}
+
+function FixPrAction({ demo }: { demo: DemoEvents }) {
+  const prPayload = prPayloadOf(demo);
+  if (prPayload) {
+    return (
+      <a
+        href={prPayload.url}
+        target="_blank"
+        rel="noreferrer"
+        className={buttonClasses({ variant: "primary" })}
+      >
+        <GithubLogo size={16} weight="fill" />
+        View PR on GitHub
+      </a>
+    );
+  }
+  if (demo.v0Done) {
+    return <PendingRow text="Committing the patch and opening the PR…" />;
+  }
+  return null;
+}
+
+function FixCard({ demo }: { demo: DemoEvents }) {
+  return (
+    <Card className="animate-fade-up [animation-delay:240ms]">
+      <CardHeader
+        title="Winner ships the fix"
+        meta={
+          <FixStatusPill
+            started={Boolean(demo.fixStarted || demo.v0Started)}
+            pr={Boolean(demo.prOpened)}
+            failed={Boolean(demo.failed)}
+          />
+        }
+      />
+      {demo.failed ? (
+        <FixFailed failed={demo.failed} />
+      ) : (
+        <div className="space-y-3">
+          <FixProgress demo={demo} />
+          <FixPrAction demo={demo} />
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -365,7 +465,7 @@ function FeedbackCard({
 }) {
   const [choice, setChoice] = useState<"none" | "good" | "bad">("none");
   const agentLabel = winnerAgentId ? (
-    <span className="font-mono text-ink">{winnerAgentId}</span>
+    <span className="type-data text-ink">{winnerAgentId}</span>
   ) : (
     <span>the winning specialist</span>
   );
@@ -384,7 +484,7 @@ function FeedbackCard({
             <button
               type="button"
               onClick={() => setChoice("good")}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-control bg-moss-50 px-4 py-2.5 text-sm font-medium text-moss-700 transition-colors hover:bg-moss-100"
             >
               <ThumbsUp size={16} weight="bold" />
               Good solution
@@ -392,7 +492,7 @@ function FeedbackCard({
             <button
               type="button"
               onClick={() => setChoice("bad")}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-100"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-control bg-danger-50 px-4 py-2.5 text-sm font-medium text-danger-700 transition-colors hover:bg-danger-100"
             >
               <ThumbsDown size={16} weight="bold" />
               Needs more work
@@ -403,20 +503,20 @@ function FeedbackCard({
         <div
           className={
             choice === "good"
-              ? "flex items-start gap-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900"
-              : "flex items-start gap-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-900"
+              ? "flex items-start gap-3 rounded-control bg-moss-50 p-3 text-sm text-moss-800"
+              : "flex items-start gap-3 rounded-control bg-danger-50 p-3 text-sm text-danger-800"
           }
         >
           {choice === "good" ? (
-            <ThumbsUp size={18} weight="fill" className="mt-0.5 shrink-0 text-emerald-600" />
+            <ThumbsUp size={18} weight="fill" className="mt-0.5 shrink-0 text-moss-600" />
           ) : (
-            <ThumbsDown size={18} weight="fill" className="mt-0.5 shrink-0 text-rose-600" />
+            <ThumbsDown size={18} weight="fill" className="mt-0.5 shrink-0 text-danger-600" />
           )}
           <div>
             <div className="font-medium">
               {choice === "good"
-                ? "Thanks — reputation bumped."
-                : "Thanks — reputation noted."}
+                ? "Thanks. Reputation bumped."
+                : "Thanks. Reputation noted."}
             </div>
             <p className="mt-0.5 text-xs">
               {choice === "good"
@@ -445,16 +545,14 @@ function AuctionPanel({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
         <span>
-          <span className="font-mono text-ink">{evaluatedCount}</span>{" "}
+          <span className="type-data text-ink">{evaluatedCount}</span>{" "}
           specialists evaluated
         </span>
-        <span aria-hidden>·</span>
-        <span className="text-emerald-700">
-          <span className="font-mono">{bidReceived.length}</span> bid
+        <span className="text-moss-700">
+          <span className="type-data">{bidReceived.length}</span> bid
         </span>
-        <span aria-hidden>·</span>
-        <span className="text-amber-700">
-          <span className="font-mono">{bidDeclined.length}</span> declined
+        <span className="text-warning-700">
+          <span className="type-data">{bidDeclined.length}</span> declined
         </span>
       </div>
 
@@ -470,7 +568,7 @@ function AuctionPanel({
       </div>
 
       {bidDeclined.length > 0 && (
-        <details className="rounded-xl bg-surface-muted/60 p-3">
+        <details className="rounded-control bg-surface-muted/60 p-3">
           <summary className="cursor-pointer text-xs font-medium text-ink-muted">
             Declined ({bidDeclined.length})
           </summary>
@@ -483,11 +581,11 @@ function AuctionPanel({
                 <XCircle
                   size={12}
                   weight="fill"
-                  className="mt-0.5 shrink-0 text-amber-500"
+                  className="mt-0.5 shrink-0 text-warning-500"
                 />
                 <span>
-                  <span className="font-mono text-ink-soft">{d.agent_id}</span>
-                  <span className="text-ink-muted"> — {d.reason}</span>
+                  <span className="type-data text-ink-soft">{d.agent_id}</span>
+                  <span className="text-ink-muted">: {d.reason}</span>
                 </span>
               </li>
             ))}
@@ -515,21 +613,28 @@ function BidRow({
     <div
       className={
         isWinner
-          ? "animate-fade-down rounded-xl bg-brand-50 p-3 ring-1 ring-inset ring-brand-200"
-          : "animate-fade-down rounded-xl border border-line bg-white p-3"
+          ? "animate-fade-down rounded-control bg-brand-50 p-3 ring-1 ring-inset ring-brand-200"
+          : "animate-fade-down rounded-control bg-surface p-3 shadow-hairline"
       }
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-sm text-ink">{bid.agent_id}</span>
+        <Treeling
+          seed={bid.agent_id}
+          size={32}
+          alive={false}
+          pose={isWinner ? "rest" : "raised"}
+          lantern={isWinner}
+        />
+        <span className="type-data text-sm text-ink">{bid.agent_id}</span>
         {bid.sponsor && (
-          <span className="text-[11px] text-ink-muted">{bid.sponsor}</span>
+          <span className="text-xs text-ink-muted">{bid.sponsor}</span>
         )}
         {isWinner && (
           <Pill tone="brand">
             <Trophy size={11} weight="fill" /> winner
           </Pill>
         )}
-        <span className="ml-auto flex items-center gap-2 font-mono text-[11px] text-ink-muted">
+        <span className="ml-auto flex items-center gap-2 type-data text-xs text-ink-muted">
           {resolved && <span>score {resolved.score.toFixed(2)}</span>}
           {typeof bid.estimated_seconds === "number" && (
             <span>~{bid.estimated_seconds}s</span>
@@ -548,29 +653,29 @@ function BidRow({
 function WinnerCard({ payload }: { payload: AuctionResolvedPayload }) {
   const { winner, vickrey } = payload;
   return (
-    <div className="rounded-xl bg-ink p-3 text-white">
+    <div className="rounded-control bg-ink p-3 text-paper">
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <Trophy size={12} weight="fill" className="text-amber-300" />
+        <Treeling seed={winner.agent_id} size={36} alive={false} lantern />
         <span className="font-medium">Awarded to</span>
-        <span className="font-mono">{winner.agent_id}</span>
+        <span className="type-data">{winner.agent_id}</span>
       </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-300">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-paper/70">
         <span>
           bid{" "}
-          <span className="font-mono text-white">
+          <span className="type-data text-paper">
             {Math.round(winner.bid_price * 100)} credits
           </span>
         </span>
         <span>
           paid{" "}
-          <span className="font-mono text-white">
+          <span className="type-data text-paper">
             {Math.round(vickrey.price_paid * 100)} credits
           </span>{" "}
-          <span className="text-zinc-400">(Vickrey, second-price)</span>
+          <span className="text-paper/60">(Vickrey, second-price)</span>
         </span>
         <span>
           score{" "}
-          <span className="font-mono text-white">{winner.score.toFixed(2)}</span>
+          <span className="type-data text-paper">{winner.score.toFixed(2)}</span>
         </span>
       </div>
     </div>
@@ -589,6 +694,81 @@ function AuctionStatusPill({
   return <Pill tone="neutral">queued</Pill>;
 }
 
+type SourceStatus = "done" | "skipped" | "pending" | "idle";
+
+const SOURCE_PENDING_TEXT = {
+  business: "Searching workspace memory…",
+  repo: "Querying indexed repo…",
+} as const;
+
+const SOURCE_IDLE_TEXT = {
+  business: "Workspace memory",
+  repo: "Repo retrieval",
+} as const;
+
+function sourceStatus(
+  done: SourceDonePayload | undefined,
+  skippedReason: string | undefined,
+  pending: boolean,
+): SourceStatus {
+  if (done) return "done";
+  if (skippedReason) return "skipped";
+  if (pending) return "pending";
+  return "idle";
+}
+
+function sourceDoneText(
+  kind: "business" | "repo",
+  done: SourceDonePayload | undefined,
+) {
+  const fallback =
+    kind === "business"
+      ? "Workspace memory returned"
+      : `${done?.tool ?? "search"}/${done?.mode ?? "indexed"}`;
+  return done?.summary_preview?.slice(0, 140) || fallback;
+}
+
+function sourceDescription(
+  status: SourceStatus,
+  kind: "business" | "repo",
+  done: SourceDonePayload | undefined,
+  skippedReason: string | undefined,
+) {
+  if (status === "done") return sourceDoneText(kind, done);
+  if (status === "skipped") return skippedReason ?? "no result";
+  if (status === "pending") return SOURCE_PENDING_TEXT[kind];
+  return SOURCE_IDLE_TEXT[kind];
+}
+
+function SourceStatusBadge({
+  status,
+  done,
+}: {
+  status: SourceStatus;
+  done: SourceDonePayload | undefined;
+}) {
+  if (status === "done") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-moss-600">
+        <CheckCircle size={14} weight="fill" />
+        {done?.duration_ms ? `${(done.duration_ms / 1000).toFixed(1)}s` : "ok"}
+      </span>
+    );
+  }
+  if (status === "skipped") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-warning-600">
+        <XCircle size={14} weight="fill" />
+        skipped
+      </span>
+    );
+  }
+  if (status === "pending") {
+    return <CircleNotch size={14} className="animate-spin text-ink-muted" />;
+  }
+  return null;
+}
+
 function SourceRow({
   name,
   done,
@@ -602,42 +782,15 @@ function SourceRow({
   pending: boolean;
   kind: "business" | "repo";
 }) {
-  const status = done ? "done" : skippedReason ? "skipped" : pending ? "pending" : "idle";
+  const status = sourceStatus(done, skippedReason, pending);
   return (
-    <div className="rounded-xl border border-line bg-white p-3">
+    <div className="rounded-control bg-surface p-3 shadow-hairline">
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium text-ink">{name}</span>
-        {status === "done" && (
-          <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
-            <CheckCircle size={14} weight="fill" />
-            {done?.duration_ms ? `${(done.duration_ms / 1000).toFixed(1)}s` : "ok"}
-          </span>
-        )}
-        {status === "skipped" && (
-          <span className="inline-flex items-center gap-1 text-xs text-amber-600">
-            <XCircle size={14} weight="fill" />
-            skipped
-          </span>
-        )}
-        {status === "pending" && (
-          <CircleNotch size={14} className="animate-spin text-ink-muted" />
-        )}
+        <SourceStatusBadge status={status} done={done} />
       </div>
       <p className="mt-1 text-xs text-ink-muted">
-        {status === "done"
-          ? done?.summary_preview?.slice(0, 140) ||
-            (kind === "business"
-              ? "Workspace memory returned"
-              : `${done?.tool ?? "search"}/${done?.mode ?? "indexed"}`)
-          : status === "skipped"
-            ? skippedReason ?? "no result"
-            : status === "pending"
-              ? kind === "business"
-                ? "Searching workspace memory…"
-                : "Querying indexed repo…"
-              : kind === "business"
-                ? "Workspace memory"
-                : "Repo retrieval"}
+        {sourceDescription(status, kind, done, skippedReason)}
       </p>
     </div>
   );
@@ -645,8 +798,8 @@ function SourceRow({
 
 function DriveDocRow({ payload }: { payload: DriveDocPayload }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl bg-brand-50 p-3">
-      <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-brand-700 shadow-hairline">
+    <div className="flex items-start gap-3 rounded-control bg-brand-50 p-3">
+      <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface text-brand-700 shadow-hairline">
         <GoogleDriveLogo size={16} weight="fill" />
       </span>
       <div className="min-w-0 flex-1">
@@ -657,21 +810,21 @@ function DriveDocRow({ payload }: { payload: DriveDocPayload }) {
           </span>
           <Pill tone="brand">Google Drive</Pill>
           {payload.via && (
-            <span className="text-[11px] text-ink-muted">via {payload.via}</span>
+            <span className="text-xs text-ink-muted">via {payload.via}</span>
           )}
         </div>
         {payload.drive_path && (
-          <p className="mt-0.5 truncate font-mono text-[11px] text-ink-muted">
+          <p className="mt-0.5 truncate type-data text-xs text-ink-muted">
             {payload.drive_path}
           </p>
         )}
         <p className="mt-1 text-xs text-ink-soft">
-          Found a written analysis from the growth lead — using it as the
+          Found a written analysis from the growth lead and used it as the
           source of truth for the diagnosis.
         </p>
       </div>
       {typeof payload.duration_ms === "number" && (
-        <span className="shrink-0 font-mono text-[11px] text-ink-muted">
+        <span className="shrink-0 type-data text-xs text-ink-muted">
           {(payload.duration_ms / 1000).toFixed(1)}s
         </span>
       )}
@@ -725,29 +878,29 @@ function ConfirmAndPayForm({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl bg-brand-50 p-4">
+      <div className="rounded-control bg-brand-50 p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-ink">
           <Trophy size={14} weight="fill" className="text-brand-700" />
-          <span className="font-mono">{winnerAgentId}</span> won the auction
+          <span className="type-data">{winnerAgentId}</span> won the auction
         </div>
         <dl className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <dt className="text-xs text-ink-muted">Their offer</dt>
-            <dd className="mt-0.5 font-mono text-ink line-through decoration-rose-400 decoration-2">
+            <dd className="mt-0.5 type-data text-ink line-through decoration-danger-500 decoration-2">
               {Math.round(winnerBidPrice * 100)} credits
             </dd>
           </div>
           <div>
             <dt className="text-xs text-ink-muted">You pay</dt>
-            <dd className="mt-0.5 font-display text-2xl font-semibold tracking-tight text-brand-700">
+            <dd className="mt-0.5 type-data text-2xl font-semibold text-brand-700">
               {Math.round(pricePaid * 100)} credits
             </dd>
           </div>
         </dl>
         {isVickrey && savings > 0 && (
           <p className="mt-3 text-xs text-ink-muted">
-            Vickrey second-price · you save{" "}
-            <span className="font-mono text-ink">{Math.round(savings * 100)} credits</span>{" "}
+            Vickrey second-price, you save{" "}
+            <span className="type-data text-ink">{Math.round(savings * 100)} credits</span>{" "}
             vs. the winner&rsquo;s offer.
           </p>
         )}
@@ -775,7 +928,7 @@ function ConfirmAndPayForm({
         fix and the judge accepts.
       </p>
       {error && (
-        <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+        <p className="rounded-control bg-danger-50 px-3 py-2 text-xs text-danger-700">
           {error}
         </p>
       )}
@@ -791,8 +944,8 @@ function PaymentConfirmedRow({
   pricePaid: number | undefined;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">
-      <ShieldCheck size={18} weight="fill" className="mt-0.5 shrink-0 text-emerald-600" />
+    <div className="flex items-start gap-3 rounded-control bg-moss-50 p-3 text-sm text-moss-800">
+      <ShieldCheck size={18} weight="fill" className="mt-0.5 shrink-0 text-moss-600" />
       <div>
         <div className="font-medium">
           {typeof pricePaid === "number"
@@ -800,15 +953,15 @@ function PaymentConfirmedRow({
             : "Payment held in escrow"}
           {winnerAgentId && (
             <>
-              {" · "}
-              <span className="font-mono text-emerald-800">
+              {", "}
+              <span className="type-data text-moss-800">
                 {winnerAgentId}
               </span>{" "}
               cleared to ship
             </>
           )}
         </div>
-        <p className="mt-0.5 text-xs text-emerald-800/80">
+        <p className="mt-0.5 text-xs text-moss-800/80">
           Released after the judge accepts the result.
         </p>
       </div>
@@ -834,14 +987,14 @@ function V0Calling({ payload }: { payload: V0StartedPayload }) {
       <div className="flex items-center gap-3 text-sm text-ink-soft">
         <CircleNotch size={14} weight="bold" className="animate-spin text-brand-700" />
         <span>
-          <span className="font-mono text-ink">vercel-v0</span> calling{" "}
-          <span className="font-mono text-ink">{payload.model}</span> over MCP
+          <span className="type-data text-ink">vercel-v0</span> calling{" "}
+          <span className="type-data text-ink">{payload.model}</span> over MCP
           to patch{" "}
-          <span className="font-mono text-ink">{payload.target_path}</span>
+          <span className="type-data text-ink">{payload.target_path}</span>
           <span className="streaming-caret" />
         </span>
       </div>
-      <div className="rounded-xl bg-surface-muted p-3 font-mono text-[11px] text-ink-muted">
+      <div className="rounded-control bg-surface-muted p-3 type-data text-xs text-ink-muted">
         POST {payload.mcp_endpoint}
       </div>
       <div className="space-y-2">
@@ -867,29 +1020,29 @@ function V0Result({ payload }: { payload: V0DonePayload }) {
           <Lightning size={11} weight="fill" />
           {sourceLabel}
         </Pill>
-        <span className="font-mono text-[11px] text-ink-soft">
+        <span className="type-data text-xs text-ink-soft">
           {payload.target_path}
         </span>
-        <span className="text-[11px] text-ink-muted">
-          {(payload.duration_ms / 1000).toFixed(1)}s · {payload.patch_size_chars.toLocaleString()} chars
+        <span className="text-xs text-ink-muted">
+          {(payload.duration_ms / 1000).toFixed(1)}s, {payload.patch_size_chars.toLocaleString()} chars
         </span>
       </div>
-      <div className="rounded-xl bg-surface-muted p-3 font-mono text-[11px] text-ink-muted">
+      <div className="rounded-control bg-surface-muted p-3 type-data text-xs text-ink-muted">
         <div className="mb-1 flex items-center gap-1.5 text-ink-soft">
           <FileCode size={12} weight="bold" />
           {payload.target_path}
         </div>
-        <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap text-ink-soft">
+        <pre tabIndex={0} className="max-h-40 overflow-y-auto whitespace-pre-wrap text-ink-soft outline-none focus-visible:shadow-ring">
           {payload.patch_preview}
         </pre>
       </div>
       {payload.ops_applied.length > 0 && (
-        <div className="text-[11px] text-ink-muted">
+        <div className="text-xs text-ink-muted">
           <span className="font-medium text-ink-soft">Operations applied:</span>{" "}
           {payload.ops_applied.map((op) => (
             <code
               key={op}
-              className="mx-0.5 rounded bg-surface-muted px-1.5 py-0.5 font-mono text-[10px] text-ink-soft"
+              className="mx-0.5 rounded bg-surface-muted px-1.5 py-0.5 type-data text-xs text-ink-soft"
             >
               {op}
             </code>
@@ -897,12 +1050,12 @@ function V0Result({ payload }: { payload: V0DonePayload }) {
         </div>
       )}
       {payload.ops_missing.length > 0 && (
-        <div className="text-[11px] text-ink-muted">
+        <div className="text-xs text-ink-muted">
           <span className="font-medium text-ink-soft">Skipped:</span>{" "}
           {payload.ops_missing.map((op) => (
             <code
               key={op}
-              className="mx-0.5 rounded bg-surface-muted px-1.5 py-0.5 font-mono text-[10px] text-ink-muted"
+              className="mx-0.5 rounded bg-surface-muted px-1.5 py-0.5 type-data text-xs text-ink-muted"
             >
               {op}
             </code>

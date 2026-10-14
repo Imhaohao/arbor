@@ -16,7 +16,7 @@ export default async function ReplayPage({ params }: PageProps) {
       subtitle="Every verdict this run produced, including the ones that killed the work."
       back={{ href: "/replay", label: "All replays" }}
       meta={
-        <code className="rounded-md bg-white/70 px-2 py-1 font-mono text-[11px] text-ink-muted shadow-hairline">
+        <code className="type-data rounded-control bg-surface px-2.5 py-1 text-xs text-ink-muted shadow-hairline">
           {dagId}
         </code>
       }

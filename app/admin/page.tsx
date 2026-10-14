@@ -14,7 +14,10 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageShell } from "@/components/ui/PageShell";
 import { AdminInsights } from "@/components/admin/AdminInsights";
-import { PaperPlaneTilt } from "@phosphor-icons/react";
+import { Treeling } from "@/components/grove/Treeling";
+import { Button } from "@/components/ui/Button";
+import { Pill, type PillTone } from "@/components/ui/Pill";
+import { PaperPlaneTilt, WarningDiamond } from "@phosphor-icons/react";
 import {
   buildAdminA2AChatBody,
   nextA2AThread,
@@ -52,15 +55,15 @@ interface AgentReadinessRow {
  * agent) are additions specific to this console — neither is a real status
  * from that table, and neither is styled as positive/green.
  */
-const READINESS_STYLE: Record<string, string> = {
-  ready: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  needs_key: "bg-amber-50 text-amber-700 ring-amber-600/20",
-  protocol_mismatch: "bg-orange-50 text-orange-700 ring-orange-600/20",
-  endpoint_down: "bg-rose-50 text-rose-700 ring-rose-600/20",
-  mock_only: "bg-slate-100 text-slate-600 ring-slate-500/20",
-  needs_owner_action: "bg-violet-50 text-violet-700 ring-violet-600/20",
-  unknown: "bg-slate-100 text-slate-500 ring-slate-500/20",
-  checking: "bg-slate-100 text-slate-400 ring-slate-400/20",
+const READINESS_TONE: Record<string, PillTone> = {
+  ready: "success",
+  needs_key: "warning",
+  protocol_mismatch: "warning",
+  endpoint_down: "danger",
+  mock_only: "neutral",
+  needs_owner_action: "info",
+  unknown: "neutral",
+  checking: "neutral",
 };
 
 const READINESS_LABEL: Record<string, string> = {
@@ -87,15 +90,21 @@ const NON_RESPONSIVE_STATUSES = new Set([
 ]);
 
 function ReadinessBadge({ status }: { status: string }) {
-  const style = READINESS_STYLE[status] ?? READINESS_STYLE.unknown;
   return (
-    <span
-      className={`inline-flex shrink-0 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset ${style}`}
-    >
+    <Pill tone={READINESS_TONE[status] ?? "neutral"} className="shrink-0">
       {readinessLabel(status)}
-    </span>
+    </Pill>
   );
 }
+
+const TURN_CLASS: Record<ChatTurn["role"], string> = {
+  user: "bg-ink text-paper",
+  agent: "bg-surface-muted text-ink",
+  system: "bg-danger-50 text-danger-700",
+};
+
+const CONTROL_INPUT =
+  "w-full rounded-control border border-line-control/60 bg-surface px-3 text-sm text-ink outline-none focus:shadow-ring disabled:opacity-50";
 
 // Shown as a clickable suggestion in the chat pane's empty state, so a
 // first-time visitor sees what a reasonable opening message looks like.
@@ -111,26 +120,7 @@ interface ChatTurn {
   raw?: unknown;
 }
 
-export default function AdminPage() {
-  const [specialists, setSpecialists] = useState<A2ASpecialist[]>([]);
-  const [selected, setSelected] = useState<string>("");
-  const [turnsByAgent, setTurnsByAgent] = useState<Record<string, ChatTurn[]>>({});
-  const [threadByAgent, setThreadByAgent] = useState<Record<string, A2AThreadIds>>({});
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [rawOpen, setRawOpen] = useState<number | null>(null);
-  // Agents that declined for a missing API key — shows the paste-key form.
-  const [keyPromptByAgent, setKeyPromptByAgent] = useState<Record<string, boolean>>({});
-  const [keyInput, setKeyInput] = useState("");
-  const [savingKey, setSavingKey] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  // Same readiness data the dashboard's agent readiness matrix renders
-  // (convex/agentReadiness.ts:list, consumed at
-  // components/dashboard/SpecialistReadiness.tsx:105). Convex useQuery
-  // returns undefined while loading — keep that distinct from "no row found"
-  // so we never show a fake-positive badge during load.
+function useAgentReadiness() {
   const readinessRows = useQuery(api.agentReadiness.list, {}) as
     | AgentReadinessRow[]
     | undefined;
@@ -147,6 +137,18 @@ export default function AdminPage() {
     return row.readiness_status ?? row.transport_status ?? "unknown";
   }
 
+  return { readinessByAgent, readinessStatusFor };
+}
+
+function pickDefaultSpecialist(previous: string, loaded: A2ASpecialist[]): string {
+  return previous || loaded.find((s) => s.chat_ready)?.agent_id || loaded[0].agent_id;
+}
+
+function useSpecialistDirectory() {
+  const [specialists, setSpecialists] = useState<A2ASpecialist[]>([]);
+  const [selected, setSelected] = useState<string>("");
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   useEffect(() => {
     fetch("/api/admin/a2a-chat")
       .then(async (r) => {
@@ -160,12 +162,7 @@ export default function AdminPage() {
         setLoadError(null);
         setSpecialists(next);
         if (next.length) {
-          setSelected(
-            (prev) =>
-              prev ||
-              next.find((s) => s.chat_ready)?.agent_id ||
-              next[0].agent_id,
-          );
+          setSelected((prev) => pickDefaultSpecialist(prev, next));
         }
       })
       .catch((err) => {
@@ -176,7 +173,476 @@ export default function AdminPage() {
       });
   }, []);
 
-  const turns = turnsByAgent[selected] ?? [];
+  return { specialists, selected, setSelected, loadError };
+}
+
+function errorTurn(err: unknown, fallback: string): ChatTurn {
+  return { role: "system", text: err instanceof Error ? err.message : fallback };
+}
+
+type ParsedBody = { parsed: true; value: any } | { parsed: false }; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+function tryParseJson(bodyText: string): ParsedBody {
+  try {
+    return { parsed: true, value: JSON.parse(bodyText) };
+  } catch {
+    return { parsed: false };
+  }
+}
+
+function nonJsonTurn(status: number, bodyText: string): ChatTurn {
+  const snippet = bodyText.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 140);
+  const gatewayHint =
+    status === 504 || status === 502
+      ? " (gateway timeout: the agent was too slow or unreachable)"
+      : "";
+  return {
+    role: "system",
+    text: `Agent endpoint returned a non-JSON ${status} response${gatewayHint}${
+      snippet ? `: ${snippet}` : ""
+    }`,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function agentReplyTurn(d: any): ChatTurn {
+  return {
+    role: "agent",
+    text: d.reply_text || "(empty reply)",
+    state: d.state,
+    pending: d.pending,
+    taskId: d.task_id,
+    raw: d.raw,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function failureTurn(d: any): ChatTurn {
+  return { role: "system", text: d.error || "request failed", raw: d.raw };
+}
+
+function ReadinessWarning({
+  spec,
+  status,
+  requiredKeyEnv,
+}: {
+  spec: A2ASpecialist;
+  status: string;
+  requiredKeyEnv?: string;
+}) {
+  return (
+    <div
+      role="alert"
+      className="flex items-start gap-2 bg-warning-50 px-4 py-2.5 text-[0.8125rem] text-warning-900"
+    >
+      <WarningDiamond size={16} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-warning-700" />
+      <div>
+      <p className="font-medium">
+        Readiness matrix says {spec.display_name} is &quot;
+        {readinessLabel(status)}&quot;.
+      </p>
+      <p className="mt-0.5">
+        Sending a message here still makes a real call to its
+        endpoint, and it will likely fail, time out, or return an
+        error.
+        {requiredKeyEnv ? ` Missing key: ${requiredKeyEnv}.` : ""}
+      </p>
+      </div>
+    </div>
+  );
+}
+
+function SpecialistRow({
+  specialist: s,
+  isSelected,
+  readinessStatus,
+  onSelect,
+}: {
+  specialist: A2ASpecialist;
+  isSelected: boolean;
+  readinessStatus: string;
+  onSelect: () => void;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={isSelected}
+        className={`flex min-h-12 w-full items-center gap-2.5 rounded-control px-2.5 py-2 text-left text-sm outline-none focus-visible:shadow-ring ${
+          isSelected
+            ? "bg-surface-muted shadow-hairline-strong"
+            : "hover:bg-surface-subtle"
+        }`}
+      >
+        <Treeling
+          seed={s.agent_id}
+          name={s.display_name}
+          size={32}
+          alive={false}
+          asleep={!s.chat_ready}
+          className="shrink-0"
+        />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate font-medium text-ink">
+              {s.display_name}
+            </span>
+            <ReadinessBadge status={readinessStatus} />
+          </span>
+          <span className="type-data block truncate text-xs text-ink-muted">
+            {s.agent_id}
+          </span>
+          {(s.discovered || !s.chat_ready) && (
+            <span className="block truncate text-xs text-ink-muted">
+              {s.discovered ? "Discovered" : ""}
+              {s.discovered && !s.chat_ready ? ", " : ""}
+              {!s.chat_ready ? "no direct A2A endpoint" : ""}
+            </span>
+          )}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+function SpecialistList({
+  specialists,
+  selected,
+  loadError,
+  readinessStatusFor,
+  onSelect,
+}: {
+  specialists: A2ASpecialist[];
+  selected: string;
+  loadError: string | null;
+  readinessStatusFor: (agentId: string) => string;
+  onSelect: (agentId: string) => void;
+}) {
+  return (
+    <aside>
+      <h2 className="type-subheading mb-2 text-ink">Specialists</h2>
+      <ul className="relative max-h-[70vh] space-y-1 overflow-y-auto rounded-card bg-surface p-2 shadow-card">
+        {specialists.map((s) => (
+          <SpecialistRow
+            key={s.agent_id}
+            specialist={s}
+            isSelected={s.agent_id === selected}
+            readinessStatus={readinessStatusFor(s.agent_id)}
+            onSelect={() => onSelect(s.agent_id)}
+          />
+        ))}
+        {specialists.length === 0 && (
+          <li className="px-3 py-2 text-sm text-ink-muted" role={loadError ? "alert" : undefined}>
+            {loadError ?? "No specialists loaded."}
+          </li>
+        )}
+      </ul>
+    </aside>
+  );
+}
+
+function ChatHeader({ spec }: { spec: A2ASpecialist | undefined }) {
+  return (
+    <div className="px-4 py-3 shadow-[0_1px_0_oklch(var(--line))]">
+      <p className="type-subheading text-ink">
+        {spec?.display_name ?? "Select a specialist"}
+      </p>
+      {spec && (
+        <p
+          className="type-data truncate text-xs text-ink-muted"
+          title={spec.a2a_endpoint ?? spec.chat_unavailable_reason}
+        >
+          {spec.a2a_endpoint ??
+            spec.chat_unavailable_reason ??
+            "No endpoint configured"}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PickSpecialistPrompt() {
+  return (
+    <>
+      <p className="text-sm font-medium text-ink">
+        Pick a specialist on the left
+      </p>
+      <p className="text-sm text-ink-muted">
+        This console sends a real A2A message/send call to that
+        specialist&apos;s live endpoint and shows its actual
+        reply. Nothing here is simulated.
+      </p>
+    </>
+  );
+}
+
+function NoEndpointNotice({ spec }: { spec: A2ASpecialist }) {
+  return (
+    <>
+      <p className="text-sm font-medium text-ink">
+        {spec.display_name} has no direct A2A endpoint
+      </p>
+      <p className="text-sm text-ink-muted">
+        {spec.chat_unavailable_reason ??
+          "This specialist is listed on the market, but this console cannot message it directly."}
+      </p>
+    </>
+  );
+}
+
+function ReadyToChatNotice({
+  spec,
+  onUseSuggestion,
+}: {
+  spec: A2ASpecialist;
+  onUseSuggestion: () => void;
+}) {
+  return (
+    <>
+      <p className="text-sm text-ink-muted">{spec.one_liner}</p>
+      <p className="text-[0.8125rem] text-ink-muted">
+        Hitting Send makes a real message/send call to{" "}
+        {spec.display_name}&apos;s endpoint. The reply you see
+        here is what it actually returns.
+      </p>
+      <Button
+        type="button"
+        variant="soft"
+        size="sm"
+        onClick={onUseSuggestion}
+        className="h-auto min-h-8 whitespace-normal py-1.5 text-left"
+      >
+        Use suggested message: &quot;{DEFAULT_PROMPT_SUGGESTION}&quot;
+      </Button>
+    </>
+  );
+}
+
+function EmptyChatBody({
+  spec,
+  canChat,
+  onUseSuggestion,
+}: {
+  spec: A2ASpecialist | undefined;
+  canChat: boolean;
+  onUseSuggestion: () => void;
+}) {
+  if (!spec) return <PickSpecialistPrompt />;
+  if (!canChat) return <NoEndpointNotice spec={spec} />;
+  return <ReadyToChatNotice spec={spec} onUseSuggestion={onUseSuggestion} />;
+}
+
+function EmptyChatState({
+  spec,
+  canChat,
+  onUseSuggestion,
+}: {
+  spec: A2ASpecialist | undefined;
+  canChat: boolean;
+  onUseSuggestion: () => void;
+}) {
+  return (
+    <div className="mx-auto flex max-w-sm flex-col items-center gap-3 py-10 text-center">
+      <Treeling
+        seed={spec?.agent_id ?? "a2a-console"}
+        name={spec?.display_name}
+        asleep={!canChat}
+        alive={false}
+        size={72}
+      />
+      <EmptyChatBody spec={spec} canChat={canChat} onUseSuggestion={onUseSuggestion} />
+    </div>
+  );
+}
+
+function AgentTurnMeta({
+  turn: t,
+  isRawOpen,
+  onToggleRaw,
+}: {
+  turn: ChatTurn;
+  isRawOpen: boolean;
+  onToggleRaw: () => void;
+}) {
+  return (
+    <div className="mt-1.5 flex items-center gap-2 text-xs text-ink-muted">
+      {t.state && (
+        <span>
+          state: {t.state}{t.pending ? " (pending)" : ""}
+        </span>
+      )}
+      {t.raw !== undefined && (
+        <button
+          type="button"
+          aria-expanded={isRawOpen}
+          className="rounded-full px-1 underline outline-none hover:text-brand-700 focus-visible:shadow-ring"
+          onClick={onToggleRaw}
+        >
+          {isRawOpen ? "Hide raw" : "Show raw"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function TurnBubble({
+  turn: t,
+  isRawOpen,
+  onToggleRaw,
+}: {
+  turn: ChatTurn;
+  isRawOpen: boolean;
+  onToggleRaw: () => void;
+}) {
+  return (
+    <div className={t.role === "user" ? "flex justify-end" : "flex justify-start"}>
+      <div
+        role={t.role === "system" ? "alert" : undefined}
+        className={`max-w-[85%] rounded-control px-3.5 py-2.5 text-sm leading-relaxed ${TURN_CLASS[t.role]}`}
+      >
+        <p className="whitespace-pre-wrap break-words">{t.text}</p>
+        {t.role === "agent" && (
+          <AgentTurnMeta turn={t} isRawOpen={isRawOpen} onToggleRaw={onToggleRaw} />
+        )}
+        {isRawOpen && t.raw !== undefined && (
+          <pre tabIndex={0} className="type-data mt-2 max-h-64 overflow-auto rounded-control bg-surface-sunken p-2 text-xs leading-snug text-ink outline-none focus-visible:shadow-ring">
+            {JSON.stringify(t.raw, null, 2)}
+          </pre>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function KeyPromptForm({
+  keyInput,
+  savingKey,
+  onKeyInputChange,
+  onSubmit,
+}: {
+  keyInput: string;
+  savingKey: boolean;
+  onKeyInputChange: (value: string) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <form
+      className="flex flex-wrap items-end gap-2 bg-warning-50 px-3 py-2.5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
+      <label className="min-w-48 flex-1">
+        <span className="mb-1 block text-[0.8125rem] font-medium text-warning-900">
+          This agent needs an API key
+        </span>
+        <input
+          value={keyInput}
+          onChange={(e) => onKeyInputChange(e.target.value)}
+          type="password"
+          autoComplete="off"
+          placeholder="Paste API key"
+          className={`${CONTROL_INPUT} type-data h-10`}
+        />
+      </label>
+      <Button type="submit" disabled={savingKey || !keyInput.trim()}>
+        {savingKey ? "Saving…" : "Save key"}
+      </Button>
+    </form>
+  );
+}
+
+function MessageForm({
+  spec,
+  input,
+  canChat,
+  sending,
+  onInputChange,
+  onSubmit,
+}: {
+  spec: A2ASpecialist | undefined;
+  input: string;
+  canChat: boolean;
+  sending: boolean;
+  onInputChange: (value: string) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <form
+      className="flex items-end gap-2 px-3 py-3 shadow-[0_-1px_0_oklch(var(--line))]"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
+      <label className="flex-1">
+        <span className="mb-1 block text-[0.8125rem] font-medium text-ink-soft">Message</span>
+        <input
+          value={input}
+          onChange={(e) => onInputChange(e.target.value)}
+          placeholder={spec ? `Message ${spec.display_name}` : "Select a specialist first"}
+          disabled={!canChat || sending}
+          className={`${CONTROL_INPUT} h-10`}
+        />
+      </label>
+      <Button type="submit" disabled={!canChat || sending || !input.trim()}>
+        <PaperPlaneTilt size={14} weight="bold" aria-hidden />
+        Send
+      </Button>
+    </form>
+  );
+}
+
+function Transcript({
+  turns,
+  spec,
+  canChat,
+  sending,
+  rawOpen,
+  bottomRef,
+  onToggleRaw,
+  onUseSuggestion,
+}: {
+  turns: ChatTurn[];
+  spec: A2ASpecialist | undefined;
+  canChat: boolean;
+  sending: boolean;
+  rawOpen: number | null;
+  bottomRef: React.RefObject<HTMLDivElement | null>;
+  onToggleRaw: (index: number) => void;
+  onUseSuggestion: () => void;
+}) {
+  return (
+    <div className="relative flex-1 space-y-3 overflow-y-auto px-4 py-4">
+      {turns.length === 0 && (
+        <EmptyChatState spec={spec} canChat={canChat} onUseSuggestion={onUseSuggestion} />
+      )}
+      {turns.map((t, i) => (
+        <TurnBubble
+          key={i}
+          turn={t}
+          isRawOpen={rawOpen === i}
+          onToggleRaw={() => onToggleRaw(i)}
+        />
+      ))}
+      {sending && (
+        <p className="text-xs text-ink-muted">
+          Waiting for {spec?.display_name ?? "agent"}…
+        </p>
+      )}
+      <div ref={bottomRef} />
+    </div>
+  );
+}
+
+function describeSelectedSpecialist(
+  specialists: A2ASpecialist[],
+  selected: string,
+  readinessStatusFor: (agentId: string) => string,
+  readinessByAgent: Map<string, AgentReadinessRow>,
+) {
   const spec = specialists.find((s) => s.agent_id === selected);
   const canChat = Boolean(spec?.chat_ready && spec.a2a_endpoint);
   const specReadinessStatus = spec ? readinessStatusFor(spec.agent_id) : undefined;
@@ -187,9 +653,38 @@ export default function AdminPage() {
   const showReadinessWarning = Boolean(
     canChat && specReadinessStatus && NON_RESPONSIVE_STATUSES.has(specReadinessStatus),
   );
+  return { spec, canChat, specReadinessStatus, specReadinessRow, showReadinessWarning };
+}
 
+export default function AdminPage() {
+  const { specialists, selected, setSelected, loadError } = useSpecialistDirectory();
+  const [turnsByAgent, setTurnsByAgent] = useState<Record<string, ChatTurn[]>>({});
+  const [threadByAgent, setThreadByAgent] = useState<Record<string, A2AThreadIds>>({});
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [rawOpen, setRawOpen] = useState<number | null>(null);
+  // Agents that declined for a missing API key — shows the paste-key form.
+  const [keyPromptByAgent, setKeyPromptByAgent] = useState<Record<string, boolean>>({});
+  const [keyInput, setKeyInput] = useState("");
+  const [savingKey, setSavingKey] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Same readiness data the dashboard's agent readiness matrix renders
+  // (convex/agentReadiness.ts:list, consumed at
+  // components/dashboard/SpecialistReadiness.tsx:105). Convex useQuery
+  // returns undefined while loading — keep that distinct from "no row found"
+  // so we never show a fake-positive badge during load.
+  const { readinessByAgent, readinessStatusFor } = useAgentReadiness();
+
+  const turns = turnsByAgent[selected] ?? [];
+  const { spec, canChat, specReadinessStatus, specReadinessRow, showReadinessWarning } =
+    describeSelectedSpecialist(specialists, selected, readinessStatusFor, readinessByAgent);
+
+  // Scroll only the transcript box; scrollIntoView would also move the window
+  // and make the page jump on load.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const transcript = bottomRef.current?.parentElement;
+    if (transcript) transcript.scrollTo({ top: transcript.scrollHeight, behavior: "smooth" });
   }, [turns.length]);
 
   function pushTurn(agentId: string, turn: ChatTurn) {
@@ -197,6 +692,45 @@ export default function AdminPage() {
       ...prev,
       [agentId]: [...(prev[agentId] ?? []), turn],
     }));
+  }
+
+  function applyAgentReply(agentId: string, d: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    setThreadByAgent((prev) => {
+      const current = prev[agentId] ?? {};
+      return {
+        ...prev,
+        [agentId]: nextA2AThread(current, d),
+      };
+    });
+    pushTurn(agentId, agentReplyTurn(d));
+  }
+
+  function applyAgentFailure(agentId: string, d: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (d.needs_key) {
+      setKeyPromptByAgent((prev) => ({ ...prev, [agentId]: true }));
+    }
+    pushTurn(agentId, failureTurn(d));
+  }
+
+  async function deliverMessage(agentId: string, text: string) {
+    const res = await fetch("/api/admin/a2a-chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(
+        buildAdminA2AChatBody(agentId, text, threadByAgent[agentId]),
+      ),
+    });
+    // The reply may be a gateway/HTML error page (timeout, 5xx) rather than
+    // JSON — read text first and parse defensively so the user sees the real
+    // status instead of a raw "Unexpected token '<'" parse crash.
+    const bodyText = await res.text();
+    const body = tryParseJson(bodyText);
+    if (!body.parsed) {
+      pushTurn(agentId, nonJsonTurn(res.status, bodyText));
+      return;
+    }
+    if (body.value.ok) applyAgentReply(agentId, body.value);
+    else applyAgentFailure(agentId, body.value);
   }
 
   async function send() {
@@ -207,64 +741,9 @@ export default function AdminPage() {
     setSending(true);
     pushTurn(agentId, { role: "user", text });
     try {
-      const res = await fetch("/api/admin/a2a-chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(
-          buildAdminA2AChatBody(agentId, text, threadByAgent[agentId]),
-        ),
-      });
-      // The reply may be a gateway/HTML error page (timeout, 5xx) rather than
-      // JSON — read text first and parse defensively so the user sees the real
-      // status instead of a raw "Unexpected token '<'" parse crash.
-      const bodyText = await res.text();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let d: any;
-      try {
-        d = JSON.parse(bodyText);
-      } catch {
-        const snippet = bodyText.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 140);
-        pushTurn(agentId, {
-          role: "system",
-          text: `Agent endpoint returned a non-JSON ${res.status} response${
-            res.status === 504 || res.status === 502
-              ? " (gateway timeout — the agent was too slow or unreachable)"
-              : ""
-          }${snippet ? `: ${snippet}` : ""}`,
-        });
-        return;
-      }
-      if (d.ok) {
-        setThreadByAgent((prev) => {
-          const current = prev[agentId] ?? {};
-          return {
-            ...prev,
-            [agentId]: nextA2AThread(current, d),
-          };
-        });
-        pushTurn(agentId, {
-          role: "agent",
-          text: d.reply_text || "(empty reply)",
-          state: d.state,
-          pending: d.pending,
-          taskId: d.task_id,
-          raw: d.raw,
-        });
-      } else {
-        if (d.needs_key) {
-          setKeyPromptByAgent((prev) => ({ ...prev, [agentId]: true }));
-        }
-        pushTurn(agentId, {
-          role: "system",
-          text: d.error || "request failed",
-          raw: d.raw,
-        });
-      }
+      await deliverMessage(agentId, text);
     } catch (err) {
-      pushTurn(agentId, {
-        role: "system",
-        text: err instanceof Error ? err.message : "network error",
-      });
+      pushTurn(agentId, errorTurn(err, "network error"));
     } finally {
       setSending(false);
     }
@@ -287,7 +766,7 @@ export default function AdminPage() {
         setKeyPromptByAgent((prev) => ({ ...prev, [agentId]: false }));
         pushTurn(agentId, {
           role: "system",
-          text: "API key saved to the Arbor key vault — send your message again.",
+          text: "API key saved to the Arbor key vault. Send your message again.",
         });
       } else {
         pushTurn(agentId, {
@@ -296,10 +775,7 @@ export default function AdminPage() {
         });
       }
     } catch (err) {
-      pushTurn(agentId, {
-        role: "system",
-        text: err instanceof Error ? err.message : "network error saving key",
-      });
+      pushTurn(agentId, errorTurn(err, "network error saving key"));
     } finally {
       setSavingKey(false);
     }
@@ -310,231 +786,54 @@ export default function AdminPage() {
       title="A2A console"
       subtitle="Talk directly to any specialist reachable over the A2A protocol. Messages go out as real message/send calls to the agent's endpoint."
     >
-      <div className="grid animate-fade-up gap-6 md:grid-cols-[260px_1fr]">
-        <aside>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">
-            Specialists
-          </h2>
-          <ul className="max-h-[70vh] space-y-1 overflow-y-auto pr-1">
-            {specialists.map((s) => (
-              <li key={s.agent_id}>
-                <button
-                  type="button"
-                  onClick={() => setSelected(s.agent_id)}
-                  aria-label={s.display_name}
-                  aria-pressed={s.agent_id === selected}
-                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                    s.agent_id === selected
-                      ? "bg-brand-700 text-white"
-                      : "text-ink hover:bg-black/5"
-                  }`}
-                >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="min-w-0 truncate font-medium">
-                      {s.display_name}
-                    </span>
-                    <ReadinessBadge status={readinessStatusFor(s.agent_id)} />
-                  </span>
-                  <span
-                    className={`block truncate text-xs ${
-                      s.agent_id === selected ? "text-white/70" : "text-ink-muted"
-                    }`}
-                  >
-                    {s.agent_id}
-                    {s.discovered ? " (discovered)" : ""}
-                    {!s.chat_ready ? " — no direct A2A endpoint" : ""}
-                  </span>
-                </button>
-              </li>
-            ))}
-            {specialists.length === 0 && (
-              <li className="px-3 py-2 text-sm text-ink-muted">
-                {loadError ?? "No specialists loaded."}
-              </li>
-            )}
-          </ul>
-        </aside>
+      <div className="grid animate-fade-up grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[260px_minmax(0,1fr)]">
+        <SpecialistList
+          specialists={specialists}
+          selected={selected}
+          loadError={loadError}
+          readinessStatusFor={readinessStatusFor}
+          onSelect={setSelected}
+        />
 
-        <section className="flex min-h-[480px] flex-col rounded-xl border border-black/10 bg-white">
-          <div className="border-b border-black/10 px-4 py-3">
-            <p className="text-sm font-medium text-ink">
-              {spec?.display_name ?? "Select a specialist"}
-            </p>
-            {spec && (
-              <p
-                className="truncate text-xs text-ink-muted"
-                title={spec.a2a_endpoint ?? spec.chat_unavailable_reason}
-              >
-                {spec.a2a_endpoint ??
-                  spec.chat_unavailable_reason ??
-                  "No endpoint configured"}
-              </p>
-            )}
-          </div>
+        <section className="flex min-h-[480px] flex-col overflow-hidden rounded-card bg-surface shadow-card">
+          <ChatHeader spec={spec} />
 
           {showReadinessWarning && spec && (
-            <div
-              role="alert"
-              className="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800"
-            >
-              <p className="font-medium">
-                Readiness matrix says {spec.display_name} is &quot;
-                {readinessLabel(specReadinessStatus!)}&quot;.
-              </p>
-              <p className="mt-0.5">
-                Sending a message here still makes a real call to its
-                endpoint — it will likely fail, time out, or return an
-                error.
-                {specReadinessRow?.required_key_env
-                  ? ` Missing key: ${specReadinessRow.required_key_env}.`
-                  : ""}
-              </p>
-            </div>
+            <ReadinessWarning
+              spec={spec}
+              status={specReadinessStatus!}
+              requiredKeyEnv={specReadinessRow?.required_key_env}
+            />
           )}
 
-          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-            {turns.length === 0 && (
-              <div className="mx-auto flex max-w-sm flex-col items-center gap-3 py-10 text-center">
-                {!spec ? (
-                  <>
-                    <p className="text-sm font-medium text-ink">
-                      Pick a specialist on the left
-                    </p>
-                    <p className="text-sm text-ink-muted">
-                      This console sends a real A2A message/send call to that
-                      specialist&apos;s live endpoint and shows its actual
-                      reply — nothing here is simulated.
-                    </p>
-                  </>
-                ) : !canChat ? (
-                  <>
-                    <p className="text-sm font-medium text-ink">
-                      {spec.display_name} has no direct A2A endpoint
-                    </p>
-                    <p className="text-sm text-ink-muted">
-                      {spec.chat_unavailable_reason ??
-                        "This specialist is listed on the market, but this console cannot message it directly."}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-ink-muted">{spec.one_liner}</p>
-                    <p className="text-xs text-ink-muted">
-                      Hitting Send makes a real message/send call to{" "}
-                      {spec.display_name}&apos;s endpoint. The reply you see
-                      here is what it actually returns.
-                    </p>
-                    <button
-                      type="button"
-                      aria-label="Use a suggested first message"
-                      onClick={() => setInput(DEFAULT_PROMPT_SUGGESTION)}
-                      className="rounded-lg border border-black/10 bg-surface-muted px-3 py-1.5 text-xs text-ink-muted transition-colors hover:bg-black/5"
-                    >
-                      Try: &quot;{DEFAULT_PROMPT_SUGGESTION}&quot;
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-            {turns.map((t, i) => (
-              <div
-                key={i}
-                className={t.role === "user" ? "flex justify-end" : "flex justify-start"}
-              >
-                <div
-                  className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                    t.role === "user"
-                      ? "bg-brand-700 text-white"
-                      : t.role === "agent"
-                        ? "bg-black/5 text-ink"
-                        : "border border-red-200 bg-red-50 text-red-800"
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap break-words">{t.text}</p>
-                  {t.role === "agent" && (
-                    <div className="mt-1.5 flex items-center gap-2 text-[11px] text-ink-muted">
-                      {t.state && (
-                        <span>
-                          state: {t.state}{t.pending ? " (pending)" : ""}
-                        </span>
-                      )}
-                      {t.raw !== undefined && (
-                        <button
-                          className="underline hover:text-brand-700"
-                          onClick={() => setRawOpen(rawOpen === i ? null : i)}
-                        >
-                          {rawOpen === i ? "hide raw" : "raw"}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {rawOpen === i && t.raw !== undefined && (
-                    <pre className="mt-2 max-h-64 overflow-auto rounded bg-black/80 p-2 text-[11px] leading-snug text-green-200">
-                      {JSON.stringify(t.raw, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              </div>
-            ))}
-            {sending && (
-              <p className="text-xs text-ink-muted">
-                Waiting for {spec?.display_name ?? "agent"}...
-              </p>
-            )}
-            <div ref={bottomRef} />
-          </div>
+          <Transcript
+            turns={turns}
+            spec={spec}
+            canChat={canChat}
+            sending={sending}
+            rawOpen={rawOpen}
+            bottomRef={bottomRef}
+            onToggleRaw={(index) => setRawOpen(rawOpen === index ? null : index)}
+            onUseSuggestion={() => setInput(DEFAULT_PROMPT_SUGGESTION)}
+          />
 
           {spec && keyPromptByAgent[selected] && (
-            <form
-              className="flex items-center gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2.5"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void saveKey();
-              }}
-            >
-              <span className="text-xs font-medium text-amber-800">
-                This agent needs an API key
-              </span>
-              <input
-                value={keyInput}
-                onChange={(e) => setKeyInput(e.target.value)}
-                type="password"
-                placeholder="Paste API key"
-                className="flex-1 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-sm text-ink outline-none focus:border-brand-700"
-              />
-              <button
-                type="submit"
-                disabled={savingKey || !keyInput.trim()}
-                className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
-              >
-                {savingKey ? "Saving..." : "Save key"}
-              </button>
-            </form>
+            <KeyPromptForm
+              keyInput={keyInput}
+              savingKey={savingKey}
+              onKeyInputChange={setKeyInput}
+              onSubmit={() => void saveKey()}
+            />
           )}
 
-          <form
-            className="flex items-center gap-2 border-t border-black/10 px-3 py-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void send();
-            }}
-          >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={spec ? `Message ${spec.display_name}` : "Select a specialist first"}
-              disabled={!canChat || sending}
-              className="flex-1 rounded-lg border border-black/10 px-3 py-2 text-sm text-ink outline-none focus:border-brand-700 disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={!canChat || sending || !input.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-700 px-3.5 py-2 text-sm font-medium text-white transition-opacity disabled:opacity-40"
-            >
-              <PaperPlaneTilt size={14} weight="bold" />
-              Send
-            </button>
-          </form>
+          <MessageForm
+            spec={spec}
+            input={input}
+            canChat={canChat}
+            sending={sending}
+            onInputChange={setInput}
+            onSubmit={() => void send()}
+          />
         </section>
       </div>
 

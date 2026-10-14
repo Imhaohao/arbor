@@ -30,3 +30,4 @@ autoresearch/data/connector-secrets.json
 
 # local swarm ledger, run outputs
 .swarm/
+.next-*

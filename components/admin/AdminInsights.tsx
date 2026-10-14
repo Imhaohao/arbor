@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import { Treeling } from "@/components/grove/Treeling";
 import { api } from "@/convex/_generated/api";
 
 /* ------------------------------------------------------------------ */
@@ -42,25 +43,25 @@ function NegotiationTranscript({ contextId }: { contextId: string }) {
   }) as NegotiationTurn[] | undefined;
 
   if (!turns) {
-    return <p className="px-1 py-2 text-xs text-ink-muted">Loading transcript…</p>;
+    return <div className="shimmer mt-2 h-12 rounded-control" role="status" aria-label="Loading transcript" />;
   }
   return (
-    <ul className="mt-2 space-y-2 border-t border-black/5 pt-2">
+    <ul className="mt-2 space-y-2 pt-2 shadow-[0_-1px_0_oklch(var(--line))]">
       {turns.map((turn, i) => (
         <li
           key={i}
           className={turn.role === "agent" ? "flex justify-end" : "flex justify-start"}
         >
           <div
-            className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
+            className={`max-w-[85%] rounded-control px-3 py-2 text-[0.8125rem] leading-relaxed ${
               turn.role === "agent"
                 ? "bg-brand-50 text-brand-900"
                 : "bg-surface-muted text-ink"
             }`}
           >
-            <span className="mb-0.5 block font-mono text-[10px] uppercase tracking-wide text-ink-muted">
-              {turn.role === "agent" ? "arbor arbitrator" : "counterparty"}
-              {turn.intent ? ` · ${turn.intent}` : ""} · {when(turn.created_at)}
+            <span className="mb-0.5 block text-xs text-ink-muted">
+              {turn.role === "agent" ? "Arbor arbitrator" : "Counterparty"}
+              {turn.intent ? `, ${turn.intent}` : ""}, {when(turn.created_at)}
             </span>
             <p className="whitespace-pre-wrap break-words">{turn.text}</p>
           </div>
@@ -83,34 +84,37 @@ function NegotiationsSection() {
         meta="autonomous A2A threads on the market gateway"
       />
       {contexts === undefined && (
-        <p className="text-sm text-ink-muted">Loading…</p>
+        <div className="shimmer h-16 rounded-control" role="status" aria-label="Loading negotiations" />
       )}
       {contexts?.length === 0 && (
-        <p className="text-sm text-ink-muted">
-          No agent-to-agent negotiations recorded yet. Threads appear here when
-          a foreign agent negotiates with the arbitrator over the A2A market
-          gateway.
-        </p>
+        <div className="flex items-center gap-3">
+          <Treeling seed="a2a-negotiations" asleep alive={false} size={48} />
+          <p className="type-body text-ink-muted">
+            No negotiations recorded yet. Threads appear here when a foreign
+            agent negotiates with the arbitrator over the A2A market gateway.
+          </p>
+        </div>
       )}
       <ul className="space-y-2">
         {contexts?.map((c) => (
-          <li key={c.context_id} className="rounded-xl bg-surface-subtle p-3">
+          <li key={c.context_id} className="rounded-control bg-surface-subtle p-3">
             <button
               type="button"
               onClick={() =>
                 setOpenContext(openContext === c.context_id ? null : c.context_id)
               }
-              className="block w-full text-left"
+              aria-expanded={openContext === c.context_id}
+              className="block min-h-10 w-full rounded-control text-left outline-none focus-visible:shadow-ring"
             >
               <span className="flex flex-wrap items-center gap-2">
                 <Pill tone={c.last_role === "agent" ? "brand" : "neutral"}>
                   {c.turn_count} turn{c.turn_count === 1 ? "" : "s"}
                 </Pill>
                 {c.last_intent && <Pill tone="info">{c.last_intent}</Pill>}
-                <span className="font-mono text-[11px] text-ink-muted">
-                  {c.requester_agent_id ?? c.context_id.slice(0, 18)} ·{" "}
-                  {when(c.last_created_at)}
+                <span className="type-data text-xs text-ink-muted">
+                  {c.requester_agent_id ?? c.context_id.slice(0, 18)}
                 </span>
+                <span className="text-xs text-ink-muted">{when(c.last_created_at)}</span>
               </span>
               <span className="mt-1.5 block truncate text-sm text-ink">
                 {c.last_text}
@@ -162,21 +166,25 @@ function TelemetrySection() {
         meta="what the trilemma metrics can be trained on today"
       />
       {counts === undefined ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" role="status" aria-label="Loading corpus counts">
+          {STAT_LABELS.map(({ key }) => (
+            <div key={key} className="shimmer h-16 rounded-control" />
+          ))}
+        </div>
       ) : (
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {STAT_LABELS.map(({ key, label, need }) => {
             const value = counts[key] ?? 0;
             const short = need !== undefined && value < need;
             return (
-              <div key={key} className="rounded-xl bg-surface-subtle p-3">
+              <div key={key} className="rounded-control bg-surface-subtle p-3">
                 <dt className="text-xs text-ink-muted">{label}</dt>
-                <dd className="mt-0.5 font-mono text-lg font-semibold text-ink">
+                <dd className="type-data mt-0.5 text-lg font-semibold text-ink">
                   {value.toLocaleString()}
                 </dd>
                 {need !== undefined && (
                   <dd
-                    className={`text-[11px] ${short ? "text-amber-700" : "text-emerald-700"}`}
+                    className={`text-xs ${short ? "text-warning-700" : "text-moss-700"}`}
                   >
                     {short ? `needs ${need.toLocaleString()}` : "enough to train"}
                   </dd>
@@ -216,10 +224,10 @@ function GenomeKindRow({ kind }: { kind: (typeof GENOME_KINDS)[number] }) {
     | undefined;
   const count = genomes?.length ?? 0;
   return (
-    <div className="flex items-center justify-between rounded-lg bg-surface-subtle px-3 py-2 text-sm">
-      <span className="font-mono text-xs text-ink">{kind}</span>
+    <div className="flex items-center justify-between gap-2 rounded-control bg-surface-subtle px-3 py-2 text-sm">
+      <span className="type-data text-xs text-ink">{kind}</span>
       {genomes === undefined ? (
-        <span className="text-xs text-ink-muted">…</span>
+        <span className="shimmer h-5 w-20 rounded-full" role="status" aria-label="Loading" />
       ) : (
         <Pill tone={count > 0 ? "success" : "neutral"}>
           {count} promoted
@@ -241,7 +249,7 @@ function EvolutionSection() {
           <GenomeKindRow key={kind} kind={kind} />
         ))}
       </div>
-      <p className="mt-3 text-xs leading-relaxed text-ink-muted">
+      <p className="mt-3 text-[0.8125rem] leading-relaxed text-ink-muted">
         Genomes are proposed and evaluated automatically but only promoted by
         explicit approval. Zero rows means the marketplace is running entirely
         on hand-written artifacts.

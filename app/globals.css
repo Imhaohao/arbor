@@ -1,100 +1,273 @@
-@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Handwritten font for the architecture diagram on the deck. */
-.font-handdrawn {
-  font-family: "Caveat", "Comic Sans MS", cursive;
-}
-
+/*
+ * Arbor forest tokens. Every color in the product resolves to one of these
+ * oklch channel triplets (consumed as oklch(var(--token) / <alpha>) by the
+ * Tailwind theme). Light mode is a misty morning grove, dark mode the same
+ * grove at night. One switching mechanism: prefers-color-scheme.
+ *
+ * Ramps: canopy neutrals (hue 170), pine `brand` calm accent (195), `moss`
+ * success (148), `ember` hot accent used only as light (52), `warn` (80),
+ * `danger` (25). Contrast of every text pair is measured, not eyeballed.
+ */
 :root {
-  color-scheme: light;
-  /* Both type tokens resolve to Plus Jakarta Sans (set on <html> via next/font). */
-  --font-encode-sans: var(--font-plus-jakarta), system-ui, sans-serif;
-  --font-display: var(--font-plus-jakarta), system-ui, sans-serif;
+  color-scheme: light dark;
+  --brand-50: 0.972 0.013 195;
+  --brand-100: 0.942 0.023 195;
+  --brand-200: 0.893 0.042 195;
+  --brand-300: 0.82 0.068 195;
+  --brand-400: 0.72 0.089 195;
+  --brand-500: 0.6 0.101 195;
+  --brand-600: 0.515 0.088 195;
+  --brand-700: 0.465 0.079 195;
+  --brand-800: 0.385 0.065 195;
+  --brand-900: 0.305 0.054 195;
+  --moss-50: 0.972 0.018 148;
+  --moss-100: 0.942 0.033 148;
+  --moss-200: 0.893 0.06 148;
+  --moss-300: 0.82 0.098 148;
+  --moss-400: 0.72 0.128 148;
+  --moss-500: 0.6 0.15 148;
+  --moss-600: 0.515 0.142 148;
+  --moss-700: 0.465 0.128 148;
+  --moss-800: 0.385 0.105 148;
+  --moss-900: 0.305 0.083 148;
+  --ember-50: 0.972 0.015 52;
+  --ember-100: 0.942 0.032 52;
+  --ember-200: 0.893 0.062 52;
+  --ember-300: 0.82 0.114 52;
+  --ember-400: 0.72 0.162 52;
+  --ember-500: 0.6 0.154 52;
+  --ember-600: 0.515 0.132 52;
+  --ember-700: 0.465 0.119 52;
+  --ember-800: 0.385 0.101 52;
+  --ember-900: 0.305 0.082 52;
+  --warn-50: 0.972 0.018 80;
+  --warn-100: 0.942 0.033 80;
+  --warn-200: 0.893 0.06 80;
+  --warn-300: 0.82 0.098 80;
+  --warn-400: 0.72 0.128 80;
+  --warn-500: 0.6 0.124 80;
+  --warn-600: 0.515 0.106 80;
+  --warn-700: 0.465 0.097 80;
+  --warn-800: 0.385 0.081 80;
+  --warn-900: 0.305 0.064 80;
+  --danger-50: 0.972 0.013 25;
+  --danger-100: 0.942 0.028 25;
+  --danger-200: 0.893 0.056 25;
+  --danger-300: 0.82 0.099 25;
+  --danger-400: 0.72 0.162 25;
+  --danger-500: 0.6 0.19 25;
+  --danger-600: 0.515 0.18 25;
+  --danger-700: 0.465 0.162 25;
+  --danger-800: 0.385 0.133 25;
+  --danger-900: 0.305 0.105 25;
+  --surface: 0.995 0.003 170;
+  --surface-subtle: 0.976 0.007 170;
+  --surface-muted: 0.953 0.009 170;
+  --surface-sunken: 0.918 0.011 170;
+  --line: 0.905 0.011 170;
+  --line-strong: 0.84 0.013 170;
+  --line-control: 0.64 0.014 170;
+  --ink-faint: 0.79 0.012 170;
+  --ink-subtle: 0.525 0.016 170;
+  --ink-muted: 0.47 0.018 170;
+  --ink-soft: 0.33 0.02 170;
+  --ink: 0.225 0.021 170;
+  --paper: 0.985 0.006 170;
+  --glow: 0.78 0.165 58;
 
-  /* shadcn semantic tokens, mapped to Arbor's blue brand. HSL channels only
-   * (consumed as hsl(var(--token))). primary = brand-600 #1877f2. */
-  --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --primary: 214 89% 52%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222 47% 11%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 214 89% 52%;
+  /* Grove scene colors (hero forest, treeling avatars). */
+  --sky-top: 0.925 0.022 180;
+  --sky-low: 0.975 0.01 120;
+  --fog: 0.965 0.012 170;
+  --leaf-1: 0.43 0.085 158;
+  --leaf-2: 0.52 0.105 150;
+  --leaf-3: 0.61 0.12 140;
+  --leaf-4: 0.71 0.12 128;
+  --bark: 0.47 0.05 62;
+  --bark-shade: 0.38 0.045 58;
+  --eye: 0.22 0.02 170;
+  --birch: 0.9 0.014 95;
+  --ground: 0.9 0.03 140;
 
-  /* Sidebar surface tokens (used by the dashboard shell). */
-  --sidebar-background: 210 40% 98%;
-  --sidebar-foreground: 222 47% 11%;
-  --sidebar-primary: 214 89% 52%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 210 40% 96%;
-  --sidebar-accent-foreground: 222 47% 11%;
-  --sidebar-border: 214 32% 91%;
-  --sidebar-ring: 214 89% 52%;
+  --radius-control: 0.75rem;
+  --radius-card: 1.25rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* Dark surfaces (applied via a `.dark` wrapper on the marketing hero and the
- * orbital timeline). Keeps the same brand-blue identity on a near-black base. */
-.dark {
-  --background: 222 47% 7%;
-  --foreground: 210 40% 98%;
-  --card: 222 47% 10%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222 47% 10%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 214 89% 60%;
-  --primary-foreground: 222 47% 11%;
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%;
-  --accent: 217 33% 17%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 63% 31%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217 33% 20%;
-  --input: 217 33% 20%;
-  --ring: 214 89% 60%;
-  --sidebar-background: 222 47% 9%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-primary: 214 89% 60%;
-  --sidebar-primary-foreground: 222 47% 11%;
-  --sidebar-accent: 217 33% 17%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-border: 217 33% 20%;
-  --sidebar-ring: 214 89% 60%;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand-50: 0.235 0.011 195;
+    --brand-100: 0.27 0.02 195;
+    --brand-200: 0.32 0.037 195;
+    --brand-300: 0.39 0.06 195;
+    --brand-400: 0.5 0.079 195;
+    --brand-500: 0.62 0.092 195;
+    --brand-600: 0.71 0.088 195;
+    --brand-700: 0.8 0.079 195;
+    --brand-800: 0.875 0.065 195;
+    --brand-900: 0.935 0.051 195;
+    --moss-50: 0.235 0.016 148;
+    --moss-100: 0.27 0.029 148;
+    --moss-200: 0.32 0.053 148;
+    --moss-300: 0.39 0.086 148;
+    --moss-400: 0.5 0.112 148;
+    --moss-500: 0.62 0.132 148;
+    --moss-600: 0.71 0.125 148;
+    --moss-700: 0.8 0.112 148;
+    --moss-800: 0.875 0.092 148;
+    --moss-900: 0.935 0.073 148;
+    --ember-50: 0.235 0.02 52;
+    --ember-100: 0.27 0.037 52;
+    --ember-200: 0.32 0.067 52;
+    --ember-300: 0.39 0.103 52;
+    --ember-400: 0.5 0.128 52;
+    --ember-500: 0.62 0.159 52;
+    --ember-600: 0.71 0.159 52;
+    --ember-700: 0.8 0.128 52;
+    --ember-800: 0.875 0.075 52;
+    --ember-900: 0.935 0.036 52;
+    --warn-50: 0.235 0.016 80;
+    --warn-100: 0.27 0.029 80;
+    --warn-200: 0.32 0.053 80;
+    --warn-300: 0.39 0.082 80;
+    --warn-400: 0.5 0.104 80;
+    --warn-500: 0.62 0.128 80;
+    --warn-600: 0.71 0.125 80;
+    --warn-700: 0.8 0.112 80;
+    --warn-800: 0.875 0.092 80;
+    --warn-900: 0.935 0.059 80;
+    --danger-50: 0.235 0.02 25;
+    --danger-100: 0.27 0.037 25;
+    --danger-200: 0.32 0.067 25;
+    --danger-300: 0.39 0.109 25;
+    --danger-400: 0.5 0.142 25;
+    --danger-500: 0.62 0.167 25;
+    --danger-600: 0.71 0.159 25;
+    --danger-700: 0.8 0.114 25;
+    --danger-800: 0.875 0.065 25;
+    --danger-900: 0.935 0.032 25;
+    --surface: 0.205 0.014 170;
+    --surface-subtle: 0.172 0.013 170;
+    --surface-muted: 0.24 0.015 170;
+    --surface-sunken: 0.27 0.016 170;
+    --line: 0.29 0.016 170;
+    --line-strong: 0.36 0.018 170;
+    --line-control: 0.53 0.016 170;
+    --ink-faint: 0.42 0.016 170;
+    --ink-subtle: 0.66 0.014 170;
+    --ink-muted: 0.74 0.013 170;
+    --ink-soft: 0.86 0.01 170;
+    --ink: 0.955 0.008 170;
+    --paper: 0.172 0.013 170;
+    --glow: 0.8 0.16 62;
+
+    --sky-top: 0.16 0.022 230;
+    --sky-low: 0.215 0.03 190;
+    --fog: 0.2 0.025 195;
+    --leaf-1: 0.27 0.045 165;
+    --leaf-2: 0.33 0.06 158;
+    --leaf-3: 0.4 0.075 150;
+    --leaf-4: 0.48 0.085 140;
+    --bark: 0.34 0.035 60;
+    --bark-shade: 0.27 0.03 58;
+    --eye: 0.93 0.06 85;
+    --birch: 0.6 0.016 95;
+    --ground: 0.22 0.03 160;
+  }
 }
 
 html,
 body {
-  background: #ffffff;
-  color: #0f172a;
+  background: oklch(var(--surface-subtle));
+  color: oklch(var(--ink));
 }
 
 body {
-  font-family: var(--font-encode-sans);
-  font-feature-settings: "ss01", "cv11";
+  font-family: var(--font-sans);
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Ids, URLs and provider error JSON arrive unbroken; never let one push
+   * the page wider than the screen. */
+  overflow-wrap: break-word;
 }
 
-/* Smooth defaults across interactive surfaces — 200 ms feels instant but
- * still gives opacity/color transitions enough time to read. */
+::selection {
+  background: oklch(var(--brand-200));
+  color: oklch(var(--ink));
+}
+
+:focus-visible {
+  outline: 2px solid oklch(var(--brand-500));
+  outline-offset: 2px;
+}
+
+@layer components {
+  /* Type scale. Defined once; components reference these, never restate a
+   * family/size/width pair. Display type uses Archivo's width axis so
+   * headings read wide and rooted while body copy stays at normal width. */
+  .type-display {
+    font-family: var(--font-sans);
+    font-stretch: 118%;
+    font-weight: 640;
+    font-size: clamp(2.5rem, 1.6rem + 3.6vw, 4.75rem);
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+  .type-title {
+    font-family: var(--font-sans);
+    font-stretch: 114%;
+    font-weight: 620;
+    font-size: clamp(1.875rem, 1.4rem + 1.9vw, 3rem);
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+  .type-page {
+    font-family: var(--font-sans);
+    font-stretch: 114%;
+    font-weight: 620;
+    font-size: clamp(1.75rem, 1.35rem + 1.3vw, 2.5rem);
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+  .type-heading {
+    font-family: var(--font-sans);
+    font-stretch: 110%;
+    font-weight: 600;
+    font-size: 1.375rem;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+  .type-subheading {
+    font-family: var(--font-sans);
+    font-stretch: 106%;
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+  .type-lead {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+  .type-body {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+  .type-data {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Interactive defaults: name the properties that change, never `all`. */
 a,
 button,
 input,
@@ -102,40 +275,43 @@ select,
 textarea,
 [role="button"] {
   transition-property: color, background-color, border-color, box-shadow,
-    transform, opacity;
-  transition-duration: 200ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    opacity, scale, translate;
+  transition-duration: 150ms;
+  transition-timing-function: var(--ease-standard);
 }
 
-/* Loading shimmer — used for skeleton bars while data streams in. */
+/* Loading shimmer for skeletons. */
 .shimmer {
   background: linear-gradient(
     90deg,
-    rgba(241, 245, 249, 1) 0%,
-    rgba(226, 232, 240, 1) 50%,
-    rgba(241, 245, 249, 1) 100%
+    oklch(var(--surface-muted)) 0%,
+    oklch(var(--surface-sunken)) 50%,
+    oklch(var(--surface-muted)) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
 }
 
-/* Streaming caret used while text is being generated. */
+/* Streaming caret while text is generated. */
 .streaming-caret::after {
-  content: "▍";
+  content: "";
   display: inline-block;
+  width: 0.5em;
+  height: 1em;
   margin-left: 2px;
-  color: #1877f2;
+  vertical-align: -0.12em;
+  background: oklch(var(--glow));
   animation: caret-blink 1s step-end infinite;
 }
 
-/* Recharts tooltip styled with a hairline shadow instead of a border so the
- * rounded corners stay clean. */
 .recharts-default-tooltip {
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   border: none !important;
+  background: oklch(var(--surface)) !important;
+  color: oklch(var(--ink)) !important;
   box-shadow:
-    0 0 0 1px rgba(15, 23, 42, 0.08),
-    0 6px 24px -8px rgba(15, 23, 42, 0.12) !important;
+    0 0 0 1px oklch(var(--ink) / 0.08),
+    0 8px 24px -8px oklch(var(--ink) / 0.18) !important;
 }
 
 @keyframes caret-blink {
@@ -158,168 +334,22 @@ textarea,
   }
 }
 
-/* Reserve vertical space so streaming output doesn't shift the layout. */
-.reserve-min {
-  min-height: 1.25rem;
-}
-
-::selection {
-  background: #dbe7fe;
-  color: #143f8a;
-}
-
-/* Presentation deck (used by /present). */
-@keyframes slide-in-right {
-  0% {
-    opacity: 0;
-    transform: translate3d(40px, 0, 0);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-@keyframes slide-in-left {
-  0% {
-    opacity: 0;
-    transform: translate3d(-40px, 0, 0);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-@keyframes deck-pop {
-  0% {
-    opacity: 0;
-    transform: scale(0.92);
-  }
-  60% {
-    opacity: 1;
-    transform: scale(1.02);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-@keyframes deck-draw {
-  0% {
-    stroke-dashoffset: var(--dash, 200);
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  100% {
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-}
-@keyframes deck-orbit {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-@keyframes deck-pulse-ring {
-  0% {
-    transform: scale(0.85);
-    opacity: 0.6;
-  }
-  100% {
-    transform: scale(1.4);
-    opacity: 0;
-  }
-}
-.deck-stagger > * {
-  opacity: 0;
-  animation: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.deck-stagger > *:nth-child(1) {
-  animation-delay: 120ms;
-}
-.deck-stagger > *:nth-child(2) {
-  animation-delay: 240ms;
-}
-.deck-stagger > *:nth-child(3) {
-  animation-delay: 360ms;
-}
-.deck-stagger > *:nth-child(4) {
-  animation-delay: 480ms;
-}
-.deck-stagger > *:nth-child(5) {
-  animation-delay: 600ms;
-}
-.deck-stagger > *:nth-child(6) {
-  animation-delay: 720ms;
-}
-.deck-stagger > *:nth-child(7) {
-  animation-delay: 840ms;
-}
-
-/* Animated shader hero (components/ui/animated-shader-hero.tsx) entrance. */
-@keyframes fade-in-down {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.animate-fade-in-down {
-  animation: fade-in-down 0.8s ease-out forwards;
-}
-.animate-fade-in-up {
-  animation: fade-in-up 0.8s ease-out forwards;
-  opacity: 0;
-}
-.animation-delay-200 {
-  animation-delay: 0.2s;
-}
-.animation-delay-400 {
-  animation-delay: 0.4s;
-}
-.animation-delay-600 {
-  animation-delay: 0.6s;
-}
-.animation-delay-800 {
-  animation-delay: 0.8s;
-}
-
-/* Ambient page background for inner pages: light base with soft brand glows
- * so product surfaces feel continuous with the marketing hero instead of
- * sitting on flat white. */
-.page-aurora {
-  background-color: #f8fafc;
+/* Inner-page ground: the grove's floor. A faint canopy light from above so
+ * product pages continue the landing's forest instead of sitting on flat
+ * white. */
+.grove-floor {
+  background-color: oklch(var(--surface-subtle));
   background-image:
-    radial-gradient(60rem 32rem at 12% -8%, rgba(24, 119, 242, 0.1), transparent 60%),
-    radial-gradient(48rem 28rem at 88% -12%, rgba(90, 142, 247, 0.09), transparent 60%),
-    radial-gradient(80rem 48rem at 50% 120%, rgba(24, 119, 242, 0.05), transparent 55%);
-  background-attachment: fixed;
+    radial-gradient(70rem 28rem at 15% -10%, oklch(var(--moss-200) / 0.35), transparent 65%),
+    radial-gradient(50rem 24rem at 90% -14%, oklch(var(--brand-200) / 0.3), transparent 65%);
 }
 
-/* Staggered entrance for static lists/grids. Children fade up in sequence;
- * only use on content whose DOM order is stable after first render (a child
- * whose nth position changes would replay its animation). */
+/* Staggered entrance for static lists. Only for content whose DOM order is
+ * stable after first render. */
 @keyframes page-fade-up {
   0% {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
   }
   100% {
     opacity: 1;
@@ -327,7 +357,7 @@ textarea,
   }
 }
 .stagger-children > * {
-  animation: page-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-fade-up 0.5s var(--ease-out) both;
   animation-delay: 660ms;
 }
 .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
@@ -343,8 +373,78 @@ textarea,
 .stagger-children > *:nth-child(11) { animation-delay: 600ms; }
 .stagger-children > *:nth-child(12) { animation-delay: 660ms; }
 
-/* One honest global accessibility guard: collapse all motion when the user
- * asks for it. Individual animations do not need their own checks. */
+/* Mini score bar used in lists. No track fill: the bar alone carries the
+ * value, the number beside it carries the exact figure. */
+.score-bar {
+  position: relative;
+  height: 4px;
+  width: 100%;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.score-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: block;
+  border-radius: 9999px;
+  background-color: oklch(var(--brand-500));
+  transition: width 400ms var(--ease-standard);
+}
+
+/* Pitch deck slide transitions (components/present/Deck.tsx). */
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translate3d(40px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translate3d(-40px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* Treeling idle life. Sway pivots on the feet; blink squashes the eyes for a
+ * beat. Delays come from each treeling's seed so a crowd never moves in
+ * lockstep. Both collapse under reduced motion via the global guard. */
+@keyframes treeling-sway {
+  0% { transform: rotate(-1.6deg); }
+  100% { transform: rotate(1.6deg); }
+}
+@keyframes treeling-blink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.1); }
+}
+.treeling-sway {
+  transform-box: view-box;
+  transform-origin: 50px 154px;
+  animation: treeling-sway 5.2s ease-in-out infinite alternate;
+}
+.treeling-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: treeling-blink 4.6s linear infinite;
+}
+.treeling-arm {
+  transform-box: view-box;
+  transition: transform 420ms var(--ease-out);
+}
+
+/* Grain: one fixed, non-scrolling layer so it never repaints on scroll. */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+@media (prefers-color-scheme: dark) {
+  .grain::after {
+    opacity: 0.07;
+    mix-blend-mode: screen;
+    filter: invert(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -354,22 +454,4 @@ textarea,
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-/* Mini horizontal score bar used in lists. Solid brand fill, no gradient. */
-.score-bar {
-  position: relative;
-  height: 4px;
-  width: 100%;
-  border-radius: 9999px;
-  background-color: #e2e8f0;
-  overflow: hidden;
-}
-.score-bar > span {
-  position: absolute;
-  inset: 0 auto 0 0;
-  display: block;
-  border-radius: 9999px;
-  background-color: #1877f2;
-  transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }

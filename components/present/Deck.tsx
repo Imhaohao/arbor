@@ -4,6 +4,32 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowsOut, ArrowsIn, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { slides } from "./slides";
 
+const NEXT_KEYS = new Set(["ArrowRight", " ", "PageDown", "ArrowDown"]);
+const PREV_KEYS = new Set(["ArrowLeft", "PageUp", "ArrowUp"]);
+const FULLSCREEN_KEYS = new Set(["f", "F"]);
+
+type KeyAction =
+  | { kind: "next" }
+  | { kind: "prev" }
+  | { kind: "fullscreen" }
+  | { kind: "goto"; target: number };
+
+function digitTarget(key: string): number | null {
+  if (!/^[0-9]$/.test(key)) return null;
+  const target = parseInt(key, 10) - 1;
+  return target >= 0 && target < slides.length ? target : null;
+}
+
+function resolveKeyAction(key: string): KeyAction | null {
+  if (NEXT_KEYS.has(key)) return { kind: "next" };
+  if (PREV_KEYS.has(key)) return { kind: "prev" };
+  if (FULLSCREEN_KEYS.has(key)) return { kind: "fullscreen" };
+  if (key === "Home") return { kind: "goto", target: 0 };
+  if (key === "End") return { kind: "goto", target: slides.length - 1 };
+  const target = digitTarget(key);
+  return target === null ? null : { kind: "goto", target };
+}
+
 export function Deck() {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -44,30 +70,18 @@ export function Deck() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (
-        e.key === "ArrowRight" ||
-        e.key === " " ||
-        e.key === "PageDown" ||
-        e.key === "ArrowDown"
-      ) {
+      const action = resolveKeyAction(e.key);
+      if (!action) return;
+      if (action.kind === "next") {
         e.preventDefault();
         next();
-      } else if (
-        e.key === "ArrowLeft" ||
-        e.key === "PageUp" ||
-        e.key === "ArrowUp"
-      ) {
+      } else if (action.kind === "prev") {
         e.preventDefault();
         prev();
-      } else if (e.key === "f" || e.key === "F") {
+      } else if (action.kind === "fullscreen") {
         toggleFullscreen();
-      } else if (e.key === "Home") {
-        goTo(0);
-      } else if (e.key === "End") {
-        goTo(slides.length - 1);
-      } else if (/^[0-9]$/.test(e.key)) {
-        const target = parseInt(e.key, 10) - 1;
-        if (target >= 0 && target < slides.length) goTo(target);
+      } else {
+        goTo(action.target);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -85,7 +99,7 @@ export function Deck() {
   return (
     <div
       ref={containerRef}
-      className="relative h-screen w-screen overflow-hidden bg-white text-ink"
+      className="relative h-screen w-screen overflow-hidden bg-surface-subtle text-ink"
       onClick={(e) => {
         // Edge-tap navigation: clicks on the far left/right of the screen
         // advance/rewind. Anywhere else is a no-op so demo content can be
@@ -99,16 +113,6 @@ export function Deck() {
         else if (x > w * 0.82) next();
       }}
     >
-      {/* Subtle background grid that adds depth without distracting. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 20% 0%, rgba(24,119,242,0.06), transparent 40%), radial-gradient(circle at 80% 100%, rgba(24,119,242,0.05), transparent 45%)",
-        }}
-      />
-
       {/* Slide stage */}
       <div
         key={index}
@@ -134,38 +138,38 @@ export function Deck() {
       {/* HUD: controls */}
       <div
         data-no-tap
-        className="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white/85 px-3 py-1.5 text-xs text-ink-muted shadow-card backdrop-blur"
+        className="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-[0.8125rem] text-ink-muted shadow-float"
       >
         <button
           onClick={prev}
           disabled={index === 0}
-          className="rounded-full p-1.5 hover:bg-surface-muted disabled:opacity-30"
+          className="rounded-full p-2 transition-[background-color,scale] hover:bg-surface-muted active:scale-[0.96] disabled:opacity-30"
           aria-label="Previous slide"
         >
           <CaretLeft size={14} weight="bold" />
         </button>
-        <span className="tabular-nums">
+        <span className="type-data">
           {index + 1} <span className="text-ink-faint">/</span> {slides.length}
         </span>
         <button
           onClick={next}
           disabled={index === slides.length - 1}
-          className="rounded-full p-1.5 hover:bg-surface-muted disabled:opacity-30"
+          className="rounded-full p-2 transition-[background-color,scale] hover:bg-surface-muted active:scale-[0.96] disabled:opacity-30"
           aria-label="Next slide"
         >
           <CaretRight size={14} weight="bold" />
         </button>
-        <span className="mx-1 h-3 w-px bg-line" />
+        <span aria-hidden className="mx-1 h-4 w-px bg-line" />
         <button
           onClick={toggleFullscreen}
-          className="inline-flex items-center gap-1 rounded-full px-2 py-1 hover:bg-surface-muted"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 transition-[background-color,scale] hover:bg-surface-muted active:scale-[0.96]"
           aria-label="Toggle fullscreen"
         >
           {isFs ? <ArrowsIn size={12} weight="bold" /> : <ArrowsOut size={12} weight="bold" />}
           <span className="hidden sm:inline">{isFs ? "Exit" : "Full screen"}</span>
         </button>
-        <span className="hidden text-[11px] text-ink-faint sm:inline">
-          f · ← → · space
+        <span className="hidden text-[0.8125rem] text-ink-subtle sm:inline">
+          Keys: F, arrows, space
         </span>
       </div>
     </div>

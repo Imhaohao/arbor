@@ -1,7 +1,7 @@
 import { Deck } from "@/components/present/Deck";
 
 export const metadata = {
-  title: "Arbor — Pitch",
+  title: "Arbor: pitch",
 };
 
 export default function PresentPage() {

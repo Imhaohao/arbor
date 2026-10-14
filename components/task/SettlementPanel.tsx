@@ -10,6 +10,7 @@ import type {
   SettledPayload,
   TaskDoc,
 } from "@/lib/task-view";
+import { Treeling } from "@/components/grove/Treeling";
 import { ArrowRight, ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 
 interface Props {
@@ -18,37 +19,92 @@ interface Props {
   events: LifecycleEventDoc[];
 }
 
-export function SettlementPanel({ task, escrow, events }: Props) {
-  const settled = events
+function latestSettledEvent(events: LifecycleEventDoc[]) {
+  return events
     .filter((e) => e.event_type === "settled")
     .sort((a, b) => b.timestamp - a.timestamp)[0];
-  // Settlement runs after the verdict lands. Show a brief spinner during
-  // that gap so the page never sits silently.
-  const verdictLanded = events.find((e) => e.event_type === "judge_verdict");
-  const elapsed = useElapsedSeconds(
-    verdictLanded && !settled ? verdictLanded.timestamp : undefined,
+}
+
+function SettlingCard({ elapsed }: { elapsed: number }) {
+  return (
+    <Card className="animate-fade-up">
+      <CardHeader
+        title="Settlement"
+        meta={<Pill tone="live">Settling</Pill>}
+      />
+      <LoadingProgress
+        label="Releasing escrow and applying reputation"
+        status="Updating the escrow ledger and writing the reputation delta to the agent's record."
+        elapsedSeconds={elapsed}
+        tone="info"
+      />
+    </Card>
   );
+}
 
-  if (!settled) {
-    if (!verdictLanded) return null;
-    return (
-      <Card className="animate-fade-up">
-        <CardHeader
-          title="Settlement"
-          meta={<Pill tone="info" pulse>Settling</Pill>}
-        />
-        <LoadingProgress
-          label="Releasing escrow + applying reputation"
-          status="Updating the escrow ledger and writing the reputation delta to the agent's record."
-          elapsedSeconds={elapsed}
-          tone="info"
-        />
-      </Card>
-    );
-  }
+function ReputationUpdate({ payload }: { payload: SettledPayload }) {
+  return (
+    <dl className="flex items-center justify-between gap-4 rounded-control bg-surface-subtle p-4">
+      <div className="min-w-0">
+        <dt className="text-[0.8125rem] text-ink-muted">Reputation update</dt>
+        <dd className="type-data mt-0.5 truncate text-sm text-ink">{payload.seller_id}</dd>
+      </div>
+      <div className="shrink-0">
+        <dt className="sr-only">Reputation change</dt>
+        <dd className="type-data flex shrink-0 items-center gap-3">
+        <span
+          className={cn(
+            "animate-value-pop text-lg font-semibold",
+            payload.delta >= 0 ? "text-moss-700" : "text-danger-600",
+          )}
+        >
+          {payload.delta >= 0 ? "+" : ""}
+          {payload.delta.toFixed(3)}
+        </span>
+        <ArrowRight size={14} weight="bold" className="text-ink-subtle" />
+        <span className="text-ink">{payload.new_score.toFixed(2)}</span>
+        </dd>
+      </div>
+    </dl>
+  );
+}
 
-  const payload = settled.payload as unknown as SettledPayload;
+function SettlementFlow({
+  amount,
+  buyerId,
+  payload,
+}: {
+  amount: number;
+  buyerId: string;
+  payload: SettledPayload;
+}) {
   const released = payload.escrow === "released";
+  return (
+      <div className="mb-5 grid grid-cols-1 items-center gap-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <Stop label="Buyer" sub={buyerId} />
+        <Arrow amount={amount} direction={released ? "forward" : "backward"} />
+        <Stop
+          label={released ? "Seller" : "Buyer (refund)"}
+          sub={released ? payload.seller_id : buyerId}
+          highlight={released}
+          seed={released ? payload.seller_id : undefined}
+        />
+      </div>
+  );
+}
+
+function SettledCard({
+  task,
+  escrow,
+  payload,
+}: {
+  task: TaskDoc;
+  escrow: EscrowDoc | null | undefined;
+  payload: SettledPayload;
+}) {
+  const released = payload.escrow === "released";
+  const amount = payload.price_paid ?? task.price_paid ?? escrow?.locked_amount ?? 0;
+  const buyerId = escrow?.buyer_id ?? "none";
 
   return (
     <Card className="animate-fade-up">
@@ -61,45 +117,32 @@ export function SettlementPanel({ task, escrow, events }: Props) {
         }
       />
 
-      <div className="mb-5 grid grid-cols-3 items-center gap-3 text-center text-sm">
-        <Stop label="Buyer" sub={escrow?.buyer_id ?? "—"} />
-        <Arrow
-          amount={
-            payload.price_paid ?? task.price_paid ?? escrow?.locked_amount ?? 0
-          }
-          direction={released ? "forward" : "backward"}
-        />
-        <Stop
-          label={released ? "Seller" : "Buyer (refund)"}
-          sub={released ? payload.seller_id : escrow?.buyer_id ?? "—"}
-          highlight={released}
-        />
-      </div>
+      <SettlementFlow amount={amount} buyerId={buyerId} payload={payload} />
 
-      <div className="rounded-xl bg-surface-subtle p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs text-ink-muted">Reputation update</div>
-            <div className="font-mono text-sm text-ink">
-              {payload.seller_id}
-            </div>
-          </div>
-          <div className="flex items-center gap-3 font-mono">
-            <span
-              className={cn(
-                "animate-value-pop text-lg font-semibold tracking-tight",
-                payload.delta >= 0 ? "text-emerald-600" : "text-rose-600",
-              )}
-            >
-              {payload.delta >= 0 ? "+" : ""}
-              {payload.delta.toFixed(3)}
-            </span>
-            <span className="text-ink-subtle">→</span>
-            <span className="text-ink">{payload.new_score.toFixed(2)}</span>
-          </div>
-        </div>
-      </div>
+      <ReputationUpdate payload={payload} />
     </Card>
+  );
+}
+
+export function SettlementPanel({ task, escrow, events }: Props) {
+  const settled = latestSettledEvent(events);
+  // Settlement runs after the verdict lands. Show a brief spinner during
+  // that gap so the page never sits silently.
+  const verdictLanded = events.find((e) => e.event_type === "judge_verdict");
+  const elapsed = useElapsedSeconds(
+    verdictLanded && !settled ? verdictLanded.timestamp : undefined,
+  );
+
+  if (!settled) {
+    return verdictLanded ? <SettlingCard elapsed={elapsed} /> : null;
+  }
+
+  return (
+    <SettledCard
+      task={task}
+      escrow={escrow}
+      payload={settled.payload as unknown as SettledPayload}
+    />
   );
 }
 
@@ -107,20 +150,25 @@ function Stop({
   label,
   sub,
   highlight = false,
+  seed,
 }: {
   label: string;
   sub: string;
   highlight?: boolean;
+  seed?: string;
 }) {
   return (
     <div
       className={cn(
-        "rounded-xl p-3 text-left",
+        "flex items-center gap-3 rounded-control p-3 text-left",
         highlight ? "bg-brand-50" : "bg-surface-subtle",
       )}
     >
-      <div className="text-xs text-ink-muted">{label}</div>
-      <div className="mt-0.5 truncate font-mono text-sm text-ink">{sub}</div>
+      {seed && <Treeling seed={seed} size={40} alive={false} />}
+      <dl className="min-w-0">
+        <dt className="text-[0.8125rem] text-ink-muted">{label}</dt>
+        <dd className="type-data mt-0.5 truncate text-sm text-ink">{sub}</dd>
+      </dl>
     </div>
   );
 }
@@ -132,19 +180,12 @@ function Arrow({
   amount: number;
   direction: "forward" | "backward";
 }) {
+  const Icon = direction === "forward" ? ArrowRight : ArrowLeft;
   return (
-    <div className="flex flex-col items-center justify-center text-xs text-ink-muted">
-      <div className="font-mono text-sm text-ink">{formatMoney(amount)}</div>
-      <div className="my-1 text-brand-600">
-        {direction === "forward" ? (
-          <ArrowRight size={20} weight="bold" />
-        ) : (
-          <ArrowLeft size={20} weight="bold" />
-        )}
-      </div>
-      <div className="text-xs text-ink-muted">
-        {direction === "forward" ? "Released" : "Refunded"}
-      </div>
+    <div className="flex flex-col items-center justify-center text-[0.8125rem] text-ink-muted">
+      <div className="type-data text-sm font-semibold text-ink">{formatMoney(amount)}</div>
+      <Icon size={20} weight="bold" className="my-1 rotate-90 text-brand-600 sm:rotate-0" />
+      <div>{direction === "forward" ? "Released" : "Refunded"}</div>
     </div>
   );
 }

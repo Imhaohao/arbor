@@ -1,7 +1,9 @@
 "use client";
 
-import { Card, CardHeader } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import { Treeling } from "@/components/grove/Treeling";
+import { statureFromReputation } from "@/lib/grove/treeling";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ReputationChart } from "./ReputationChart";
@@ -59,6 +61,72 @@ function averageDimensions(rows: RepDimensionRow[]) {
   };
 }
 
+type Integration = "mcp" | "mcp_auth" | "a2a" | "directory" | "soft";
+
+function integrationOf(spec: SpecialistConfig): Integration {
+  if (spec.mcp_endpoint) return spec.is_verified ? "mcp" : "mcp_auth";
+  if (spec.a2a_endpoint) return "a2a";
+  // A bare live-roster row has no hand-authored config and no catalog entry,
+  // so its transport is unknown; distinct from an intentional "Soft" specialist.
+  if (spec.discovered === true && !spec.discovery_source) return "directory";
+  return "soft";
+}
+
+function IntegrationPill({ spec, kind }: { spec: SpecialistConfig; kind: Integration }) {
+  switch (kind) {
+    case "mcp":
+      return (
+        <Pill tone="success" title={`Verified MCP: ${spec.mcp_endpoint}`}>
+          <CheckCircle size={12} weight="fill" />
+          MCP
+        </Pill>
+      );
+    case "mcp_auth":
+      return (
+        <Pill
+          tone="warning"
+          title={`MCP endpoint configured; set ${spec.mcp_api_key_env ?? "API key"} to use live tools`}
+        >
+          <ShieldWarning size={12} weight="fill" />
+          Auth needed
+        </Pill>
+      );
+    case "a2a":
+      return (
+        <Pill tone="info" title={`A2A endpoint: ${spec.a2a_endpoint}`}>
+          <Broadcast size={12} weight="fill" />
+          A2A
+        </Pill>
+      );
+    case "directory":
+      return (
+        <Pill
+          tone="neutral"
+          title="Listed in the network directory; no integration details on file yet."
+        >
+          Directory only
+        </Pill>
+      );
+    default:
+      return (
+        <Pill tone="neutral">
+          <Plug size={12} />
+          Soft
+        </Pill>
+      );
+  }
+}
+
+function liveStanding(spec: SpecialistConfig, live: LiveAgent | undefined) {
+  const score = live?.reputation_score ?? spec.starting_reputation;
+  const completed = live?.total_tasks_completed ?? 0;
+  const disputes = live?.total_disputes_lost ?? 0;
+  return { score, completed, disputes, total: completed + disputes };
+}
+
+const SLEEPING: ReadonlySet<Integration> = new Set(["mcp_auth", "directory"]);
+const VISIBLE_CAPABILITIES = 3;
+
 export function SpecialistCard({
   spec,
   live,
@@ -74,153 +142,157 @@ export function SpecialistCard({
   }) ?? []) as RepDimensionRow[];
   const dims = averageDimensions(dimensionRows);
 
-  const score = live?.reputation_score ?? spec.starting_reputation;
-  const completed = live?.total_tasks_completed ?? 0;
-  const disputes = live?.total_disputes_lost ?? 0;
-  const total = completed + disputes;
-  const disputeRate = total === 0 ? 0 : (disputes / total) * 100;
-
-  const hasMcpEndpoint = !!spec.mcp_endpoint;
-  const mcpConnected = hasMcpEndpoint && !!spec.is_verified;
-  const hasA2aEndpoint = !hasMcpEndpoint && !!spec.a2a_endpoint;
-  // True only for the plain fallback the directory builds from a bare live
-  // roster row — no hand-authored config and no catalog entry exist for it,
-  // so we genuinely don't know its transport. Distinct from an intentional
-  // "Soft" (mock/model-backed) specialist so we never claim knowledge we
-  // don't have in either direction.
-  const isDirectoryOnly =
-    !hasMcpEndpoint &&
-    !hasA2aEndpoint &&
-    spec.discovered === true &&
-    !spec.discovery_source;
+  const { score, completed, disputes, total } = liveStanding(spec, live);
+  const kind = integrationOf(spec);
+  const hasTrackRecord = completed > 0 || dims !== null;
 
   return (
-    <Card>
-      <CardHeader
-        title={
-          <span className="flex items-center gap-2">
-            <span>{spec.display_name}</span>
-            {mcpConnected && (
-              <Pill tone="success" title={`Verified MCP: ${spec.mcp_endpoint}`}>
-                <CheckCircle size={11} weight="fill" />
-                MCP
-              </Pill>
-            )}
-            {hasMcpEndpoint && !mcpConnected && (
-              <Pill
-                tone="warning"
-                title={`MCP endpoint configured; set ${spec.mcp_api_key_env ?? "API key"} to use live tools`}
-              >
-                <ShieldWarning size={11} weight="fill" />
-                Auth needed
-              </Pill>
-            )}
-            {hasA2aEndpoint && (
-              <Pill tone="info" title={`A2A endpoint: ${spec.a2a_endpoint}`}>
-                <Broadcast size={11} weight="fill" />
-                A2A
-              </Pill>
-            )}
-            {isDirectoryOnly && (
-              <Pill
-                tone="neutral"
-                title="Listed in the network directory; no integration details on file yet."
-              >
-                Directory only
-              </Pill>
-            )}
-            {!hasMcpEndpoint && !hasA2aEndpoint && !isDirectoryOnly && (
-              <Pill tone="neutral">
-                <Plug size={11} />
-                Soft
-              </Pill>
-            )}
-          </span>
-        }
-        meta={spec.sponsor}
-      />
-
-      <p className="mb-4 text-sm text-ink-muted">{spec.one_liner}</p>
-
-      {hasMcpEndpoint && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 font-mono text-[11px] text-brand-700">
-          <span className="font-sans font-medium">
-            {mcpConnected ? "Live MCP" : "MCP auth"}
-          </span>
-          <span className="truncate">{spec.mcp_endpoint}</span>
-        </div>
-      )}
-
-      <div className="mb-4">
-        <div className="mb-1.5 flex items-center justify-between text-xs">
-          <span className="text-ink-muted">Reputation</span>
-          <span className="font-mono text-ink">{formatScore(score)}</span>
-        </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
-          <div
-            className="h-full rounded-full bg-brand-600 transition-[width] duration-700 ease-out"
-            style={{ width: `${score * 100}%` }}
-          />
+    <Card className="flex h-full flex-col gap-4">
+      <div className="flex items-end gap-4">
+        <Treeling
+          seed={spec.agent_id}
+          capabilities={spec.capabilities}
+          name={spec.display_name}
+          stature={statureFromReputation(score)}
+          asleep={SLEEPING.has(kind)}
+          alive={false}
+          size={hasTrackRecord ? 76 : 64}
+        />
+        <div className="min-w-0 flex-1 pb-1">
+          <h3 className="type-subheading break-words text-ink">{spec.display_name}</h3>
+          <p className="truncate text-[0.8125rem] text-ink-muted" title={spec.sponsor}>
+            {spec.sponsor}
+          </p>
         </div>
       </div>
 
-      {dims ? (
-        <div className="mb-4 grid grid-cols-2 gap-3 rounded-xl bg-surface-subtle p-3">
-          <DimensionBar label="Quality" value={dims.quality} />
-          <DimensionBar label="Speed" value={dims.speed} />
-          <DimensionBar label="Estimate accuracy" value={dims.estimate} />
-          <DimensionBar label="Value" value={dims.value} />
-          <div className="col-span-2 flex items-center justify-between border-t border-line/60 pt-2 text-[11px] text-ink-muted">
-            <span>Overall · {formatScore(dims.overall)}</span>
-            <span>
-              {dims.tasks} task{dims.tasks === 1 ? "" : "s"} measured
-            </span>
-          </div>
-        </div>
-      ) : (
-        <p className="mb-4 rounded-xl bg-surface-subtle px-3 py-2 text-[11px] text-ink-muted">
-          No completed tasks yet — speed, estimate accuracy, quality, and value
-          scores appear after the first run.
-        </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <IntegrationPill spec={spec} kind={kind} />
+        {spec.mcp_endpoint && (
+          <code
+            className="type-data min-w-0 truncate text-xs text-ink-muted"
+            title={spec.mcp_endpoint}
+          >
+            {endpointHost(spec.mcp_endpoint)}
+          </code>
+        )}
+      </div>
+
+      <p className="text-sm text-ink-soft">{spec.one_liner}</p>
+
+      {hasTrackRecord && (
+        <TrackRecord
+          spec={spec}
+          dims={dims}
+          events={events}
+          completed={completed}
+          disputes={disputes}
+          total={total}
+        />
       )}
 
-      <ReputationChart
-        startingScore={spec.starting_reputation}
-        events={events}
-      />
+      <div className="mt-auto flex flex-col gap-4 pt-1">
+        <CapabilityChips capabilities={spec.capabilities} />
+        <dl className="grid grid-cols-2 gap-3 border-t border-line pt-3 text-[0.8125rem]">
+          <div>
+            <dt className="text-ink-muted">Reputation</dt>
+            <dd className="type-data text-base text-ink">{formatScore(score)}</dd>
+          </div>
+          <div>
+            <dt className="text-ink-muted">Cost baseline</dt>
+            <dd className="type-data text-base text-ink">{formatMoney(spec.cost_baseline)}</dd>
+          </div>
+        </dl>
+        {!hasTrackRecord && (
+          <p className="-mt-2 text-[0.8125rem] text-ink-muted">No judged work yet</p>
+        )}
+      </div>
+    </Card>
+  );
+}
 
-      <div className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-4 text-xs">
+function endpointHost(endpoint: string): string {
+  try {
+    return new URL(endpoint).host;
+  } catch {
+    return endpoint;
+  }
+}
+
+function CapabilityChips({ capabilities }: { capabilities: string[] }) {
+  const shown = capabilities.slice(0, VISIBLE_CAPABILITIES);
+  const hidden = capabilities.length - shown.length;
+  return (
+    <ul className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+      {shown.map((c) => (
+        <li key={c} className="rounded-full bg-surface-muted px-2.5 py-0.5 text-xs text-ink-soft">
+          {c}
+        </li>
+      ))}
+      {hidden > 0 && (
+        <li
+          className="rounded-full bg-surface-muted px-2.5 py-0.5 text-xs text-ink-muted"
+          title={capabilities.slice(VISIBLE_CAPABILITIES).join(", ")}
+        >
+          +{hidden}
+        </li>
+      )}
+    </ul>
+  );
+}
+
+interface TrackRecordProps {
+  spec: SpecialistConfig;
+  dims: ReturnType<typeof averageDimensions>;
+  events: RepEvent[];
+  completed: number;
+  disputes: number;
+  total: number;
+}
+
+function TrackRecord({ spec, dims, events, completed, disputes, total }: TrackRecordProps) {
+  const disputeRate = total === 0 ? 0 : (disputes / total) * 100;
+  return (
+    <div className="flex flex-col gap-4">
+      {dims && <DimensionPanel dims={dims} />}
+      <ReputationChart startingScore={spec.starting_reputation} events={events} />
+      <dl className="grid grid-cols-3 gap-3 text-[0.8125rem]">
         <Stat label="Accepted" value={String(completed)} />
         <Stat label="Disputed" value={String(disputes)} />
         <Stat
           label="Dispute rate"
-          value={total === 0 ? "—" : `${disputeRate.toFixed(0)}%`}
+          value={total === 0 ? "n/a" : `${disputeRate.toFixed(0)}%`}
           danger={disputeRate >= 25}
         />
-        {total > 0 && (
-          <p className="col-span-3 text-[10px] text-ink-subtle">
-            Every judged task ends as either accepted or disputed — {completed}{" "}
-            accepted and {disputes} disputed out of {total} judged task
-            {total === 1 ? "" : "s"} total.
-          </p>
-        )}
-      </div>
+      </dl>
+      {total > 0 && (
+        <p className="text-[0.8125rem] text-ink-muted">
+          Every judged task ends as accepted or disputed: {completed} accepted and{" "}
+          {disputes} disputed out of {total} judged.
+        </p>
+      )}
+    </div>
+  );
+}
 
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {spec.capabilities.map((c) => (
-          <span
-            key={c}
-            className="rounded-md bg-surface-muted px-2 py-0.5 font-mono text-[10px] text-ink-muted"
-          >
-            {c}
-          </span>
-        ))}
+function DimensionPanel({ dims }: { dims: NonNullable<ReturnType<typeof averageDimensions>> }) {
+  return (
+    <div className="rounded-control bg-surface-subtle p-3">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+        <DimensionBar label="Quality" value={dims.quality} />
+        <DimensionBar label="Speed" value={dims.speed} />
+        <DimensionBar label="Estimate accuracy" value={dims.estimate} />
+        <DimensionBar label="Value" value={dims.value} />
       </div>
-
-      <div className="mt-3 text-xs text-ink-subtle">
-        Cost baseline · {formatMoney(spec.cost_baseline)}
-      </div>
-    </Card>
+      <p className="mt-3 flex items-center justify-between text-[0.8125rem] text-ink-muted">
+        <span>
+          Overall <span className="type-data text-ink">{formatScore(dims.overall)}</span>
+        </span>
+        <span>
+          {dims.tasks} task{dims.tasks === 1 ? "" : "s"} measured
+        </span>
+      </p>
+    </div>
   );
 }
 
@@ -235,15 +307,10 @@ function Stat({
 }) {
   return (
     <div>
-      <div className="text-[11px] text-ink-muted">{label}</div>
-      <div
-        className={cn(
-          "mt-0.5 font-mono",
-          danger ? "text-rose-600" : "text-ink",
-        )}
-      >
+      <dt className="text-ink-muted">{label}</dt>
+      <dd className={cn("type-data mt-0.5 text-base", danger ? "text-danger-700" : "text-ink")}>
         {value}
-      </div>
+      </dd>
     </div>
   );
 }
@@ -252,9 +319,9 @@ function DimensionBar({ label, value }: { label: string; value: number }) {
   const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
   return (
     <div>
-      <div className="flex items-baseline justify-between text-[11px]">
+      <div className="flex items-baseline justify-between gap-2 text-[0.8125rem]">
         <span className="text-ink-muted">{label}</span>
-        <span className="font-mono text-ink">{formatScore(value)}</span>
+        <span className="type-data text-ink">{formatScore(value)}</span>
       </div>
       <div className="score-bar mt-1">
         <span style={{ width: `${pct}%` }} />

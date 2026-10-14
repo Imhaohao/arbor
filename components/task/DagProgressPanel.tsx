@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { Pill } from "@/components/ui/Pill";
+import { Treeling } from "@/components/grove/Treeling";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
@@ -30,37 +32,90 @@ interface Props {
 }
 
 const TONE_STYLES = {
-  done: {
-    chip: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    rail: "bg-emerald-500",
-  },
-  running: {
-    chip: "bg-brand-50 text-brand-700 ring-brand-200",
-    rail: "bg-brand-500",
-  },
-  waiting: {
-    chip: "bg-slate-50 text-slate-500 ring-slate-200",
-    rail: "bg-slate-200",
-  },
-  error: {
-    chip: "bg-rose-50 text-rose-700 ring-rose-200",
-    rail: "bg-rose-500",
-  },
+  done: { text: "text-moss-700", rail: "bg-moss-500" },
+  running: { text: "text-ink", rail: "bg-glow" },
+  waiting: { text: "text-ink-muted", rail: "bg-line-strong" },
+  error: { text: "text-danger-700", rail: "bg-danger-500" },
 } as const;
 
-function StatusIcon({ tone }: { tone: keyof typeof TONE_STYLES }) {
+type Tone = keyof typeof TONE_STYLES;
+
+function StatusIcon({ tone }: { tone: Tone }) {
   if (tone === "done") {
-    return <CheckCircle size={16} weight="fill" className="text-emerald-600" />;
+    return <CheckCircle size={16} weight="fill" className="text-moss-600" aria-hidden="true" />;
   }
   if (tone === "error") {
-    return <WarningCircle size={16} weight="fill" className="text-rose-600" />;
+    return <WarningCircle size={16} weight="fill" className="text-danger-600" aria-hidden="true" />;
   }
   if (tone === "running") {
-    return (
-      <CircleNotch size={16} weight="bold" className="animate-spin text-brand-600" />
-    );
+    return <CircleNotch size={16} weight="bold" className="animate-spin text-ink" aria-hidden="true" />;
   }
-  return <Circle size={16} weight="regular" className="text-slate-300" />;
+  return <Circle size={16} weight="regular" className="text-ink-subtle" aria-hidden="true" />;
+}
+
+function NodeStateLabel({ tone, label }: { tone: Tone; label: string }) {
+  if (tone === "running") return <Pill tone="live">{label}</Pill>;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[0.8125rem] font-medium ${TONE_STYLES[tone].text}`}>
+      <StatusIcon tone={tone} />
+      {label}
+    </span>
+  );
+}
+
+function NodeRow({ node }: { node: ProgressNode }) {
+  const presentation = presentStatus(node.status);
+  return (
+    <div className="flex items-start gap-3 rounded-control bg-surface-muted p-3">
+      {node.assigned_agent_id ? (
+        <Treeling
+          seed={node.assigned_agent_id}
+          size={36}
+          alive={false}
+          lantern={presentation.tone === "running"}
+          asleep={presentation.tone === "waiting"}
+        />
+      ) : (
+        <span className="mt-0.5 shrink-0">
+          <StatusIcon tone={presentation.tone} />
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+          <span className="truncate text-sm font-medium text-ink">
+            {nodeLabel(node.node_id)}
+          </span>
+          <NodeStateLabel tone={presentation.tone} label={presentation.label} />
+        </div>
+        <p className="mt-1 line-clamp-2 text-[0.8125rem] text-ink-muted">
+          {node.description}
+        </p>
+        <NodeMeta node={node} />
+      </div>
+    </div>
+  );
+}
+
+function NodeMeta({ node }: { node: ProgressNode }) {
+  const hasScore = typeof node.eval_score === "number";
+  const hasCost = typeof node.cost_paid === "number";
+  if (!node.assigned_agent_id && !hasScore && !hasCost) return null;
+  return (
+    <dl className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
+      {node.assigned_agent_id && (
+        <dd className="type-data text-ink-soft">{node.assigned_agent_id}</dd>
+      )}
+      {hasScore && (
+        <div className="flex gap-1">
+          <dt>Judge</dt>
+          <dd className="type-data text-ink-soft">{node.eval_score!.toFixed(2)}</dd>
+        </div>
+      )}
+      {hasCost && (
+        <dd className="type-data text-ink-soft">{formatMoney(node.cost_paid!)}</dd>
+      )}
+    </dl>
+  );
 }
 
 /**
@@ -97,134 +152,126 @@ export function DagProgressPanel({ taskId }: Props) {
   if (dag === undefined || nodes === undefined) return null;
   if (dag === null || nodes.length === 0) return null;
 
-  const levels = progressLevels(nodes);
   const progress = summarizeProgress(nodes);
-  const spend = totalSpend(nodes);
   const elapsed = elapsedLabel(dag.created_at, now ?? dag.created_at);
 
   return (
     <Card className="animate-fade-up">
       <CardHeader
         title="Agent pipeline"
-        meta={
-          <span className="inline-flex items-center gap-3">
-            <span
-              className={
-                progress.hasFailure
-                  ? "text-rose-700"
-                  : progress.settled
-                    ? "text-emerald-700"
-                    : "text-brand-700"
-              }
-            >
-              {progress.complete}/{progress.total} steps
-            </span>
-            <Link
-              href={`/replay/${dag._id}`}
-              className="font-medium text-brand-700 hover:underline"
-            >
-              View replay
-            </Link>
-          </span>
-        }
+        meta={<PipelineMeta progress={progress} dagId={dag._id} />}
       />
 
       <div className="mb-1 flex items-baseline justify-between gap-3">
         <span className="text-sm font-medium text-ink">
           {headlineFor(progress)}
         </span>
-        <span className="shrink-0 font-mono text-xs text-ink-muted">
+        <span className="type-data shrink-0 text-xs text-ink-muted">
           {progress.percent}%
         </span>
       </div>
 
-      {/* Segmented rail: one segment per node, so a failed step stays visible
-          instead of being averaged into a single green bar. */}
-      <div className="mb-4 flex gap-1" aria-hidden>
-        {nodes.map((node) => (
-          <div
-            key={node.node_id}
-            className={`h-1.5 flex-1 rounded-full ${
-              TONE_STYLES[presentStatus(node.status).tone].rail
-            } ${isActive(node.status) ? "animate-pulse" : ""}`}
-          />
-        ))}
-      </div>
+      <SegmentedRail nodes={nodes} />
 
-      <ol className="space-y-3">
-        {levels.map((level, levelIndex) => (
-          <li key={levelIndex}>
-            {level.length > 1 && (
-              <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-muted">
-                In parallel
-              </div>
-            )}
-            <div
-              className={
-                level.length > 1
-                  ? "grid gap-2 sm:grid-cols-2"
-                  : "grid gap-2"
-              }
-            >
-              {level.map((node) => {
-                const presentation = presentStatus(node.status);
-                const styles = TONE_STYLES[presentation.tone];
-                return (
-                  <div
-                    key={node.node_id}
-                    className="rounded-xl border border-slate-200 bg-white p-3"
-                  >
-                    <div className="flex items-start gap-2">
-                      <div className="mt-0.5 shrink-0">
-                        <StatusIcon tone={presentation.tone} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate text-sm font-medium text-ink">
-                            {nodeLabel(node.node_id)}
-                          </span>
-                          <span
-                            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${styles.chip}`}
-                          >
-                            {presentation.label}
-                          </span>
-                        </div>
-                        <p className="mt-1 line-clamp-2 text-xs text-ink-muted">
-                          {node.description}
-                        </p>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-muted">
-                          {node.assigned_agent_id && (
-                            <span className="font-mono">
-                              {node.assigned_agent_id}
-                            </span>
-                          )}
-                          {typeof node.eval_score === "number" && (
-                            <span>judge {node.eval_score.toFixed(2)}</span>
-                          )}
-                          {typeof node.cost_paid === "number" && (
-                            <span>{formatMoney(node.cost_paid)}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </li>
-        ))}
-      </ol>
+      <LevelList levels={progressLevels(nodes)} />
 
-      <p className="mt-4 text-xs text-ink-muted">
-        {/* Elapsed is only meaningful while work is in flight. On a settled DAG
-            it measures time since the DAG row was created, which for an old task
-            reads as a nonsense "Running 961h 3m". */}
-        {!progress.settled && elapsed ? `Running ${elapsed}. ` : null}
-        Steps on the same row run in parallel.
-        {spend !== undefined
-          ? ` Settled spend ${formatMoney(spend)} across ${progress.complete} completed step${progress.complete === 1 ? "" : "s"}.`
-          : " Spend appears as steps settle."}
-      </p>
+      <PipelineFootnote
+        progress={progress}
+        elapsed={elapsed}
+        spend={totalSpend(nodes)}
+      />
     </Card>
+  );
+}
+
+type Progress = ReturnType<typeof summarizeProgress>;
+
+function progressCountClass(progress: Progress) {
+  if (progress.hasFailure) return "text-danger-700";
+  if (progress.settled) return "text-moss-700";
+  return "text-ink";
+}
+
+function PipelineMeta({
+  progress,
+  dagId,
+}: {
+  progress: Progress;
+  dagId: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-3">
+      <span className={progressCountClass(progress)}>
+        {progress.complete}/{progress.total} steps
+      </span>
+      <Link
+        href={`/replay/${dagId}`}
+        className="font-medium text-brand-700 underline underline-offset-2"
+      >
+        View replay
+      </Link>
+    </span>
+  );
+}
+
+function SegmentedRail({ nodes }: { nodes: ProgressNode[] }) {
+  return (
+    <div className="mb-4 flex gap-1" aria-hidden>
+      {nodes.map((node) => (
+        <div
+          key={node.node_id}
+          className={`h-1.5 flex-1 rounded-full ${
+            TONE_STYLES[presentStatus(node.status).tone].rail
+          } ${isActive(node.status) ? "animate-soft-pulse" : ""}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function LevelList({ levels }: { levels: ProgressNode[][] }) {
+  return (
+    <ol className="space-y-3">
+      {levels.map((level, levelIndex) => (
+        <li key={levelIndex}>
+          {level.length > 1 && (
+            <div className="mb-1.5 text-[0.8125rem] font-medium text-ink-muted">
+              In parallel
+            </div>
+          )}
+          <div className={level.length > 1 ? "grid gap-2 sm:grid-cols-2" : "grid gap-2"}>
+            {level.map((node) => (
+              <NodeRow key={node.node_id} node={node} />
+            ))}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function spendSentence(spend: number | undefined, completed: number) {
+  if (spend === undefined) return " Spend appears as steps settle.";
+  return ` Settled spend ${formatMoney(spend)} across ${completed} completed step${completed === 1 ? "" : "s"}.`;
+}
+
+function PipelineFootnote({
+  progress,
+  elapsed,
+  spend,
+}: {
+  progress: Progress;
+  elapsed: string | undefined;
+  spend: number | undefined;
+}) {
+  return (
+    <p className="mt-4 text-[0.8125rem] text-ink-muted">
+      {/* Elapsed is only meaningful while work is in flight. On a settled DAG
+          it measures time since the DAG row was created, which for an old task
+          reads as a nonsense "Running 961h 3m". */}
+      {!progress.settled && elapsed ? `Running ${elapsed}. ` : null}
+      Steps on the same row run in parallel.
+      {spendSentence(spend, progress.complete)}
+    </p>
   );
 }

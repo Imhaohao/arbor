@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { Card } from "@/components/ui/Card";
+import { Button, buttonClasses } from "@/components/ui/Button";
+import { Treeling } from "@/components/grove/Treeling";
 import { api } from "@/convex/_generated/api";
-import { CaretRight, MagnifyingGlass } from "@phosphor-icons/react";
+import { CaretRight, Check, MagnifyingGlass } from "@phosphor-icons/react";
 import { cn, formatMoney } from "@/lib/utils";
 import { StatusBadge } from "./StatusBadge";
 
@@ -28,11 +30,110 @@ const FILTERS: Array<{ key: StatusBucket | "all"; label: string }> = [
 const ROW_LIMIT = 25;
 const SEARCH_DEBOUNCE_MS = 300;
 
-function EmptyState({ children }: { children: React.ReactNode }) {
+function EmptyState({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-white p-8 text-center text-sm text-ink-muted shadow-card">
-      {children}
+    <div className="flex flex-col items-center gap-4 rounded-card bg-surface px-6 py-12 text-center shadow-card">
+      <Treeling seed="tasks-index-empty" size={80} asleep alive={false} />
+      <div className="type-body max-w-[40ch] text-ink-muted">{children}</div>
+      {action}
     </div>
+  );
+}
+
+function TaskRowSkeleton() {
+  return (
+    <div className="rounded-card bg-surface p-4 shadow-card">
+      <div className="shimmer mb-3 h-6 w-28 rounded-full" />
+      <div className="shimmer h-4 w-5/6 rounded-full" />
+    </div>
+  );
+}
+
+function TasksLoading() {
+  return (
+    <div className="space-y-2" aria-busy="true" aria-label="Loading tasks">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <TaskRowSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+type TaskRow = NonNullable<ReturnType<typeof useTaskRows>>[number];
+
+function useTaskRows(bucket: StatusBucket | "all", search: string) {
+  return useQuery(api.taskList.recentTasks, {
+    limit: ROW_LIMIT,
+    bucket: bucket === "all" ? undefined : bucket,
+    search: search || undefined,
+  });
+}
+
+function TaskRowLink({ row }: { row: TaskRow }) {
+  return (
+    <Link href={`/task/${row.task_id}`} className="group block rounded-card outline-none focus-visible:shadow-ring">
+      <Card className="p-4 transition-[box-shadow] duration-200 group-hover:shadow-card-hover sm:p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <StatusBadge status={row.status} />
+              <dl className="type-data flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-ink-muted">
+                <div className="flex gap-1.5">
+                  <dt className="font-sans">Budget</dt>
+                  <dd>{formatMoney(row.max_budget)}</dd>
+                </div>
+                {row.price_paid !== undefined && (
+                  <div className="flex gap-1.5">
+                    <dt className="font-sans">Paid</dt>
+                    <dd className="text-ink">{formatMoney(row.price_paid)}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+            <p className="truncate text-sm text-ink" title={row.prompt}>
+              {row.prompt}
+            </p>
+          </div>
+          <CaretRight
+            size={16}
+            weight="bold"
+            className="shrink-0 text-ink-muted transition-[translate,color] group-hover:translate-x-1 group-hover:text-brand-700"
+          />
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
+function FilterChip({
+  label,
+  count,
+  active,
+  onSelect,
+}: {
+  label: string;
+  count: number | undefined;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-[0.8125rem] font-medium transition-[box-shadow,background-color] duration-150 active:scale-[0.96]",
+        active
+          ? "bg-surface text-ink shadow-hairline-strong"
+          : "bg-surface-muted text-ink-soft hover:bg-surface-sunken",
+      )}
+    >
+      {active && <Check size={13} weight="bold" aria-hidden="true" />}
+      {label}
+      <span className={cn("type-data text-xs", active ? "text-ink-soft" : "text-ink-muted")}>
+        {count === undefined ? "…" : count}
+      </span>
+    </button>
   );
 }
 
@@ -52,11 +153,7 @@ export function TasksIndex() {
   }, [searchInput]);
 
   const counts = useQuery(api.taskList.taskStatusCounts, {});
-  const rows = useQuery(api.taskList.recentTasks, {
-    limit: ROW_LIMIT,
-    bucket: bucket === "all" ? undefined : bucket,
-    search: search || undefined,
-  });
+  const rows = useTaskRows(bucket, search);
 
   const isFiltered = bucket !== "all" || search.length > 0;
 
@@ -68,100 +165,63 @@ export function TasksIndex() {
 
   return (
     <div>
-      <div className="mb-5 space-y-3">
+      <div className="mb-6 space-y-4">
         <div className="relative">
           <MagnifyingGlass
             size={16}
             weight="bold"
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint"
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted"
           />
           <input
             type="search"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Search task prompts…"
+            placeholder="Search task prompts"
             aria-label="Search task prompts"
-            className="w-full rounded-xl bg-white py-2.5 pl-10 pr-3 text-sm text-ink shadow-hairline outline-none placeholder:text-ink-faint focus-visible:shadow-ring"
+            className="h-11 w-full rounded-control border border-line-control/60 bg-surface pl-10 pr-3 text-sm text-ink outline-none transition-[box-shadow] placeholder:text-ink-subtle focus-visible:shadow-ring"
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {FILTERS.map((filter) => {
-            const count = filter.key === "all" ? counts?.total : counts?.buckets[filter.key];
-            const active = bucket === filter.key;
-            return (
-              <button
-                key={filter.key}
-                type="button"
-                onClick={() => setBucket(filter.key)}
-                aria-pressed={active}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium tracking-tight transition-colors",
-                  active
-                    ? "bg-brand-600 text-white"
-                    : "bg-surface-muted text-ink-soft hover:bg-surface-subtle",
-                )}
-              >
-                {filter.label}
-                <span className={cn("tabular-nums", active ? "text-white/70" : "text-ink-faint")}>
-                  {count === undefined ? "…" : count}
-                </span>
-              </button>
-            );
-          })}
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
+          {FILTERS.map((filter) => (
+            <FilterChip
+              key={filter.key}
+              label={filter.label}
+              count={filter.key === "all" ? counts?.total : counts?.buckets[filter.key]}
+              active={bucket === filter.key}
+              onSelect={() => setBucket(filter.key)}
+            />
+          ))}
         </div>
 
-        <p className="text-xs leading-relaxed text-ink-muted">
+        <p className="text-[0.8125rem] leading-relaxed text-ink-muted">
           Paid is usually less than budget: Arbor pays the runner-up bidder&rsquo;s
           price, and only for work the judge accepted.
         </p>
       </div>
 
       {rows === undefined ? (
-        <EmptyState>Loading tasks…</EmptyState>
+        <TasksLoading />
       ) : rows.length === 0 ? (
-        <EmptyState>
-          {isFiltered ? (
-            <div className="space-y-2">
-              <p>No tasks match this filter.</p>
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="font-medium text-brand-700 hover:underline"
-              >
-                Clear filters
-              </button>
-            </div>
-          ) : (
-            "No tasks posted yet."
-          )}
-        </EmptyState>
+        isFiltered ? (
+          <EmptyState action={<Button variant="secondary" onClick={clearFilters}>Clear filters</Button>}>
+            No tasks match this filter.
+          </EmptyState>
+        ) : (
+          <EmptyState
+            action={
+              <Link href="/#post-task" className={buttonClasses({ variant: "primary" })}>
+                Post a task
+              </Link>
+            }
+          >
+            No tasks have been posted yet. Post one and specialists will start quoting.
+          </EmptyState>
+        )
       ) : (
         <div className="stagger-children space-y-2">
           {rows.map((row) => (
-            <Link key={row.task_id} href={`/task/${row.task_id}`} className="group block">
-              <Card className="p-4 group-hover:shadow-card-hover">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                      <StatusBadge status={row.status} />
-                      <span className="text-[11px] text-ink-muted">
-                        {row.task_type} · budget {formatMoney(row.max_budget)}
-                        {row.price_paid !== undefined
-                          ? ` · paid ${formatMoney(row.price_paid)}`
-                          : ""}
-                      </span>
-                    </div>
-                    <p className="truncate text-sm text-ink">{row.prompt}</p>
-                  </div>
-                  <CaretRight
-                    size={16}
-                    weight="bold"
-                    className="shrink-0 text-ink-muted transition-transform group-hover:translate-x-1 group-hover:text-brand-700"
-                  />
-                </div>
-              </Card>
-            </Link>
+            <TaskRowLink key={row.task_id} row={row} />
           ))}
         </div>
       )}

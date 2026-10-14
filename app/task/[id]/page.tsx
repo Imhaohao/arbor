@@ -11,9 +11,9 @@ export default async function TaskPage({ params }: PageProps) {
     <PageShell
       width="narrow"
       title="Task"
-      back={{ href: "/", label: "Back to Arbor" }}
+      back={{ href: "/tasks", label: "All tasks" }}
       meta={
-        <code className="rounded-md bg-white/70 px-2 py-1 font-mono text-[11px] text-ink-muted shadow-hairline">
+        <code className="type-data rounded-full bg-surface-muted px-3 py-1 text-xs text-ink-muted">
           {id}
         </code>
       }

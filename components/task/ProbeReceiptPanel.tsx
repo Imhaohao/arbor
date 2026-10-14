@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import { SealCheck, WarningCircle } from "@phosphor-icons/react";
+import { Pill, type PillTone } from "@/components/ui/Pill";
 import type { AgentToolCallDoc } from "@/lib/task-view";
 import type { SpecialistProvenance } from "@/lib/types";
 
@@ -25,49 +27,28 @@ export interface ProbeReceiptPanelProps {
   winnerAgentId?: string;
 }
 
+const TIER_TONES: Record<string, PillTone> = {
+  "native-a2a": "info",
+  "a2a-bridge": "brand",
+  "model-backed": "neutral",
+};
+
 function TierPill({ tier }: { tier: string }) {
-  if (tier === "native-a2a") {
-    return (
-      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-        native-a2a
-      </span>
-    );
-  }
-  if (tier === "a2a-bridge") {
-    return (
-      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200">
-        a2a-bridge
-      </span>
-    );
-  }
-  if (tier === "model-backed") {
-    return (
-      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200">
-        model-backed
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium italic bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-      not-a2a-yet
-    </span>
-  );
+  return <Pill tone={TIER_TONES[tier] ?? "neutral"}>{tier}</Pill>;
 }
 
-function StatusDot({ status }: { status: BidProbeDoc["probe_status"] }) {
-  const cls =
-    status === "pass"
-      ? "bg-green-500"
-      : status === "fail"
-        ? "bg-red-500"
-        : "bg-gray-400";
-  return (
-    <span
-      className={`inline-block h-2 w-2 rounded-full flex-shrink-0 mt-0.5 ${cls}`}
-      title={status}
-    />
-  );
+const STATUS_PILLS: Record<BidProbeDoc["probe_status"], { label: string; tone: PillTone }> = {
+  pass: { label: "Pass", tone: "success" },
+  fail: { label: "Fail", tone: "danger" },
+  demo_lane: { label: "Demo lane", tone: "neutral" },
+};
+
+function ProbeStatus({ status }: { status: BidProbeDoc["probe_status"] }) {
+  const { label, tone } = STATUS_PILLS[status];
+  return <Pill tone={tone}>{label}</Pill>;
 }
+
+const ABSENT = <span className="italic text-ink-muted">none</span>;
 
 export default function ProbeReceiptPanel({
   probes,
@@ -106,118 +87,104 @@ export default function ProbeReceiptPanel({
     if (!receipt.events_observed) missing.push("events_observed");
     if (!receipt.artifact_present) missing.push("artifact");
     if (missing.length === 0) {
-      return { ok: true, label: "Fulfilled — receipt complete" };
+      return { ok: true, label: "Fulfilled: receipt complete" };
     }
-    return { ok: false, label: `Partial receipt — missing: ${missing.join(", ")}` };
+    return { ok: false, label: `Partial receipt, missing: ${missing.join(", ")}` };
   }, [receipt]);
 
   return (
-    <div className="rounded-xl border border-line bg-surface p-5 space-y-5">
-      {/* Heading */}
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-        Capability probes
-      </h3>
+    <div className="space-y-5 rounded-card bg-surface p-5 shadow-card">
+      <h3 className="type-subheading text-ink">Capability probes</h3>
 
-      {/* Probe table */}
       {probes.length === 0 ? (
-        <p className="text-xs text-ink-muted">No probes recorded.</p>
+        <p className="text-[0.8125rem] text-ink-muted">No probes recorded.</p>
       ) : (
-        <div className="grid gap-y-2">
-          {/* Column headers */}
-          <div className="grid grid-cols-[minmax(0,1.5fr)_auto_auto_auto_minmax(0,2fr)] gap-x-3 text-[10px] font-medium uppercase tracking-wide text-ink-muted border-b border-line pb-1">
-            <span>Agent</span>
-            <span>Tier</span>
-            <span>Status</span>
-            <span>Duration</span>
-            <span>Excerpt</span>
-          </div>
-          {probes.map((probe) => {
-            const excerpt = probe.response_excerpt ?? probe.error_message ?? "";
-            const truncated =
-              excerpt.length > 60 ? excerpt.slice(0, 60) + "…" : excerpt;
-            return (
-              <div
-                key={probe._id}
-                className="grid grid-cols-[minmax(0,1.5fr)_auto_auto_auto_minmax(0,2fr)] gap-x-3 items-start text-xs"
-              >
-                <span className="font-mono text-ink truncate">{probe.agent_id}</span>
-                <TierPill tier={probe.public_tier} />
-                <StatusDot status={probe.probe_status} />
-                <span className="text-ink-muted tabular-nums whitespace-nowrap">
-                  {probe.duration_ms}ms
-                </span>
-                <span
-                  className="font-mono text-xs text-ink-muted truncate"
-                  title={excerpt}
-                >
-                  {truncated}
-                </span>
-              </div>
-            );
-          })}
+        <div className="relative overflow-x-auto">
+          <table className="w-full min-w-[34rem] text-left text-[0.8125rem]">
+            <thead className="text-ink-muted">
+              <tr className="shadow-[0_1px_0_oklch(var(--line))]">
+                <th scope="col" className="pb-2 pr-3 font-medium">Agent</th>
+                <th scope="col" className="pb-2 pr-3 font-medium">Tier</th>
+                <th scope="col" className="pb-2 pr-3 font-medium">Status</th>
+                <th scope="col" className="pb-2 pr-3 font-medium">Duration</th>
+                <th scope="col" className="pb-2 font-medium">Excerpt</th>
+              </tr>
+            </thead>
+            <tbody>
+              {probes.map((probe) => {
+                const excerpt = probe.response_excerpt ?? probe.error_message ?? "";
+                return (
+                  <tr key={probe._id} className="align-top">
+                    <td className="type-data max-w-[12rem] truncate py-2 pr-3 text-ink">{probe.agent_id}</td>
+                    <td className="py-2 pr-3"><TierPill tier={probe.public_tier} /></td>
+                    <td className="py-2 pr-3"><ProbeStatus status={probe.probe_status} /></td>
+                    <td className="type-data whitespace-nowrap py-2 pr-3 text-ink-muted">{probe.duration_ms}ms</td>
+                    <td className="type-data max-w-[16rem] truncate py-2 text-xs text-ink-muted" title={excerpt}>
+                      {excerpt.length > 60 ? excerpt.slice(0, 60) + "…" : excerpt}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Fulfillment receipt */}
-      {receipt && (
-        <div className="space-y-2 border-t border-line pt-4">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-            Fulfillment receipt
-          </h4>
-          <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
-            <span className="text-ink-muted">session_id</span>
-            <span className="font-mono text-ink">
-              {receipt.external_session_id ?? <span className="text-ink-muted italic">—</span>}
-            </span>
-            <span className="text-ink-muted">events_observed</span>
-            <span className="font-mono text-ink">{receipt.events_observed}</span>
-            <span className="text-ink-muted">artifact_present</span>
-            <span className="font-mono text-ink">
-              {receipt.artifact_present ? "true" : "false"}
-            </span>
-            <span className="text-ink-muted">pr_url</span>
-            <span className="font-mono text-ink">
-              {receipt.pr_url ? (
-                <a
-                  href={receipt.pr_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand-700 hover:underline"
-                >
-                  {receipt.pr_url}
-                </a>
-              ) : (
-                <span className="text-ink-muted italic">—</span>
-              )}
-            </span>
-            <span className="text-ink-muted">artifact_hash</span>
-            <span
-              className="font-mono text-xs text-ink truncate"
-              title={receipt.artifact_hash ?? undefined}
-            >
-              {receipt.artifact_hash ? (
-                receipt.artifact_hash.slice(0, 32) +
-                (receipt.artifact_hash.length > 32 ? "…" : "")
-              ) : (
-                <span className="text-ink-muted italic">—</span>
-              )}
-            </span>
-          </div>
-        </div>
-      )}
+      {receipt && <FulfillmentReceipt receipt={receipt} />}
+      {banner && <ReceiptBanner ok={banner.ok} label={banner.label} />}
+    </div>
+  );
+}
 
-      {/* Banner */}
-      {banner && (
-        <div
-          className={`rounded-lg px-4 py-2.5 text-xs font-medium ${
-            banner.ok
-              ? "bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-300"
-              : "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-          }`}
-        >
-          {banner.ok ? "✓" : "⚠"} {banner.label}
-        </div>
-      )}
+interface Receipt {
+  external_session_id?: string;
+  events_observed: number;
+  artifact_present: boolean;
+  pr_url?: string;
+  artifact_hash?: string;
+}
+
+function FulfillmentReceipt({ receipt }: { receipt: Receipt }) {
+  const hash = receipt.artifact_hash;
+  return (
+    <div className="space-y-2 pt-4 shadow-[0_-1px_0_oklch(var(--line))]">
+      <h4 className="text-sm font-semibold text-ink">Fulfillment receipt</h4>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-[0.8125rem]">
+        <dt className="text-ink-muted">session_id</dt>
+        <dd className="type-data min-w-0 break-all text-ink">{receipt.external_session_id ?? ABSENT}</dd>
+        <dt className="text-ink-muted">events_observed</dt>
+        <dd className="type-data text-ink">{receipt.events_observed}</dd>
+        <dt className="text-ink-muted">artifact_present</dt>
+        <dd className="type-data text-ink">{receipt.artifact_present ? "true" : "false"}</dd>
+        <dt className="text-ink-muted">pr_url</dt>
+        <dd className="type-data min-w-0 break-all text-ink">
+          {receipt.pr_url ? (
+            <a href={receipt.pr_url} target="_blank" rel="noreferrer" className="text-brand-700 hover:underline">
+              {receipt.pr_url}
+            </a>
+          ) : (
+            ABSENT
+          )}
+        </dd>
+        <dt className="text-ink-muted">artifact_hash</dt>
+        <dd className="type-data min-w-0 truncate text-ink" title={hash ?? undefined}>
+          {hash ? hash.slice(0, 32) + (hash.length > 32 ? "…" : "") : ABSENT}
+        </dd>
+      </dl>
+    </div>
+  );
+}
+
+function ReceiptBanner({ ok, label }: { ok: boolean; label: string }) {
+  const Icon = ok ? SealCheck : WarningCircle;
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-control px-4 py-2.5 text-[0.8125rem] font-medium ${
+        ok ? "bg-moss-50 text-moss-700" : "bg-warning-50 text-warning-700"
+      }`}
+    >
+      <Icon size={16} weight="fill" aria-hidden="true" />
+      {label}
     </div>
   );
 }

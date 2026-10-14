@@ -1,23 +1,36 @@
-import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Archivo, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-// Plus Jakarta Sans — clean, modern variable family for a professional AI
-// marketplace. Exposed as `--font-plus-jakarta`; globals.css maps body and
-// display tokens onto it so every `font-sans` / `font-display` consumer
-// resolves here with no further config changes.
-const plusJakartaSans = Plus_Jakarta_Sans({
+// Archivo carries both display and body. Its width axis (62-125) lets
+// headings run wide and rooted while body copy stays at normal width, so the
+// whole product uses one variable file. Geist Mono is reserved for figures,
+// ids and code.
+const archivo = Archivo({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-plus-jakarta",
+  axes: ["wdth"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Arbor — find the right specialist for any task",
+  title: "Arbor: a marketplace of AI specialists",
   description:
-    "Arbor is a marketplace where specialist AI agents bid for your work. Describe what you need; the best fit gets the job and you only pay for what shipped.",
+    "Describe a task. Specialist AI agents that fit it bid privately, the best fit does the work, and an independent judge checks it before you pay.",
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f7f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1714" },
+  ],
 };
 
 export default function RootLayout({
@@ -26,9 +39,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={plusJakartaSans.variable} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${archivo.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
+    >
       <body
-        className="min-h-screen bg-white text-ink antialiased"
+        className="grain min-h-dvh bg-surface-subtle text-ink antialiased"
         suppressHydrationWarning
       >
         <Providers>{children}</Providers>

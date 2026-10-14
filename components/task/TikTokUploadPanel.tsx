@@ -6,7 +6,7 @@ import { ArrowSquareOut, UploadSimple } from "@phosphor-icons/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClasses } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 
 interface MediaArtifactView {
@@ -133,16 +133,17 @@ export function TikTokUploadPanel({ taskId }: { taskId: string }) {
           return (
             <div
               key={artifact._id}
-              className="rounded-xl bg-surface-subtle p-4"
+              className="rounded-control bg-surface-muted p-4"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-ink">
                     {artifact.file_name}
                   </p>
-                  <p className="mt-0.5 text-xs text-ink-muted">
-                    {artifact.mime_type} · {bytesLabel(artifact.byte_size)}
-                  </p>
+                  <dl className="mt-0.5 flex gap-x-3 text-xs text-ink-muted">
+                    <dd className="type-data">{artifact.mime_type}</dd>
+                    <dd className="type-data">{bytesLabel(artifact.byte_size)}</dd>
+                  </dl>
                 </div>
                 <div className="flex items-center gap-2">
                   {job ? (
@@ -155,7 +156,7 @@ export function TikTokUploadPanel({ taskId }: { taskId: string }) {
                       href="https://www.tiktok.com/"
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
+                      className={buttonClasses({ variant: "primary" })}
                     >
                       Open TikTok
                       <ArrowSquareOut size={15} weight="bold" />
@@ -173,12 +174,12 @@ export function TikTokUploadPanel({ taskId }: { taskId: string }) {
                 </div>
               </div>
               {job?.status === "input_required" ? (
-                <p className="mt-3 text-xs leading-5 text-ink-muted">
+                <p className="mt-3 text-[0.8125rem] text-ink-muted">
                   {HANDOFF_MESSAGE}
                 </p>
               ) : null}
               {job?.error_message ? (
-                <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                <p role="alert" className="mt-3 rounded-control bg-danger-50 px-3 py-2 text-sm text-danger-700">
                   {job.error_message}
                 </p>
               ) : null}
@@ -186,7 +187,7 @@ export function TikTokUploadPanel({ taskId }: { taskId: string }) {
           );
         })}
         {error ? (
-          <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+          <p role="alert" className="rounded-control bg-danger-50 px-3 py-2 text-sm text-danger-700">
             {error}
           </p>
         ) : null}

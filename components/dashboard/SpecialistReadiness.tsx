@@ -3,12 +3,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { ComponentType } from "react";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/shadcn/card";
+  ArrowsLeftRight,
+  CheckCircle,
+  Flask,
+  Key,
+  MinusCircle,
+  Terminal,
+  UserGear,
+  WifiX,
+  XCircle,
+  type IconProps,
+} from "@phosphor-icons/react";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { Pill, type PillTone } from "@/components/ui/Pill";
+import { Treeling } from "@/components/grove/Treeling";
+import { EmptyState, SkeletonRows } from "@/components/dashboard/DashboardParts";
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
 type ReadinessStatus =
   | "ready"
@@ -67,38 +80,256 @@ const FILTERS: Array<{ key: "all" | ReadinessStatus; label: string }> = [
   { key: "needs_owner_action", label: "Needs owner action" },
 ];
 
-const STATUS_STYLE: Record<string, string> = {
-  ready: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  pass: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  needs_key: "bg-amber-50 text-amber-700 ring-amber-600/20",
-  protocol_mismatch: "bg-orange-50 text-orange-700 ring-orange-600/20",
-  endpoint_down: "bg-rose-50 text-rose-700 ring-rose-600/20",
-  fail: "bg-rose-50 text-rose-700 ring-rose-600/20",
-  declined: "bg-orange-50 text-orange-700 ring-orange-600/20",
-  mock_only: "bg-slate-100 text-slate-600 ring-slate-500/20",
-  needs_owner_action: "bg-violet-50 text-violet-700 ring-violet-600/20",
-  skipped: "bg-slate-100 text-slate-500 ring-slate-500/20",
-  not_applicable: "bg-slate-100 text-slate-500 ring-slate-500/20",
+interface StatusMeta {
+  tone: PillTone;
+  Icon: ComponentType<IconProps>;
+}
+
+const STATUS_META: Record<string, StatusMeta> = {
+  ready: { tone: "success", Icon: CheckCircle },
+  pass: { tone: "success", Icon: CheckCircle },
+  needs_key: { tone: "warning", Icon: Key },
+  protocol_mismatch: { tone: "warning", Icon: ArrowsLeftRight },
+  endpoint_down: { tone: "danger", Icon: WifiX },
+  fail: { tone: "danger", Icon: XCircle },
+  declined: { tone: "warning", Icon: XCircle },
+  mock_only: { tone: "neutral", Icon: Flask },
+  needs_owner_action: { tone: "info", Icon: UserGear },
+  skipped: { tone: "neutral", Icon: MinusCircle },
+  not_applicable: { tone: "neutral", Icon: MinusCircle },
 };
 
+const SKIPPED_META = STATUS_META.skipped;
+const SMOKE_COMMAND = "npm run agents:smoke";
+
+function statusLabel(status: string) {
+  return status.replace(/_/g, " ");
+}
+
 function StatusPill({ status }: { status: string }) {
-  const style = STATUS_STYLE[status] ?? STATUS_STYLE.skipped;
+  const { tone, Icon } = STATUS_META[status] ?? SKIPPED_META;
   return (
-    <span
-      className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${style}`}
-    >
-      {status.replace(/_/g, " ")}
+    <Pill tone={tone}>
+      <Icon size={14} weight="bold" aria-hidden />
+      {statusLabel(status)}
+    </Pill>
+  );
+}
+
+const STAGE_TEXT_TONE: Record<PillTone, string> = {
+  neutral: "text-ink-subtle",
+  brand: "text-brand-700",
+  success: "text-moss-700",
+  warning: "text-warning-700",
+  danger: "text-danger-700",
+  info: "text-brand-700",
+  live: "text-ink",
+};
+
+function Stage({ label, status }: { label: string; status?: string }) {
+  const resolved = status ?? "skipped";
+  const { tone, Icon } = STATUS_META[resolved] ?? SKIPPED_META;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-ink-muted">
+      {label}
+      <Icon size={14} weight="bold" className={STAGE_TEXT_TONE[tone]} aria-hidden />
+      <span className="sr-only">{statusLabel(resolved)}</span>
     </span>
   );
 }
 
-function Stage({ label, status }: { label: string; status?: string }) {
+function rowStatus(row: ReadinessRow) {
+  return row.readiness_status ?? row.transport_status;
+}
+
+function modelBannerTone(model: HiveModelReadiness | undefined, failed: boolean) {
+  if (failed || model?.status === "blocked") return "bg-danger-50 text-danger-700";
+  if (model?.status === "fallback") return "bg-warning-50 text-warning-700";
+  if (model) return "bg-moss-50 text-moss-700";
+  return "bg-surface-muted text-ink-muted";
+}
+
+function modelBannerMessage(model: HiveModelReadiness | undefined, failed: boolean) {
+  if (failed) return "Could not read model readiness from the Convex deployment. Check that the deployment is reachable and reload.";
+  return model?.message ?? "Checking model keys in the Convex action runtime.";
+}
+
+function modelBannerLabel(model: HiveModelReadiness | undefined, failed: boolean) {
+  if (model) return `${model.provider} / ${model.model}`;
+  return failed ? "check failed" : "checking Convex...";
+}
+
+function HiveModelBanner({ model, failed }: { model?: HiveModelReadiness; failed: boolean }) {
+  const urgent = failed || model?.status === "blocked";
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] text-ink-muted">
-      {label}
-      <StatusPill status={status ?? "skipped"} />
-    </span>
+    <div
+      role={urgent ? "alert" : "status"}
+      className={cn("mb-3 rounded-control px-4 py-3 text-[0.8125rem]", modelBannerTone(model, failed))}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-semibold">Hive model runtime</span>
+        <span className="type-data text-xs">{modelBannerLabel(model, failed)}</span>
+      </div>
+      <p className="mt-1">{modelBannerMessage(model, failed)}</p>
+    </div>
   );
+}
+
+function SmokeSummary({ run }: { run: SmokeRun | null | undefined }) {
+  return (
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-control bg-surface-muted px-4 py-3 text-[0.8125rem] text-ink-muted">
+      <span>
+        {run
+          ? `Latest smoke: ${run.processed_agents}/${run.total_agents} processed, ${run.ready_agents} ready (${run.status})`
+          : "No smoke run recorded."}
+      </span>
+      <code className="type-data inline-flex items-center gap-1.5 text-xs text-ink">
+        <Terminal size={14} aria-hidden />
+        {SMOKE_COMMAND}
+      </code>
+    </div>
+  );
+}
+
+function FilterBar({
+  filter,
+  onChange,
+  countFor,
+}: {
+  filter: "all" | ReadinessStatus;
+  onChange: (key: "all" | ReadinessStatus) => void;
+  countFor: (key: "all" | ReadinessStatus) => number;
+}) {
+  return (
+    <div role="group" aria-label="Filter by readiness" className="mb-5 flex flex-wrap gap-1 rounded-[1.5rem] bg-surface-muted p-1">
+      {FILTERS.map((item) => {
+        const selected = filter === item.key;
+        return (
+          <button
+            key={item.key}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(item.key)}
+            className={cn(
+              "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[0.8125rem] active:scale-[0.96]",
+              selected ? "bg-surface font-medium text-ink shadow-hairline-strong" : "text-ink-muted hover:text-ink",
+            )}
+          >
+            {item.label}
+            <span className="type-data text-xs">{countFor(item.key)}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ReadinessTableRow({ row }: { row: ReadinessRow }) {
+  const status = rowStatus(row);
+  return (
+    <tr className="align-top text-[0.8125rem]">
+      <td className="max-w-56 px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <Treeling seed={row.agent_id} asleep={status !== "ready"} alive={false} size={32} />
+          <div className="min-w-0">
+            <p className="truncate font-medium text-ink">{row.agent_id}</p>
+            <p className="mt-0.5 truncate text-xs text-ink-muted">{row.failure_bucket ?? "not run"}</p>
+          </div>
+        </div>
+      </td>
+      <td className="max-w-48 px-4 py-3 text-ink-muted">
+        <p className="truncate">{row.owner ?? "unassigned"}</p>
+        <p className="mt-0.5 text-xs">{row.source}</p>
+      </td>
+      <td className="px-4 py-3">
+        <p className="type-data text-xs text-ink">{row.transport}</p>
+        <div className="mt-1.5">
+          <StatusPill status={row.transport_status} />
+        </div>
+        {row.required_key_env && (
+          <p className="type-data mt-1.5 max-w-40 truncate text-xs text-ink-muted">{row.required_key_env}</p>
+        )}
+      </td>
+      <td className="max-w-[360px] px-4 py-3">
+        <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+          <Stage label="probe" status={row.latest_probe_status} />
+          <Stage label="bid" status={row.last_bid_status} />
+          <Stage label="exec" status={row.last_exec_status} />
+          <Stage label="judge" status={row.latest_judge_status} />
+          <Stage label="eval" status={row.latest_eval_status} />
+          <Stage label="scratch" status={row.latest_scratchpad_status} />
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <StatusPill status={row.settlement_eligible ? "pass" : "skipped"} />
+      </td>
+      <td className="px-4 py-3">
+        <StatusPill status={status} />
+      </td>
+    </tr>
+  );
+}
+
+function ReadinessTable({ rows }: { rows: ReadinessRow[] }) {
+  return (
+    <div
+      tabIndex={0}
+      role="region"
+      aria-label="Agent readiness table, scrollable"
+      className="relative max-h-[38rem] overflow-auto rounded-control shadow-hairline outline-none focus-visible:shadow-ring"
+    >
+      <table className="w-full min-w-[980px] text-left">
+        <thead className="sticky top-0 bg-surface-muted text-[0.8125rem] text-ink-muted">
+          <tr>
+            {["Agent", "Owner and source", "Transport", "Smoke stages", "Settlement", "Readiness"].map((heading) => (
+              <th key={heading} className="px-4 py-2.5 font-medium">
+                {heading}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {rows.map((row) => (
+            <ReadinessTableRow key={row.agent_id} row={row} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ReadinessBody({
+  rows,
+  visible,
+  onShowAll,
+}: {
+  rows: ReadinessRow[] | undefined;
+  visible: ReadinessRow[];
+  onShowAll: () => void;
+}) {
+  if (rows === undefined) return <SkeletonRows count={5} className="h-14" />;
+  if (rows.length === 0) {
+    return (
+      <EmptyState
+        seed="readiness-no-data"
+        message={`No readiness data yet. Run ${SMOKE_COMMAND} to probe every agent.`}
+      />
+    );
+  }
+  if (visible.length === 0) {
+    return (
+      <EmptyState
+        seed="readiness-empty-bucket"
+        message="No agents in this bucket."
+        action={
+          <Button variant="secondary" size="sm" onClick={onShowAll}>
+            Show all agents
+          </Button>
+        }
+      />
+    );
+  }
+  return <ReadinessTable rows={visible} />;
 }
 
 export function SpecialistReadiness() {
@@ -129,153 +360,27 @@ export function SpecialistReadiness() {
   const counts = useMemo(() => {
     const value: Record<string, number> = {};
     for (const row of rows ?? []) {
-      const status = row.readiness_status ?? row.transport_status;
+      const status = rowStatus(row);
       value[status] = (value[status] ?? 0) + 1;
     }
     return value;
   }, [rows]);
 
   const visible = (rows ?? []).filter((row) => {
-    const status = row.readiness_status ?? row.transport_status;
+    const status = rowStatus(row);
     return filter === "all" || status === filter;
   });
 
+  const countFor = (key: "all" | ReadinessStatus) =>
+    key === "all" ? (rows?.length ?? 0) : (counts[key] ?? 0);
+
   return (
-    <Card className="mt-6 bg-white shadow-card">
-      <CardHeader className="p-5 pb-0">
-        <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base font-semibold text-ink">
-          <span>Agent readiness matrix</span>
-          <span className="text-xs font-normal text-ink-muted">
-            transport and per-agent smoke fitness
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-5 pt-3">
-        <div
-          role={hiveModel?.status === "blocked" || hiveModelError ? "alert" : "status"}
-          className={`mb-3 rounded-lg border px-3 py-2.5 text-xs ${
-            hiveModelError || hiveModel?.status === "blocked"
-              ? "border-rose-200 bg-rose-50 text-rose-800"
-              : hiveModel?.status === "fallback"
-                ? "border-amber-200 bg-amber-50 text-amber-800"
-                : hiveModel
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-line bg-surface-muted text-ink-muted"
-          }`}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="font-semibold">Hive model runtime</span>
-            <span className="font-mono text-[11px]">
-              {hiveModel
-                ? `${hiveModel.provider} / ${hiveModel.model}`
-                : hiveModelError
-                  ? "check failed"
-                  : "checking Convex..."}
-            </span>
-          </div>
-          <p className="mt-1">
-            {hiveModelError
-              ? "Could not read model readiness from the Convex deployment."
-              : hiveModel?.message ?? "Checking model keys in the Convex action runtime."}
-          </p>
-        </div>
-
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface-muted px-3 py-2 text-xs text-ink-muted">
-          <span>
-            {latestRun
-              ? `Latest smoke: ${latestRun.processed_agents}/${latestRun.total_agents} processed, ${latestRun.ready_agents} ready (${latestRun.status})`
-              : "No smoke run recorded."}
-          </span>
-          <code className="font-mono text-[10px]">npm run agents:smoke</code>
-        </div>
-
-        <div className="mb-4 flex flex-wrap gap-2">
-          {FILTERS.map((item) => {
-            const active = filter === item.key;
-            const count = item.key === "all" ? (rows?.length ?? 0) : (counts[item.key] ?? 0);
-            return (
-              <button
-                key={item.key}
-                onClick={() => setFilter(item.key)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${
-                  active
-                    ? "border-brand-600 bg-brand-50 text-brand-700"
-                    : "border-line bg-white text-ink-muted hover:bg-surface-muted"
-                }`}
-              >
-                {item.label}
-                <span className="font-mono text-[10px]">{count}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {rows === undefined ? (
-          <p className="py-6 text-center text-xs text-ink-muted">Loading readiness...</p>
-        ) : rows.length === 0 ? (
-          <p className="py-6 text-center text-xs text-ink-muted">
-            No readiness data. Run <code className="font-mono">npm run agents:smoke</code>.
-          </p>
-        ) : visible.length === 0 ? (
-          <p className="py-6 text-center text-xs text-ink-muted">No agents in this bucket.</p>
-        ) : (
-          <div className="max-h-[38rem] overflow-auto rounded-lg border border-line">
-            <table className="min-w-[980px] w-full text-left">
-              <thead className="sticky top-0 bg-surface-muted text-[10px] uppercase tracking-wide text-ink-muted">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Agent</th>
-                  <th className="px-3 py-2 font-medium">Owner / source</th>
-                  <th className="px-3 py-2 font-medium">Transport</th>
-                  <th className="px-3 py-2 font-medium">Smoke stages</th>
-                  <th className="px-3 py-2 font-medium">Settlement</th>
-                  <th className="px-3 py-2 font-medium">Readiness</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {visible.map((row) => (
-                  <tr key={row.agent_id} className="align-top text-xs">
-                    <td className="max-w-48 px-3 py-3">
-                      <p className="truncate font-medium text-ink">{row.agent_id}</p>
-                      <p className="mt-1 truncate text-[10px] text-ink-muted">
-                        {row.failure_bucket ?? "not run"}
-                      </p>
-                    </td>
-                    <td className="max-w-48 px-3 py-3 text-ink-muted">
-                      <p className="truncate">{row.owner ?? "unassigned"}</p>
-                      <p className="mt-1 text-[10px]">{row.source}</p>
-                    </td>
-                    <td className="px-3 py-3">
-                      <p className="font-mono text-[11px] text-ink">{row.transport}</p>
-                      <div className="mt-1"><StatusPill status={row.transport_status} /></div>
-                      {row.required_key_env && (
-                        <p className="mt-1 max-w-40 truncate font-mono text-[9px] text-ink-muted">
-                          {row.required_key_env}
-                        </p>
-                      )}
-                    </td>
-                    <td className="max-w-[360px] px-3 py-3">
-                      <div className="flex flex-wrap gap-x-2 gap-y-1">
-                        <Stage label="probe" status={row.latest_probe_status} />
-                        <Stage label="bid" status={row.last_bid_status} />
-                        <Stage label="exec" status={row.last_exec_status} />
-                        <Stage label="judge" status={row.latest_judge_status} />
-                        <Stage label="eval" status={row.latest_eval_status} />
-                        <Stage label="scratch" status={row.latest_scratchpad_status} />
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <StatusPill status={row.settlement_eligible ? "pass" : "skipped"} />
-                    </td>
-                    <td className="px-3 py-3">
-                      <StatusPill status={row.readiness_status ?? row.transport_status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
+    <Card>
+      <CardHeader title="Agent readiness matrix" meta="transport and per-agent smoke fitness" />
+      <HiveModelBanner model={hiveModel} failed={hiveModelError} />
+      <SmokeSummary run={latestRun} />
+      <FilterBar filter={filter} onChange={setFilter} countFor={countFor} />
+      <ReadinessBody rows={rows} visible={visible} onShowAll={() => setFilter("all")} />
     </Card>
   );
 }

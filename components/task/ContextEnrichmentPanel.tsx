@@ -41,115 +41,149 @@ interface UserProvidedPayload {
   char_count: number;
 }
 
-export function ContextEnrichmentPanel({ events, taskId }: Props) {
-  const hyperspellStarted = events.find(
-    (e) => e.event_type === "hyperspell_business_context_started",
-  );
-  const hyperspellAdded = events.find(
-    (e) => e.event_type === "hyperspell_business_context_added",
-  );
-  const hyperspellSkipped = events.find(
-    (e) => e.event_type === "hyperspell_business_context_skipped",
-  );
-  const niaStarted = events.find(
-    (e) => e.event_type === "nia_repo_context_started",
-  );
-  const niaAdded = events.find((e) => e.event_type === "nia_repo_context_added");
-  const niaSkipped = events.find(
-    (e) => e.event_type === "nia_repo_context_skipped",
-  );
-  const requestNeeded = events.find(
-    (e) => e.event_type === "context_request_needed",
-  );
-  const userProvided = events.find(
-    (e) => e.event_type === "context_user_provided",
-  );
+interface ContextEvents {
+  hyperspellStarted: LifecycleEventDoc | undefined;
+  hyperspellAdded: LifecycleEventDoc | undefined;
+  hyperspellSkipped: LifecycleEventDoc | undefined;
+  niaStarted: LifecycleEventDoc | undefined;
+  niaAdded: LifecycleEventDoc | undefined;
+  niaSkipped: LifecycleEventDoc | undefined;
+  requestNeeded: LifecycleEventDoc | undefined;
+  userProvided: LifecycleEventDoc | undefined;
+}
 
-  const started = hyperspellStarted ?? niaStarted;
-  const done =
-    (hyperspellAdded || hyperspellSkipped || !hyperspellStarted) &&
-    (niaAdded || niaSkipped || !niaStarted);
+function findEvent(events: LifecycleEventDoc[], type: string) {
+  return events.find((e) => e.event_type === type);
+}
+
+function selectContextEvents(events: LifecycleEventDoc[]): ContextEvents {
+  return {
+    hyperspellStarted: findEvent(events, "hyperspell_business_context_started"),
+    hyperspellAdded: findEvent(events, "hyperspell_business_context_added"),
+    hyperspellSkipped: findEvent(events, "hyperspell_business_context_skipped"),
+    niaStarted: findEvent(events, "nia_repo_context_started"),
+    niaAdded: findEvent(events, "nia_repo_context_added"),
+    niaSkipped: findEvent(events, "nia_repo_context_skipped"),
+    requestNeeded: findEvent(events, "context_request_needed"),
+    userProvided: findEvent(events, "context_user_provided"),
+  };
+}
+
+function payloadOf<T>(event: LifecycleEventDoc | undefined): T | undefined {
+  return event?.payload as unknown as T | undefined;
+}
+
+function isEnrichmentDone(ctx: ContextEvents) {
+  const hyperspellSettled =
+    ctx.hyperspellAdded || ctx.hyperspellSkipped || !ctx.hyperspellStarted;
+  const niaSettled = ctx.niaAdded || ctx.niaSkipped || !ctx.niaStarted;
+  return hyperspellSettled && niaSettled;
+}
+
+function hasContextActivity(ctx: ContextEvents) {
+  return Boolean(
+    ctx.hyperspellStarted ??
+      ctx.niaStarted ??
+      ctx.hyperspellAdded ??
+      ctx.hyperspellSkipped ??
+      ctx.niaAdded ??
+      ctx.niaSkipped,
+  );
+}
+
+export function ContextEnrichmentPanel({ events, taskId }: Props) {
+  const ctx = selectContextEvents(events);
+  const started = ctx.hyperspellStarted ?? ctx.niaStarted;
+  const done = isEnrichmentDone(ctx);
 
   const elapsed = useElapsedSeconds(
     started && !done ? started.timestamp : undefined,
   );
 
-  if (
-    !started &&
-    !hyperspellAdded &&
-    !hyperspellSkipped &&
-    !niaAdded &&
-    !niaSkipped
-  ) {
-    return null;
-  }
+  if (!hasContextActivity(ctx)) return null;
 
   // Both platforms came back empty and the user hasn't filled the gap yet.
-  if (requestNeeded && !userProvided) {
-    const payload = requestNeeded.payload as unknown as RequestNeededPayload;
+  if (ctx.requestNeeded && !ctx.userProvided) {
+    const payload = ctx.requestNeeded.payload as unknown as RequestNeededPayload;
     return <ContextRequestForm payload={payload} taskId={taskId} />;
   }
 
-  if (done) {
-    const hyperspell = hyperspellAdded?.payload as unknown as
-      | AddedPayload
-      | undefined;
-    const nia = niaAdded?.payload as unknown as AddedPayload | undefined;
-    const skipped =
-      ((hyperspellSkipped ?? niaSkipped)?.payload as unknown as
-        | SkippedPayload
-        | undefined) ?? null;
-    const userCtx = userProvided?.payload as unknown as
-      | UserProvidedPayload
-      | undefined;
-    return (
-      <Card className="animate-fade-up bg-sky-50/40">
-        <CardHeader
-          title="Context"
-          meta={<Pill tone="info">Hyperspell + Nia</Pill>}
-        />
-        <div className="space-y-3">
-          {hyperspell && (
-            <ContextBlock
-              title={`Hyperspell · workspace memory · ${(hyperspell.duration_ms / 1000).toFixed(1)}s`}
-              body={
-                hyperspell.summary_preview ||
-                `${hyperspell.document_count ?? 0} memory documents matched.`
-              }
-            />
-          )}
-          {nia && (
-            <ContextBlock
-              title={
-                nia.source_kind === "indexed_sources"
-                  ? `Nia · indexed sources · ${(nia.duration_ms / 1000).toFixed(1)}s`
-                  : `Nia · web research (no indexed match) · ${(nia.duration_ms / 1000).toFixed(1)}s`
-              }
-              body={
-                nia.summary_preview ||
-                `${(nia.char_count ?? 0).toLocaleString()} chars retrieved.`
-              }
-            />
-          )}
-          {userCtx && (
-            <ContextBlock
-              title="You added"
-              body={userCtx.preview}
-            />
-          )}
-          {!hyperspell && !nia && !userCtx && skipped && (
-            <p className="text-xs text-ink-muted">{skipped.reason}</p>
-          )}
-        </div>
-      </Card>
-    );
-  }
+  if (done) return <ContextResultCard ctx={ctx} />;
 
+  return <ContextSearchingCard elapsed={elapsed} />;
+}
+
+function skippedPayloadOf(ctx: ContextEvents) {
   return (
-    <Card className="animate-fade-up bg-sky-50/40">
+    payloadOf<SkippedPayload>(ctx.hyperspellSkipped ?? ctx.niaSkipped) ?? null
+  );
+}
+
+function ContextResultCard({ ctx }: { ctx: ContextEvents }) {
+  const hyperspell = payloadOf<AddedPayload>(ctx.hyperspellAdded);
+  const nia = payloadOf<AddedPayload>(ctx.niaAdded);
+  const skipped = skippedPayloadOf(ctx);
+  const userCtx = payloadOf<UserProvidedPayload>(ctx.userProvided);
+  const hasContent = Boolean(hyperspell || nia || userCtx);
+  return (
+    <Card className="animate-fade-up">
+      <CardHeader
+        title="Context"
+        meta={<Pill tone="info">Hyperspell + Nia</Pill>}
+      />
+      <div className="space-y-3">
+        {hyperspell && <HyperspellBlock payload={hyperspell} />}
+        {nia && <NiaBlock payload={nia} />}
+        {userCtx && (
+          <ContextBlock
+            title="You added"
+            body={userCtx.preview}
+          />
+        )}
+        {!hasContent && skipped && (
+          <p className="text-[0.8125rem] text-ink-muted">{skipped.reason}</p>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function HyperspellBlock({ payload }: { payload: AddedPayload }) {
+  return (
+    <ContextBlock
+      title="Hyperspell workspace memory"
+      meta={`${(payload.duration_ms / 1000).toFixed(1)}s`}
+      body={
+        payload.summary_preview ||
+        `${payload.document_count ?? 0} memory documents matched.`
+      }
+    />
+  );
+}
+
+function NiaBlock({ payload }: { payload: AddedPayload }) {
+  return (
+    <ContextBlock
+      title={
+        payload.source_kind === "indexed_sources"
+          ? "Nia indexed sources"
+          : "Nia web research (no indexed match)"
+      }
+      meta={`${(payload.duration_ms / 1000).toFixed(1)}s`}
+      body={
+        payload.summary_preview ||
+        `${(payload.char_count ?? 0).toLocaleString()} chars retrieved.`
+      }
+    />
+  );
+}
+
+function ContextSearchingCard({ elapsed }: { elapsed: number }) {
+  return (
+    <Card className="animate-fade-up">
       <CardHeader
         title="Looking for context"
-        meta={<Pill tone="info" pulse>Searching</Pill>}
+        meta={<Pill tone="live">Searching</Pill>}
       />
       <LoadingProgress
         label="Hyperspell + Nia are checking your sources"
@@ -165,11 +199,22 @@ export function ContextEnrichmentPanel({ events, taskId }: Props) {
   );
 }
 
-function ContextBlock({ title, body }: { title: string; body: string }) {
+function ContextBlock({
+  title,
+  meta,
+  body,
+}: {
+  title: string;
+  meta?: string;
+  body: string;
+}) {
   return (
     <div>
-      <p className="mb-1 text-xs font-medium text-ink">{title}</p>
-      <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white p-3 font-sans text-xs text-ink-soft">
+      <p className="mb-1 flex items-baseline gap-2 text-sm font-medium text-ink">
+        {title}
+        {meta && <span className="type-data text-xs font-normal text-ink-muted">{meta}</span>}
+      </p>
+      <pre tabIndex={0} className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-control bg-surface-muted p-3 font-sans text-[0.8125rem] text-ink-soft outline-none focus-visible:shadow-ring">
         {body}
       </pre>
     </div>
@@ -202,12 +247,12 @@ function ContextRequestForm({
   }
 
   return (
-    <Card className="animate-fade-up bg-amber-50/60">
+    <Card className="animate-fade-up">
       <CardHeader
         title="We need a bit more context"
         meta={<Pill tone="warning">Awaiting input</Pill>}
       />
-      <p className="mb-4 text-sm leading-relaxed text-ink-soft">
+      <p className="type-body mb-4 text-ink-soft">
         {payload.message}
       </p>
       <form onSubmit={onSubmit} className="space-y-3">
@@ -217,9 +262,9 @@ function ContextRequestForm({
           placeholder="e.g. User analytics live in Mixpanel; the only deploy on Tuesday was a checkout refactor at 4pm PT; sign-up funnel is at /onboard."
           required
           rows={5}
-          className="w-full resize-none rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-brand-600 focus:outline-none focus:shadow-ring"
+          className="w-full resize-none rounded-control border border-line-control/60 bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-brand-600 focus:outline-none focus:shadow-ring"
         />
-        <p className="text-xs text-ink-muted">
+        <p className="text-[0.8125rem] text-ink-muted">
           We&rsquo;ll save this to your Hyperspell workspace so future tasks can
           find it without asking.
         </p>
@@ -242,7 +287,7 @@ function ContextRequestForm({
           )}
         </Button>
         {error && (
-          <p className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+          <p role="alert" className="rounded-control bg-danger-50 px-3 py-2 text-sm text-danger-700">
             {error}
           </p>
         )}

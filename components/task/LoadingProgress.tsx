@@ -21,14 +21,14 @@ interface Props {
 
 const TONES = {
   brand: "text-brand-600",
-  warning: "text-amber-600",
-  info: "text-sky-600",
+  warning: "text-warning-600",
+  info: "text-brand-600",
 } as const;
 
 const BAR_TONES = {
   brand: "bg-brand-500",
-  warning: "bg-amber-500",
-  info: "bg-sky-500",
+  warning: "bg-warning-500",
+  info: "bg-brand-500",
 } as const;
 
 /**
@@ -50,25 +50,23 @@ export function LoadingProgress({
         <CircleNotch
           size={16}
           weight="bold"
-          className={cn("animate-spin shrink-0", TONES[tone])}
+          className={cn("shrink-0 animate-spin", TONES[tone])}
         />
         <span className="font-medium">{label}</span>
         {elapsedSeconds !== undefined && (
-          <span className="ml-auto font-mono text-xs text-ink-muted">
+          <span className="type-data ml-auto text-xs text-ink-muted">
             {elapsedSeconds.toFixed(1)}s elapsed
           </span>
         )}
       </div>
 
-      {status && (
-        <p className="mt-2 pl-7 text-xs text-ink-muted">{status}</p>
-      )}
+      {status && <p className="mt-2 pl-7 text-[0.8125rem] text-ink-muted">{status}</p>}
 
       {details.length > 0 && (
-        <ul className="mt-2 space-y-1 pl-7 text-xs text-ink-muted">
+        <ul className="mt-2 space-y-1 pl-7 text-[0.8125rem] text-ink-muted">
           {details.map((d, i) => (
-            <li key={i} className="flex items-start gap-1.5">
-              <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-ink-subtle" />
+            <li key={i} className="flex items-start gap-2">
+              <span className="mt-2 size-1 shrink-0 rounded-full bg-ink-subtle" />
               <span>{d}</span>
             </li>
           ))}
@@ -76,7 +74,7 @@ export function LoadingProgress({
       )}
 
       {progress !== undefined && (
-        <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-surface-muted">
+        <div className="mt-3 h-1 w-full overflow-hidden rounded-full">
           <div
             className={cn(
               "h-full rounded-full transition-[width] duration-500 ease-out",

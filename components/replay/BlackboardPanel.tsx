@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import { Treeling } from "@/components/grove/Treeling";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
@@ -30,11 +31,40 @@ const KIND_TONE: Record<string, "brand" | "success" | "info" | "neutral"> = {
   artifact: "info",
 };
 
+const COLLAPSED_COUNT = 8;
+
 function timeLabel(ts: number): string {
   return new Date(ts).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function EntryBadges({ entry }: { entry: BlackboardEntry }) {
+  return (
+    <>
+      <Pill tone={KIND_TONE[entry.kind] ?? "neutral"}>{entry.kind}</Pill>
+      {entry.namespace && <Pill tone="neutral">{entry.namespace}</Pill>}
+      {entry.verification === "evidence_backed" && (
+        <Pill tone="success">evidence-backed</Pill>
+      )}
+    </>
+  );
+}
+
+function EntryAttribution({ entry }: { entry: BlackboardEntry }) {
+  return (
+    <dl className="type-data mt-1.5 flex flex-wrap gap-x-3 text-xs text-ink-muted">
+      <dt className="sr-only">Agent</dt>
+      <dd className="break-all">{entry.agent_id}</dd>
+      {entry.node_id && (
+        <>
+          <dt className="sr-only">Step</dt>
+          <dd className="break-all">{entry.node_id}</dd>
+        </>
+      )}
+    </dl>
+  );
 }
 
 function EntryRow({ entry }: { entry: BlackboardEntry }) {
@@ -43,32 +73,29 @@ function EntryRow({ entry }: { entry: BlackboardEntry }) {
   const truncated = entry.content.length > gist.length;
 
   return (
-    <li className="rounded-xl bg-surface-subtle p-3">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Pill tone={KIND_TONE[entry.kind] ?? "neutral"}>{entry.kind}</Pill>
-        {entry.namespace && <Pill tone="neutral">{entry.namespace}</Pill>}
-        {entry.verification === "evidence_backed" && (
-          <Pill tone="success">evidence-backed</Pill>
+    <li className="flex gap-3 rounded-control bg-surface-subtle p-3">
+      <Treeling seed={entry.agent_id} size={36} alive={false} className="shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <EntryBadges entry={entry} />
+          <span className="ml-auto text-xs text-ink-muted">{timeLabel(entry.created_at)}</span>
+        </div>
+        <EntryAttribution entry={entry} />
+        <p className="type-body mt-2 whitespace-pre-wrap break-words text-ink">
+          {open ? entry.content : gist}
+          {truncated && !open && "…"}
+        </p>
+        {truncated && (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="mt-1 min-h-8 rounded-full text-[0.8125rem] font-medium text-brand-700 outline-none hover:underline focus-visible:shadow-ring"
+          >
+            {open ? "Show gist" : "Show full entry"}
+          </button>
         )}
-        <span className="ml-auto font-mono text-[11px] text-ink-muted">
-          {entry.agent_id}
-          {entry.node_id ? ` · ${entry.node_id}` : ""} ·{" "}
-          {timeLabel(entry.created_at)}
-        </span>
       </div>
-      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink">
-        {open ? entry.content : gist}
-        {truncated && !open && "…"}
-      </p>
-      {truncated && (
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="mt-1 text-xs font-medium text-brand-700 hover:underline"
-        >
-          {open ? "Show gist" : "Show full entry"}
-        </button>
-      )}
     </li>
   );
 }
@@ -87,7 +114,7 @@ export function BlackboardPanel({ dagId }: Props) {
   if (!entries || entries.length === 0) return null;
 
   const ordered = [...entries].sort((a, b) => a.created_at - b.created_at);
-  const shown = showAll ? ordered : ordered.slice(0, 8);
+  const shown = showAll ? ordered : ordered.slice(0, COLLAPSED_COUNT);
 
   return (
     <Card>
@@ -100,11 +127,11 @@ export function BlackboardPanel({ dagId }: Props) {
           <EntryRow key={entry._id} entry={entry} />
         ))}
       </ul>
-      {ordered.length > 8 && (
+      {ordered.length > COLLAPSED_COUNT && (
         <button
           type="button"
           onClick={() => setShowAll((v) => !v)}
-          className="mt-3 text-sm font-medium text-brand-700 hover:underline"
+          className="mt-3 min-h-10 rounded-full px-1 text-sm font-medium text-brand-700 outline-none hover:underline focus-visible:shadow-ring"
         >
           {showAll ? "Show fewer" : `Show all ${ordered.length}`}
         </button>

@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { buttonClasses } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill, type PillTone } from "@/components/ui/Pill";
+import { Treeling } from "@/components/grove/Treeling";
+import { statureFromReputation } from "@/lib/grove/treeling";
 import { formatMoney, formatScore } from "@/lib/utils";
-import { Sparkle, CircleNotch, Lightning } from "@phosphor-icons/react";
+import { Check, Sparkle, CircleNotch, Lightning } from "@phosphor-icons/react";
 
-type DiscoverySource = "google" | "catalog" | "registry" | "a2a" | "synthesized";
+type DiscoverySource =
+  | "google"
+  | "catalog"
+  | "registry"
+  | "a2a"
+  | "synthesized";
 
 interface SuggestionItem {
   agent_id: string;
@@ -53,6 +61,22 @@ interface Props {
 const DEBOUNCE_MS = 600;
 const MIN_PROMPT_LEN = 12;
 
+function postJson(url: string, body: Record<string, unknown>) {
+  return fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+function isPromptTooShort(prompt: string): boolean {
+  return prompt.trim().length < MIN_PROMPT_LEN;
+}
+
 export function AgentSuggestions({ prompt, taskType }: Props) {
   const [data, setData] = useState<SuggestResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,7 +89,7 @@ export function AgentSuggestions({ prompt, taskType }: Props) {
   useEffect(() => {
     setDiscovered(null);
     setRefreshWarning(null);
-    if (prompt.trim().length < MIN_PROMPT_LEN) {
+    if (isPromptTooShort(prompt)) {
       setData(null);
       setError(null);
       return;
@@ -73,97 +97,141 @@ export function AgentSuggestions({ prompt, taskType }: Props) {
     const myReq = ++reqIdRef.current;
     setLoading(true);
     setError(null);
+    const isCurrent = () => myReq === reqIdRef.current;
     const t = setTimeout(async () => {
       try {
-        const res = await fetch("/api/v1/suggest", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ prompt, task_type: taskType, top_n: 3 }),
+        const res = await postJson("/api/v1/suggest", {
+          prompt,
+          task_type: taskType,
+          top_n: 3,
         });
         const json = await res.json();
-        if (myReq !== reqIdRef.current) return;
+        if (!isCurrent()) return;
         if (!res.ok) {
           throw new Error(json?.error?.message ?? "suggest failed");
         }
         setData(json as SuggestResponse);
       } catch (e) {
-        if (myReq !== reqIdRef.current) return;
-        setError(e instanceof Error ? e.message : String(e));
+        if (!isCurrent()) return;
+        setError(errorMessage(e));
         setData(null);
       } finally {
-        if (myReq === reqIdRef.current) setLoading(false);
+        if (isCurrent()) setLoading(false);
       }
     }, DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [prompt, taskType]);
+
+  async function refreshAfterDiscovery() {
+    reqIdRef.current += 1;
+    const reReq = reqIdRef.current;
+    const refresh = await postJson("/api/v1/suggest", {
+      prompt,
+      task_type: taskType,
+      top_n: 3,
+    });
+    const refreshJson = await refresh.json();
+    if (reReq !== reqIdRef.current) return;
+    if (refresh.ok) {
+      setData(refreshJson as SuggestResponse);
+      return;
+    }
+    setRefreshWarning(
+      refreshJson?.error?.message ??
+        "Specialist was added, but refreshing recommendations failed.",
+    );
+  }
 
   async function onDiscover() {
     setDiscovering(true);
     setError(null);
     setRefreshWarning(null);
     try {
-      const res = await fetch("/api/v1/discover", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prompt, task_type: taskType, persist: true }),
+      const res = await postJson("/api/v1/discover", {
+        prompt,
+        task_type: taskType,
+        persist: true,
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error?.message ?? "discover failed");
       setDiscovered(json as DiscoverResponse);
-      reqIdRef.current += 1;
-      const reReq = reqIdRef.current;
-      const refresh = await fetch("/api/v1/suggest", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prompt, task_type: taskType, top_n: 3 }),
-      });
-      const refreshJson = await refresh.json();
-      if (refresh.ok && reReq === reqIdRef.current) {
-        setData(refreshJson as SuggestResponse);
-      } else if (reReq === reqIdRef.current) {
-        setRefreshWarning(
-          refreshJson?.error?.message ??
-            "Specialist was added, but refreshing recommendations failed.",
-        );
-      }
+      await refreshAfterDiscovery();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     } finally {
       setDiscovering(false);
     }
   }
 
-  if (prompt.trim().length < MIN_PROMPT_LEN) return null;
-
-  const meta = loading ? (
-    <span className="inline-flex items-center gap-1.5">
-      <CircleNotch size={12} className="animate-spin" />
-      Scoring
-    </span>
-  ) : data ? (
-    data.low_confidence ? (
-      <span className="text-amber-700">Weak match</span>
-    ) : (
-      <span>Top fit · {formatScore(data.best_fit_score)}</span>
-    )
-  ) : null;
+  if (isPromptTooShort(prompt)) return null;
 
   return (
     <Card className="animate-fade-up">
-      <CardHeader title="Recommended specialists" meta={meta} />
+      <CardHeader
+        title="Recommended specialists"
+        meta={<SuggestionMeta loading={loading} data={data} />}
+      />
 
+      <SuggestionBody
+        loading={loading}
+        error={error}
+        refreshWarning={refreshWarning}
+        data={data}
+      />
+
+      {data && data.recommend_discovery && (
+        <DiscoveryPrompt discovering={discovering} onDiscover={onDiscover} />
+      )}
+
+      {discovered && <DiscoveredSpecialist discovered={discovered} />}
+    </Card>
+  );
+}
+
+function SuggestionBody({
+  loading,
+  error,
+  refreshWarning,
+  data,
+}: {
+  loading: boolean;
+  error: string | null;
+  refreshWarning: string | null;
+  data: SuggestResponse | null;
+}) {
+  return (
+    <>
       {error && (
-        <p className="mb-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+        <p
+          className="mb-2 rounded-control bg-danger-50 px-3 py-2 text-sm text-danger-700"
+          role="alert"
+        >
           {error}
         </p>
       )}
 
       {refreshWarning && (
-        <p className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <p className="mb-2 rounded-control bg-warning-50 px-3 py-2 text-sm text-warning-700">
           {refreshWarning}
         </p>
       )}
 
+      <SuggestionResults loading={loading} error={error} data={data} />
+    </>
+  );
+}
+
+function SuggestionResults({
+  loading,
+  error,
+  data,
+}: {
+  loading: boolean;
+  error: string | null;
+  data: SuggestResponse | null;
+}) {
+  return (
+    <>
       {loading && !data && <SuggestionSkeleton />}
 
       {!loading && !error && data && data.suggestions.length === 0 && (
@@ -173,115 +241,136 @@ export function AgentSuggestions({ prompt, taskType }: Props) {
       )}
 
       {data && data.suggestions.length > 0 && (
-        <div className="divide-y divide-line">
+        <ul className="divide-y divide-line">
           {data.suggestions.map((s) => (
-            <div
-              key={s.agent_id}
-              className="flex animate-fade-up items-start justify-between gap-3 py-3 text-sm"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-ink">
-                  <span className="font-medium tracking-tight">
-                    {s.display_name}
-                  </span>
-                  <SourceBadge
-                    discovered={s.discovered}
-                    source={s.discovery_source}
-                    hasEndpoint={!!s.mcp_endpoint}
-                  />
-                </div>
-                <p className="text-xs text-ink-muted">
-                  {s.sponsor} · {s.one_liner}
-                </p>
-                <p className="mt-1.5 text-xs text-ink-soft">
-                  {s.fit_reasoning}
-                </p>
-              </div>
-              <div className="shrink-0 text-right text-xs">
-                <div className="text-ink-subtle">Fit</div>
-                <div className="font-mono text-ink">
-                  {formatScore(s.fit_score)}
-                </div>
-                <div className="mt-1 text-ink-subtle">Cost</div>
-                <div className="font-mono text-ink">
-                  {formatMoney(s.cost_baseline)}
-                </div>
-              </div>
-            </div>
+            <SuggestionRow key={s.agent_id} item={s} />
           ))}
-        </div>
+        </ul>
       )}
+    </>
+  );
+}
 
-      {data && data.recommend_discovery && (
-        <div className="mt-4 animate-fade-up rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-medium">No strong match in the current roster.</p>
-          <p className="mt-1 text-xs text-amber-800">
-            Spawn a tailor-made specialist for this task. It joins the registry
-            and competes alongside the existing specialists.
-          </p>
-          <button
-            type="button"
-            onClick={onDiscover}
-            disabled={discovering}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-amber-800 shadow-hairline hover:bg-amber-100 hover:shadow-hairline-strong disabled:opacity-50"
-          >
-            {discovering ? (
-              <>
-                <CircleNotch size={12} className="animate-spin" />
-                Synthesizing…
-              </>
-            ) : (
-              <>
-                <Sparkle size={12} weight="fill" />
-                Discover a new specialist
-              </>
-            )}
-          </button>
-        </div>
-      )}
+function SuggestionMeta({
+  loading,
+  data,
+}: {
+  loading: boolean;
+  data: SuggestResponse | null;
+}) {
+  if (loading) {
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <CircleNotch size={12} className="animate-spin" />
+        Scoring
+      </span>
+    );
+  }
+  if (!data) return null;
+  if (data.low_confidence) {
+    return <span className="text-warning-700">Weak match</span>;
+  }
+  return (
+    <span>
+      Top fit{" "}
+      <span className="type-data text-ink">
+        {formatScore(data.best_fit_score)}
+      </span>
+    </span>
+  );
+}
 
-      {discovered && (
-        <div className="mt-4 animate-fade-up rounded-xl bg-brand-50 p-4 text-sm">
-          <div className="flex items-center justify-between gap-2">
-            <p className="inline-flex items-center gap-1.5 font-medium text-brand-700">
-              <Lightning size={14} weight="fill" />
-              New specialist · {discovered.specialist.display_name}
-            </p>
-            <SourceBadge
-              discovered
-              source={discovered.source}
-              hasEndpoint={!!discovered.specialist.mcp_endpoint}
-            />
-          </div>
-          <p className="mt-1 text-xs text-ink-muted">
-            {discovered.specialist.sponsor} ·{" "}
-            {discovered.specialist.one_liner}
-          </p>
-          {discovered.specialist.mcp_endpoint && (
-            <p className="mt-1 font-mono text-[11px] text-ink-soft">
-              MCP: {discovered.specialist.mcp_endpoint}
-            </p>
+function DiscoveryPrompt({
+  discovering,
+  onDiscover,
+}: {
+  discovering: boolean;
+  onDiscover: () => void;
+}) {
+  return (
+    <div className="mt-4 flex animate-fade-up items-start gap-4 rounded-control bg-warning-50 p-4 text-sm text-ink">
+      <Treeling seed="no-strong-match" asleep alive={false} size={56} />
+      <div>
+        <p className="font-medium">
+          No strong match in the current roster.
+        </p>
+        <p className="mt-1 text-[0.8125rem] text-ink-soft">
+          Spawn a tailor-made specialist for this task. It joins the
+          registry and competes alongside the existing specialists.
+        </p>
+        <button
+          type="button"
+          onClick={onDiscover}
+          disabled={discovering}
+          className={buttonClasses({
+            variant: "secondary",
+            size: "sm",
+            className: "mt-3",
+          })}
+        >
+          {discovering ? (
+            <>
+              <CircleNotch size={12} className="animate-spin" />
+              Synthesizing...
+            </>
+          ) : (
+            <>
+              <Sparkle size={12} weight="fill" />
+              Discover a new specialist
+            </>
           )}
-          <p className="mt-1 text-xs text-ink-soft">
-            Capabilities: {discovered.specialist.capabilities.join(", ")}
-          </p>
-          <p className="mt-1 text-xs text-ink-muted">
-            {discovered.rationale}
-          </p>
-          {discovered.verified_tools.length > 0 && (
-            <p className="mt-1 text-xs text-emerald-700">
-              tools/list ✓ {discovered.verified_tools.slice(0, 6).join(", ")}
-              {discovered.verified_tools.length > 6 ? "…" : ""}
-            </p>
-          )}
-          {discovered.source === "synthesized" && (
-            <p className="mt-1 text-xs text-amber-700">
-              No real MCP backend matched — this is an LLM-only fallback.
-            </p>
-          )}
-        </div>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DiscoveredSpecialist({ discovered }: { discovered: DiscoverResponse }) {
+  return (
+    <div className="mt-4 animate-fade-up rounded-control bg-brand-50 p-4 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <p className="inline-flex items-center gap-1.5 font-medium text-brand-700">
+          <Lightning size={14} weight="fill" />
+          New specialist: {discovered.specialist.display_name}
+        </p>
+        <SourceBadge
+          discovered
+          source={discovered.source}
+          hasEndpoint={!!discovered.specialist.mcp_endpoint}
+        />
+      </div>
+      <p className="mt-1 text-[0.8125rem] text-ink-muted">
+        {discovered.specialist.sponsor}: {discovered.specialist.one_liner}
+      </p>
+      {discovered.specialist.mcp_endpoint && (
+        <p className="type-data mt-1 truncate text-xs text-ink-soft">
+          MCP: {discovered.specialist.mcp_endpoint}
+        </p>
       )}
-    </Card>
+      <p className="mt-1 text-[0.8125rem] text-ink-soft">
+        Capabilities: {discovered.specialist.capabilities.join(", ")}
+      </p>
+      <p className="mt-1 text-[0.8125rem] text-ink-muted">
+        {discovered.rationale}
+      </p>
+      {discovered.verified_tools.length > 0 && (
+        <p className="mt-1 flex items-start gap-1 text-[0.8125rem] text-moss-700">
+          <Check
+            size={14}
+            weight="bold"
+            className="mt-0.5 shrink-0"
+            aria-hidden="true"
+          />
+          tools/list: {discovered.verified_tools.slice(0, 6).join(", ")}
+          {discovered.verified_tools.length > 6 ? "…" : ""}
+        </p>
+      )}
+      {discovered.source === "synthesized" && (
+        <p className="mt-1 text-[0.8125rem] text-warning-700">
+          No real MCP backend matched. This is an LLM-only fallback.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -289,15 +378,13 @@ function SuggestionSkeleton() {
   return (
     <div className="space-y-3">
       {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="flex items-center justify-between gap-3 py-1"
-        >
+        <div key={i} className="flex items-center justify-between gap-3 py-1">
+          <div className="shimmer size-10 shrink-0 rounded-full" />
           <div className="flex-1 space-y-1.5">
-            <div className="shimmer h-3.5 w-1/3 rounded" />
-            <div className="shimmer h-3 w-3/4 rounded" />
+            <div className="shimmer h-3.5 w-1/3 rounded-full" />
+            <div className="shimmer h-3 w-3/4 rounded-full" />
           </div>
-          <div className="shimmer h-8 w-16 rounded" />
+          <div className="shimmer h-8 w-16 rounded-control" />
         </div>
       ))}
     </div>
@@ -315,9 +402,9 @@ function SourceBadge({
 }) {
   if (!discovered) return null;
   const map: Record<DiscoverySource, { label: string; tone: PillTone }> = {
-    google: { label: "Search · Google", tone: "success" },
-    catalog: { label: "MCP · catalog", tone: "success" },
-    registry: { label: "MCP · registry", tone: "success" },
+    google: { label: "Search, Google", tone: "success" },
+    catalog: { label: "MCP, catalog", tone: "success" },
+    registry: { label: "MCP, registry", tone: "success" },
     a2a: { label: "A2A", tone: "success" },
     synthesized: { label: "Synthesized", tone: "warning" },
   };
@@ -326,4 +413,42 @@ function SourceBadge({
     : { label: "Synthesized", tone: "warning" };
   const meta = source ? map[source] : fallback;
   return <Pill tone={meta.tone}>{meta.label}</Pill>;
+}
+
+function SuggestionRow({ item }: { item: SuggestionItem }) {
+  return (
+    <li className="flex animate-fade-up items-start gap-3 py-3 text-sm">
+      <Treeling
+        seed={item.agent_id}
+        capabilities={item.capabilities}
+        name={item.display_name}
+        alive={false}
+        size={40}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2 text-ink">
+          <span className="font-medium">{item.display_name}</span>
+          <SourceBadge
+            discovered={item.discovered}
+            source={item.discovery_source}
+            hasEndpoint={!!item.mcp_endpoint}
+          />
+        </div>
+        <p className="text-[0.8125rem] text-ink-muted">
+          {item.sponsor}: {item.one_liner}
+        </p>
+        <p className="mt-1 text-[0.8125rem] text-ink-soft">
+          {item.fit_reasoning}
+        </p>
+      </div>
+      <dl className="shrink-0 text-right text-[0.8125rem]">
+        <dt className="text-ink-muted">Fit</dt>
+        <dd className="type-data text-ink">{formatScore(item.fit_score)}</dd>
+        <dt className="mt-1 text-ink-muted">Cost</dt>
+        <dd className="type-data text-ink">
+          {formatMoney(item.cost_baseline)}
+        </dd>
+      </dl>
+    </li>
+  );
 }

@@ -3,7 +3,10 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { buttonClasses } from "@/components/ui/Button";
+import { Treeling } from "@/components/grove/Treeling";
 import { DagProgressPanel } from "./DagProgressPanel";
 import { TaskHeader } from "./TaskHeader";
 import { ContextEnrichmentPanel } from "./ContextEnrichmentPanel";
@@ -54,8 +57,12 @@ export function TaskView({ taskId }: { taskId: string }) {
   }
   if (task === null) {
     return (
-      <Card className="border-rose-200 bg-rose-50/40">
-        <p className="text-sm text-rose-700">Task not found.</p>
+      <Card role="alert" className="flex flex-col items-center gap-3 py-10 text-center">
+        <Treeling seed={taskId} size={72} asleep alive={false} />
+        <p className="type-body text-ink">This task does not exist or was removed.</p>
+        <Link href="/tasks" className={buttonClasses({ variant: "secondary" })}>
+          Browse all tasks
+        </Link>
       </Card>
     );
   }
@@ -71,7 +78,7 @@ export function TaskView({ taskId }: { taskId: string }) {
 
   if (isConversionDemo) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <TaskHeader task={task} />
         <ConversionDropDemo task={task} events={lifecycle} />
       </div>
@@ -113,7 +120,7 @@ function RegularTaskView({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <TaskHeader task={task} />
       <ContextEnrichmentPanel events={lifecycle} taskId={taskId} />
       <DagProgressPanel taskId={taskId} />
@@ -148,7 +155,7 @@ function RegularTaskView({
         <button
           type="button"
           onClick={scrollToLatest}
-          className="fixed bottom-6 left-1/2 z-30 inline-flex -translate-x-1/2 animate-fade-up items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white shadow-lg hover:bg-ink/90"
+          className="fixed bottom-6 left-1/2 z-30 inline-flex -translate-x-1/2 animate-fade-up items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper shadow-float hover:bg-ink-soft active:scale-[0.96]"
         >
           <ArrowDown size={14} weight="bold" />
           See latest
@@ -160,18 +167,20 @@ function RegularTaskView({
 
 function TaskLoading() {
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="animate-fade-in space-y-5" aria-busy="true">
       <Card>
         <div className="space-y-3">
-          <div className="shimmer h-4 w-32 rounded" />
-          <div className="shimmer h-5 w-3/4 rounded" />
-          <div className="shimmer h-5 w-2/3 rounded" />
+          <div className="shimmer h-6 w-28 rounded-full" />
+          <div className="shimmer h-5 w-3/4 rounded-full" />
+          <div className="shimmer h-5 w-2/3 rounded-full" />
+          <div className="shimmer mt-4 h-16 w-full rounded-control" />
         </div>
       </Card>
       <Card>
         <div className="space-y-3">
-          <div className="shimmer h-4 w-24 rounded" />
-          <div className="shimmer h-20 w-full rounded" />
+          <div className="shimmer h-5 w-40 rounded-full" />
+          <div className="shimmer h-14 w-full rounded-control" />
+          <div className="shimmer h-14 w-full rounded-control" />
         </div>
       </Card>
     </div>

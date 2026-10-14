@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { Pill } from "@/components/ui/Pill";
+import { Treeling } from "@/components/grove/Treeling";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
   CheckCircle,
+  XCircle,
   CircleNotch,
   Circle,
   ArrowRight,
@@ -51,7 +54,7 @@ export function PlanPanel({ task }: Props) {
     <Card className="animate-fade-up">
       <CardHeader
         title="Plan"
-        meta={`${plan.length} steps · ${children.filter((c) => c.status === "complete" || c.status === "disputed").length} done`}
+        meta={`${plan.length} steps, ${children.filter((c) => c.status === "complete" || c.status === "disputed").length} done`}
       />
       <p className="mb-4 text-sm text-ink-muted">
         The planner decomposed your goal into sub-tasks. Each one runs its own
@@ -71,22 +74,21 @@ export function PlanPanel({ task }: Props) {
           return (
             <li
               key={i}
-              className="flex items-start gap-3 rounded-xl bg-surface-subtle p-3 text-sm"
+              className="flex items-start gap-3 rounded-control bg-surface-subtle p-3 text-sm"
             >
               <StepIcon status={status} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <span className="font-mono text-[11px] text-ink-subtle">
+                  <span className="type-data text-xs text-ink-muted">
                     Step {i + 1}
                   </span>
                   {step.specialist_hint && (
-                    <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-700">
-                      hint · {step.specialist_hint}
-                    </span>
+                    <Pill tone="brand">Hint: {step.specialist_hint}</Pill>
                   )}
                   {winnerId && (
-                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-                      delivered by {winnerId}
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-moss-50 py-0.5 pl-1 pr-2.5 text-xs font-medium text-moss-700">
+                      <Treeling seed={winnerId} size={20} alive={false} />
+                      delivered by <span className="type-data">{winnerId}</span>
                     </span>
                   )}
                 </div>
@@ -94,14 +96,14 @@ export function PlanPanel({ task }: Props) {
                   {step.prompt}
                 </p>
                 {step.rationale && (
-                  <p className="mt-1 text-xs text-ink-muted">
+                  <p className="mt-1 text-[0.8125rem] text-ink-muted">
                     {step.rationale}
                   </p>
                 )}
                 {child && (
                   <Link
                     href={`/task/${child._id}`}
-                    className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand-700 hover:text-brand-800"
+                    className="mt-2 inline-flex items-center gap-1 text-[0.8125rem] font-medium text-brand-700 hover:underline"
                   >
                     Open sub-task
                     <ArrowRight size={12} weight="bold" />
@@ -122,16 +124,16 @@ function StepIcon({ status }: { status: string }) {
       <CheckCircle
         size={20}
         weight="fill"
-        className="mt-0.5 shrink-0 text-emerald-500"
+        className="mt-0.5 shrink-0 text-moss-600"
       />
     );
   }
   if (status === "disputed" || status === "failed") {
     return (
-      <CheckCircle
+      <XCircle
         size={20}
         weight="fill"
-        className="mt-0.5 shrink-0 text-rose-500"
+        className="mt-0.5 shrink-0 text-danger-600"
       />
     );
   }

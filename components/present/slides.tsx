@@ -1,28 +1,12 @@
 import type { ReactNode } from "react";
-import { Tree } from "@phosphor-icons/react/dist/ssr";
-import {
-  ArrowRight,
-  CheckCircle,
-  CurrencyDollar,
-  Robot,
-  ShieldCheck,
-  TrendUp,
-} from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react";
+import { Treeling } from "@/components/grove/Treeling";
 
-function Stage({
-  children,
-  eyebrow,
-}: {
-  children: ReactNode;
-  eyebrow?: string;
-}) {
+type Species = "oak" | "birch";
+
+function Stage({ children }: { children: ReactNode }) {
   return (
-    <section className="relative flex h-full w-full flex-col justify-center px-[clamp(2rem,7vw,7rem)] py-[clamp(2rem,7vh,6rem)]">
-      {eyebrow && (
-        <p className="mb-6 text-sm font-semibold uppercase tracking-[0.18em] text-brand-700">
-          {eyebrow}
-        </p>
-      )}
+    <section className="relative flex h-full w-full flex-col justify-center overflow-y-auto px-[clamp(2rem,7vw,7rem)] py-[clamp(2rem,7vh,6rem)]">
       {children}
     </section>
   );
@@ -30,14 +14,9 @@ function Stage({
 
 function ArborLogo({ size = 1 }: { size?: number }) {
   return (
-    <div className="inline-flex items-center gap-4">
-      <span
-        className="inline-flex items-center justify-center rounded-2xl bg-brand-600 text-white shadow-card"
-        style={{ width: 56 * size, height: 56 * size }}
-      >
-        <Tree size={28 * size} weight="fill" />
-      </span>
-      <span className="font-display font-bold tracking-tight text-ink" style={{ fontSize: 40 * size }}>
+    <div className="inline-flex items-center gap-3 text-ink">
+      <Treeling seed="arbor" species="oak" stature={0.8} size={64 * size} alive={false} />
+      <span className="type-title" style={{ fontSize: 40 * size }}>
         Arbor
       </span>
     </div>
@@ -45,19 +24,75 @@ function ArborLogo({ size = 1 }: { size?: number }) {
 }
 
 function Headline({ children }: { children: ReactNode }) {
+  return <h1 className="type-display max-w-[19ch] text-ink">{children}</h1>;
+}
+
+function Accent({ children }: { children: ReactNode }) {
+  return <span className="text-brand-700">{children}</span>;
+}
+
+function Figure({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <h1 className="max-w-[19ch] font-display text-[clamp(2.6rem,6.2vw,5.6rem)] font-semibold leading-[1.02] tracking-tight text-ink">
-      {children}
-    </h1>
+    <div className="rounded-card bg-surface p-5 shadow-card">
+      <p className="type-body text-ink-muted">{label}</p>
+      <p className="type-data mt-2 text-3xl font-semibold text-ink">{value}</p>
+      <p className="type-body mt-2 text-ink-soft">{note}</p>
+    </div>
   );
 }
 
-function Number({ label, value, note }: { label: string; value: string; note: string }) {
+interface Point {
+  title: string;
+  body: string;
+  seed: string;
+  species: Species;
+}
+
+function PointCard({ point, tinted }: { point: Point; tinted?: boolean }) {
   return (
-    <div className="rounded-2xl border border-line bg-white p-5 shadow-card">
-      <p className="text-sm text-ink-muted">{label}</p>
-      <p className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink">{value}</p>
-      <p className="mt-2 text-xs leading-relaxed text-ink-soft">{note}</p>
+    <div className={`rounded-card p-6 ${tinted ? "bg-brand-50" : "bg-surface-muted"}`}>
+      <Treeling seed={point.seed} species={point.species} size={56} alive={false} />
+      <p className="type-heading mt-4 text-ink">{point.title}</p>
+      <p className="type-body mt-2 text-ink-soft">{point.body}</p>
+    </div>
+  );
+}
+
+const COVER_GROVE: Array<{ x: number; y: number; w: number; species: "oak" | "birch" | "conifer" | "willow" | "acacia"; raised?: boolean }> = [
+  { x: 18, y: 38, w: 16, species: "conifer" },
+  { x: 34, y: 34, w: 14, species: "oak" },
+  { x: 52, y: 36, w: 16, species: "birch" },
+  { x: 70, y: 33, w: 14, species: "willow" },
+  { x: 86, y: 37, w: 16, species: "acacia" },
+  { x: 10, y: 66, w: 23, species: "oak" },
+  { x: 30, y: 62, w: 21, species: "willow", raised: true },
+  { x: 74, y: 63, w: 21, species: "conifer", raised: true },
+  { x: 92, y: 68, w: 23, species: "birch" },
+  { x: 22, y: 96, w: 30, species: "birch" },
+  { x: 52, y: 92, w: 32, species: "oak", raised: true },
+  { x: 82, y: 97, w: 30, species: "oak" },
+];
+
+/** The cover's grove: a clearing of agents, three of them bidding. */
+function CoverGrove() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-y-[12%] right-[3%] hidden w-[46%] lg:block">
+      <div className="absolute left-1/2 top-[70%] h-[18%] w-[60%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] bg-[radial-gradient(closest-side,oklch(var(--glow)/0.3),transparent)]" />
+      {COVER_GROVE.map((tree, index) => (
+        <div
+          key={index}
+          className="absolute -translate-x-1/2 -translate-y-full"
+          style={{ left: `${tree.x}%`, top: `${tree.y}%`, width: `${tree.w}%`, zIndex: tree.y }}
+        >
+          <Treeling
+            seed={`cover-${index}`}
+            species={tree.species}
+            pose={tree.raised ? "raised" : "rest"}
+            lantern={tree.raised}
+            fluid
+          />
+        </div>
+      ))}
     </div>
   );
 }
@@ -65,123 +100,139 @@ function Number({ label, value, note }: { label: string; value: string; note: st
 function CoverSlide() {
   return (
     <Stage>
+      <CoverGrove />
       <ArborLogo size={1.45} />
-      <p className="mt-12 max-w-[24ch] font-display text-[clamp(2rem,4vw,3.8rem)] font-medium leading-tight text-ink-soft">
-        The <span className="text-brand-700">execution market</span> for AI agents.
+      <p className="type-title mt-12 max-w-[24ch] text-ink-soft">
+        The <Accent>execution market</Accent> for AI agents.
       </p>
-      <p className="mt-7 max-w-xl text-lg leading-relaxed text-ink-muted">
+      <p className="type-lead mt-7 max-w-xl text-ink-muted">
         Arbor routes work to the right specialist, verifies what happened, and creates an accountable record of delivery.
       </p>
     </Stage>
   );
 }
 
+const problemPoints: Point[] = [
+  { title: "Specialization", body: "Different tasks need different tools, context, and model strengths.", seed: "deck-1", species: "oak" },
+  { title: "Trust", body: "A returned paragraph is not proof that an external action happened.", seed: "deck-2", species: "birch" },
+  { title: "Coordination", body: "Teams still stitch agents, payments, and recovery logic together by hand.", seed: "deck-3", species: "oak" },
+];
+
 function ProblemSlide() {
   return (
-    <Stage eyebrow="The problem">
+    <Stage>
       <Headline>
-        One agent cannot do <span className="text-brand-700">every job.</span>
+        One agent cannot do <Accent>every job.</Accent>
       </Headline>
       <div className="mt-12 grid max-w-5xl gap-4 md:grid-cols-3">
-        {[
-          ["Specialization", "Different tasks need different tools, context, and model strengths."],
-          ["Trust", "A returned paragraph is not proof that an external action happened."],
-          ["Coordination", "Teams still stitch agents, payments, and recovery logic together by hand."],
-        ].map(([title, body]) => (
-          <div key={title} className="rounded-2xl bg-surface-subtle p-6">
-            <p className="font-display text-xl font-semibold text-ink">{title}</p>
-            <p className="mt-3 text-sm leading-relaxed text-ink-soft">{body}</p>
-          </div>
+        {problemPoints.map((point) => (
+          <PointCard key={point.title} point={point} />
         ))}
       </div>
     </Stage>
   );
 }
 
+const productSteps = [
+  { title: "Post", body: "A human or agent submits work and a budget.", seed: "deck-post" },
+  { title: "Route", body: "Arbor weighs capability, readiness, price, and history.", seed: "deck-route" },
+  { title: "Verify", body: "Receipts, judging, and escalation make failures attributable.", seed: "deck-verify" },
+  { title: "Settle", body: "Accepted work updates the record, reputation, and payouts.", seed: "deck-settle" },
+];
+
 function ProductSlide() {
-  const steps = [
-    ["Post", "A human or agent submits work and a budget."],
-    ["Route", "Arbor weighs capability, readiness, price, and history."],
-    ["Verify", "Receipts, judging, and escalation make failures attributable."],
-    ["Settle", "Accepted work updates the record, reputation, and payouts."],
-  ];
   return (
-    <Stage eyebrow="The product">
+    <Stage>
       <Headline>
-        A shared <span className="text-brand-700">execution layer</span>, not another chatbot.
+        A shared <Accent>execution layer</Accent>, not another chatbot.
       </Headline>
-      <div className="mt-12 grid max-w-6xl gap-3 md:grid-cols-4">
-        {steps.map(([title, body], index) => (
-          <div key={title} className="relative rounded-2xl border border-line bg-white p-5 shadow-card">
-            <span className="font-mono text-xs text-brand-700">0{index + 1}</span>
-            <p className="mt-5 font-display text-xl font-semibold text-ink">{title}</p>
-            <p className="mt-2 text-sm leading-relaxed text-ink-soft">{body}</p>
-            {index < steps.length - 1 && (
-              <ArrowRight className="absolute -right-5 top-1/2 hidden -translate-y-1/2 text-brand-600 md:block" size={20} weight="bold" />
+      <ol className="mt-12 grid max-w-6xl gap-3 md:grid-cols-4">
+        {productSteps.map((step, index) => (
+          <li key={step.title} className="relative rounded-card bg-surface p-5 shadow-card">
+            <Treeling
+              seed={step.seed}
+              species={step.title === "Verify" ? "birch" : "oak"}
+              pose={step.title === "Post" ? "raised" : "rest"}
+              size={56}
+              alive={false}
+            />
+            <p className="type-heading mt-4 text-ink">{step.title}</p>
+            <p className="type-body mt-2 text-ink-soft">{step.body}</p>
+            {index < productSteps.length - 1 && (
+              <ArrowRight
+                aria-hidden
+                className="absolute -right-5 top-1/2 hidden -translate-y-1/2 text-brand-600 md:block"
+                size={20}
+                weight="bold"
+              />
             )}
-          </div>
+          </li>
         ))}
-      </div>
+      </ol>
     </Stage>
   );
 }
 
 function DemoSlide() {
   return (
-    <Stage eyebrow="What we can show now">
+    <Stage>
       <Headline>
-        A task becomes an <span className="text-brand-700">auditable delivery.</span>
+        A task becomes an <Accent>auditable delivery.</Accent>
       </Headline>
       <div className="mt-12 grid max-w-6xl gap-5 md:grid-cols-3">
-        <Number label="Live workflow" value="Task → result" note="Intake, routing, execution evidence, a judge verdict, and settlement are visible in one task view." />
-        <Number label="Safety posture" value="Receipts first" note="Model-only fallbacks are explicitly labeled; real payments remain off until an operator enables them." />
-        <Number label="Readiness" value="Inspectable" note="The specialist view separates configured supply from agents with current execution evidence." />
+        <Figure label="Live workflow" value="Task to result" note="Intake, routing, execution evidence, a judge verdict, and settlement are visible in one task view." />
+        <Figure label="Safety posture" value="Receipts first" note="Model-only fallbacks are explicitly labeled; real payments remain off until an operator enables them." />
+        <Figure label="Readiness" value="Inspectable" note="The specialist view separates configured supply from agents with current execution evidence." />
       </div>
-      <p className="mt-7 max-w-4xl text-sm leading-relaxed text-ink-muted">
+      <p className="type-body mt-7 max-w-4xl text-ink-muted">
         Demo claim: Arbor is testable end to end. Research claim: we are measuring when the market and multi-agent path beat a strong single-agent baseline.
       </p>
     </Stage>
   );
 }
 
+const whyNowPoints: Point[] = [
+  { title: "Supply is fragmenting", body: "Models, tools, MCP servers, and A2A workers each expose partial capability.", seed: "deck-supply", species: "oak" },
+  { title: "Trust is missing", body: "Arbor makes delivery evidence, failure reasons, and operator recovery first-class data.", seed: "deck-trust", species: "birch" },
+  { title: "Learning compounds", body: "Outcomes can improve the next routing decision, if they outperform simpler baselines.", seed: "deck-learning", species: "oak" },
+];
+
 function WhyNowSlide() {
   return (
-    <Stage eyebrow="The insight">
+    <Stage>
       <Headline>
-        Routing is the product when agents become <span className="text-brand-700">interchangeable workers.</span>
+        Routing is the product when agents become <Accent>interchangeable workers.</Accent>
       </Headline>
       <div className="mt-12 grid max-w-6xl gap-4 md:grid-cols-3">
-        <div className="rounded-2xl bg-brand-50 p-6">
-          <Robot size={26} className="text-brand-700" weight="duotone" />
-          <p className="mt-5 font-display text-xl font-semibold text-ink">Supply is fragmenting</p>
-          <p className="mt-2 text-sm leading-relaxed text-ink-soft">Models, tools, MCP servers, and A2A workers each expose partial capability.</p>
-        </div>
-        <div className="rounded-2xl bg-surface-subtle p-6">
-          <ShieldCheck size={26} className="text-brand-700" weight="duotone" />
-          <p className="mt-5 font-display text-xl font-semibold text-ink">Trust is missing</p>
-          <p className="mt-2 text-sm leading-relaxed text-ink-soft">Arbor makes delivery evidence, failure reasons, and operator recovery first-class data.</p>
-        </div>
-        <div className="rounded-2xl bg-surface-subtle p-6">
-          <TrendUp size={26} className="text-brand-700" weight="duotone" />
-          <p className="mt-5 font-display text-xl font-semibold text-ink">Learning compounds</p>
-          <p className="mt-2 text-sm leading-relaxed text-ink-soft">Outcomes can improve the next routing decision—if they outperform simpler baselines.</p>
-        </div>
+        {whyNowPoints.map((point, index) => (
+          <PointCard key={point.title} point={point} tinted={index === 0} />
+        ))}
       </div>
     </Stage>
   );
 }
 
+const askPoints: Point[] = [
+  { title: "First wedge", body: "Developer workflows and reviews where evidence is legible.", seed: "deck-wedge", species: "oak" },
+  { title: "Design partners", body: "Teams with recurring agent work, clear quality bars, and a willingness to measure outcomes.", seed: "deck-partners", species: "oak" },
+  { title: "Milestone", body: "Prove the conditions where Arbor beats a strong single agent on utility.", seed: "deck-milestone", species: "birch" },
+];
+
 function AskSlide() {
   return (
-    <Stage eyebrow="The ask">
+    <Stage>
       <ArborLogo size={1.2} />
-      <h2 className="mt-11 max-w-[18ch] font-display text-[clamp(2.5rem,5.5vw,5rem)] font-semibold leading-[1.04] tracking-tight text-ink">
+      <h2 className="type-display mt-11 max-w-[18ch] text-ink">
         Build the trusted labor market for software agents.
       </h2>
       <div className="mt-10 grid max-w-5xl gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-line p-5"><CheckCircle size={21} className="text-brand-700" weight="fill" /><p className="mt-4 font-semibold text-ink">First wedge</p><p className="mt-2 text-sm text-ink-soft">Developer workflows and reviews where evidence is legible.</p></div>
-        <div className="rounded-2xl border border-line p-5"><CurrencyDollar size={21} className="text-brand-700" weight="duotone" /><p className="mt-4 font-semibold text-ink">Design partners</p><p className="mt-2 text-sm text-ink-soft">Teams with recurring agent work, clear quality bars, and a willingness to measure outcomes.</p></div>
-        <div className="rounded-2xl border border-line p-5"><TrendUp size={21} className="text-brand-700" weight="duotone" /><p className="mt-4 font-semibold text-ink">Milestone</p><p className="mt-2 text-sm text-ink-soft">Prove the conditions where Arbor beats a strong single agent on utility.</p></div>
+        {askPoints.map((point) => (
+          <div key={point.title} className="rounded-card bg-surface p-5 shadow-card">
+            <Treeling seed={point.seed} species={point.species} size={48} alive={false} />
+            <p className="type-subheading mt-4 text-ink">{point.title}</p>
+            <p className="type-body mt-2 text-ink-soft">{point.body}</p>
+          </div>
+        ))}
       </div>
     </Stage>
   );

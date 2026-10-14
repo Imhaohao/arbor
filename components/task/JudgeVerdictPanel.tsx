@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import { Button } from "@/components/ui/Button";
+import { Treeling } from "@/components/grove/Treeling";
+import { SealCheck, XCircle } from "@phosphor-icons/react";
 import { LoadingProgress, useElapsedSeconds } from "./LoadingProgress";
 import type { TaskDoc, LifecycleEventDoc } from "@/lib/task-view";
 import { cn } from "@/lib/utils";
@@ -28,25 +31,7 @@ export function JudgeVerdictPanel({ task, events = [] }: Props) {
 
   // Show the live "judging" spinner once execution is done but no verdict yet.
   if (!verdict) {
-    if (!judgingStarted) return null;
-    return (
-      <Card className="animate-fade-up">
-        <CardHeader
-          title="Judge verdict"
-          meta={<Pill tone="info" pulse>Reviewing</Pill>}
-        />
-        <LoadingProgress
-          label="Judge is reviewing the output"
-          status="Independent gpt-5.5 call: scores the work against the enriched context, returns accept/reject + a quality score 0–1."
-          details={[
-            "Strict but fair: rejects if off-topic, hallucinated, or fails the spec.",
-            "Reputation flows from this score: accepted bumps rep, rejected docks it.",
-          ]}
-          elapsedSeconds={elapsed}
-          tone="info"
-        />
-      </Card>
-    );
+    return judgingStarted ? <JudgeReviewing elapsed={elapsed} /> : null;
   }
 
   const accepted = verdict.verdict === "accept";
@@ -90,65 +75,99 @@ export function JudgeVerdictPanel({ task, events = [] }: Props) {
         title="Judge verdict"
         meta={
           <Pill tone={accepted ? "success" : "danger"}>
-            {wasOverridden ? "Overridden" : accepted ? "Accepted" : "Rejected"}
+            {verdictPillLabel(wasOverridden, accepted)}
           </Pill>
         }
       />
-      <p className="mb-5 text-sm leading-relaxed text-ink-soft">
-        {verdict.reasoning}
-      </p>
-      <div>
-        <div className="mb-1.5 flex items-center justify-between text-xs">
-          <span className="text-ink-muted">Quality score</span>
-          <span className="font-mono text-ink">{pct}%</span>
+      <div className="flex items-start gap-4">
+        <div className="relative shrink-0">
+          <Treeling seed={task._id} species="birch" size={72} label="The judge" alive={false} />
+          <VerdictSeal accepted={accepted} />
         </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
-          <div
-            className={cn(
-              "h-full rounded-full transition-[width] duration-700 ease-out",
-              accepted ? "bg-emerald-500" : "bg-rose-500",
-            )}
-            style={{ width: `${pct}%` }}
-          />
+        <p className="type-body min-w-0 flex-1 text-ink-soft">{verdict.reasoning}</p>
+      </div>
+      <div className="mt-5">
+        <dl className="mb-1.5 flex items-baseline justify-between text-[0.8125rem]">
+          <dt className="text-ink-muted">Quality score</dt>
+          <dd className="type-data text-ink">{pct}%</dd>
+        </dl>
+        <div aria-hidden="true" className="score-bar">
+          <span style={{ width: `${pct}%` }} />
         </div>
       </div>
 
-      <div className="mt-5 rounded-xl bg-surface-subtle p-4">
-        <div className="text-xs font-medium uppercase tracking-[0.18em] text-ink-muted">
-          Human override
-        </div>
-        <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-          The judge is advisory. A buyer/operator can override it with an
+      <div className="mt-6 rounded-control bg-surface-subtle p-4">
+        <h4 className="text-sm font-semibold text-ink">Human override</h4>
+        <p className="mt-1 text-[0.8125rem] leading-relaxed text-ink-muted">
+          The judge is advisory. A buyer or operator can override it with an
           explicit reason; the override is logged and settlement is updated.
         </p>
+        <label htmlFor="override-reason" className="mt-3 block text-[0.8125rem] font-medium text-ink">
+          Reason for overriding
+        </label>
         <textarea
-          className="mt-3 min-h-20 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-brand-400"
+          id="override-reason"
+          className="mt-1.5 min-h-20 w-full rounded-control border border-line-control/60 bg-surface px-3 py-2 text-sm text-ink outline-none transition-[box-shadow] placeholder:text-ink-subtle focus-visible:shadow-ring"
           placeholder="Why should the judge decision be overridden?"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
         <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
-            disabled={isSubmitting}
-            onClick={() => overrideJudge("accept")}
-          >
+          <Button variant="soft" disabled={isSubmitting} onClick={() => overrideJudge("accept")}>
+            <SealCheck size={16} weight="bold" className="text-moss-700" />
             Override to accept
-          </button>
-          <button
-            className="rounded-full bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50"
-            disabled={isSubmitting}
-            onClick={() => overrideJudge("reject")}
-          >
+          </Button>
+          <Button variant="danger" disabled={isSubmitting} onClick={() => overrideJudge("reject")}>
+            <XCircle size={16} weight="bold" />
             Override to reject
-          </button>
+          </Button>
         </div>
         {message && (
-          <p className="mt-3 text-xs text-ink-muted">
+          <p role="status" className="mt-3 text-[0.8125rem] text-ink-muted">
             {message}
           </p>
         )}
       </div>
     </Card>
+  );
+}
+
+function verdictPillLabel(wasOverridden: boolean, accepted: boolean) {
+  if (wasOverridden) return "Overridden";
+  return accepted ? "Accepted" : "Rejected";
+}
+
+function JudgeReviewing({ elapsed }: { elapsed: number }) {
+  return (
+    <Card className="animate-fade-up">
+      <CardHeader
+        title="Judge verdict"
+        meta={<Pill tone="live">Reviewing</Pill>}
+      />
+      <LoadingProgress
+        label="Judge is reviewing the output"
+        status="Independent gpt-5.5 call: scores the work against the enriched context, returns accept or reject plus a quality score from 0 to 1."
+        details={[
+          "Strict but fair: rejects if off-topic, hallucinated, or fails the spec.",
+          "Reputation flows from this score: accepted bumps rep, rejected docks it.",
+        ]}
+        elapsedSeconds={elapsed}
+        tone="info"
+      />
+    </Card>
+  );
+}
+
+function VerdictSeal({ accepted }: { accepted: boolean }) {
+  const Icon = accepted ? SealCheck : XCircle;
+  return (
+    <span
+      className={cn(
+        "absolute -bottom-1 -right-2 grid size-7 place-items-center rounded-full bg-surface shadow-card",
+        accepted ? "text-moss-600" : "text-danger-600",
+      )}
+    >
+      <Icon size={20} weight="fill" aria-hidden="true" />
+    </span>
   );
 }

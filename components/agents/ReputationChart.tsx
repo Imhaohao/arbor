@@ -28,7 +28,7 @@ export function ReputationChart({
 
   if (data.length < 2) {
     return (
-      <div className="flex h-24 items-center justify-center rounded-lg bg-surface-subtle text-xs text-ink-muted">
+      <div className="flex h-24 items-center justify-center rounded-control bg-surface-subtle text-[0.8125rem] text-ink-muted">
         No reputation events yet
       </div>
     );
@@ -44,30 +44,30 @@ export function ReputationChart({
           <XAxis dataKey="index" hide />
           <YAxis
             domain={[0, 1]}
-            tick={{ fill: "#94a3b8", fontSize: 9 }}
+            tick={{ fill: "oklch(var(--ink-muted))", fontSize: 12 }}
             tickLine={false}
             axisLine={false}
             ticks={[0, 0.5, 1]}
           />
           <Tooltip
             contentStyle={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 8,
-              fontSize: 11,
-              boxShadow: "0 6px 24px -8px rgba(15,23,42,0.12)",
+              background: "oklch(var(--surface))",
+              border: "none",
+              borderRadius: 12,
+              fontSize: 12,
+              boxShadow: "0 8px 24px -8px oklch(var(--ink) / 0.18)",
             }}
-            labelStyle={{ color: "#64748b" }}
-            itemStyle={{ color: "#1877f2" }}
+            labelStyle={{ color: "oklch(var(--ink-muted))" }}
+            itemStyle={{ color: "oklch(var(--brand-600))" }}
             formatter={(v: number) => [v.toFixed(3), "rep"]}
             labelFormatter={(l) => `Event ${l}`}
           />
           <Line
             type="monotone"
             dataKey="score"
-            stroke="#1877f2"
+            stroke="oklch(var(--brand-500))"
             strokeWidth={2}
-            dot={{ r: 2.5, fill: "#1877f2", strokeWidth: 0 }}
+            dot={{ r: 2.5, fill: "oklch(var(--brand-500))", strokeWidth: 0 }}
             isAnimationActive
             animationDuration={400}
           />
