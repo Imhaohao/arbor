@@ -1,0 +1,29 @@
+{
+  "id": "b2-t03",
+  "title": "Minimum Disagreement Tape",
+  "topic": [
+    "graphs",
+    "2-SAT",
+    "incremental transitive closure",
+    "rollback",
+    "lexicographic optimization"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Minimum Disagreement Tape\n\nChoose one bit `x_i` for each of `n` vertices. Each restriction `(a,va,b,vb)` forbids the simultaneous choices `x_a=va` and `x_b=vb`. Vertices `a` and `b` may be the same; restrictions may repeat.\n\nYou are also given an ordered list of `q` observation pairs `(u_i,v_i)`. An assignment produces a tape of `q` bits: bit `i` is `0` if `x_(u_i)=x_(v_i)`, and `1` otherwise.\n\nAmong all assignments satisfying every restriction, find the **lexicographically smallest tape**, with `0 < 1`. All observations use the same assignment. If there is no valid assignment, print `-1`. Only the tape is requested, not an assignment.\n\n## Input\nThe first line contains `n m q`. Each of the next `m` lines contains `a va b vb`. Each of the final `q` lines contains `u v`, in tape order.\n\n## Output\nPrint `-1` if the restrictions are inconsistent. Otherwise print the optimal tape as one string of exactly `q` binary characters, without spaces.\n\n## Constraints\n- `1 <= n <= 550`, `0 <= m <= 14000`, `1 <= q <= 2200`.\n- Every vertex index is between `1` and `n`.\n- `va,vb` are either `0` or `1`.\n- Observation pairs may repeat and may contain the same vertex twice.\n\n## Examples\n\n### Example 1\nInput\n```text\n3 2 2\n1 0 3 0\n1 1 3 1\n1 2\n2 3\n```\nOutput\n```text\n01\n```\nEither observation can individually be zero, but they cannot both be zero in the same valid assignment.\n\n### Example 2\nInput\n```text\n2 2 3\n1 0 1 0\n2 1 2 1\n1 2\n1 1\n2 1\n```\nOutput\n```text\n101\n```\n\n### Example 3\nInput\n```text\n1 2 1\n1 0 1 0\n1 1 1 1\n1 1\n```\nOutput\n```text\n-1\n```\n",
+  "examples": [
+    {
+      "input": "3 2 2\n1 0 3 0\n1 1 3 1\n1 2\n2 3\n",
+      "output": "01\n"
+    },
+    {
+      "input": "2 2 3\n1 0 1 0\n2 1 2 1\n1 2\n1 1\n2 1\n",
+      "output": "101\n"
+    },
+    {
+      "input": "1 2 1\n1 0 1 0\n1 1 1 1\n1 1\n",
+      "output": "-1\n"
+    }
+  ]
+}

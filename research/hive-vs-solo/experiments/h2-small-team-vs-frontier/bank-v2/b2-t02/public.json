@@ -1,0 +1,28 @@
+{
+  "id": "b2-t02",
+  "title": "Productive Socket Repairs",
+  "topic": [
+    "graphs",
+    "bipartite matching",
+    "SCC",
+    "bitset reachability"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Productive Socket Repairs\n\nThere are `n` requests and `r` sockets. Some request-socket pairs are compatible. A complete assignment gives every request exactly one compatible socket, with no socket used twice. The input is guaranteed to admit a complete assignment.\n\nA repair adds exactly one currently incompatible pair `(a,b)`. The repair is **productive** if, after adding it, there is a complete assignment in which request `a` actually uses socket `b`. Merely preserving an assignment that does not use the repaired pair is not enough.\n\nCount the productive repairs. Different pairs are different repairs; every pair is considered separately, starting from the original compatibility graph.\n\n## Input\nThe first line contains `n r m`. The next `m` lines contain `a b`, indicating a compatible pair.\n\n## Output\nPrint the number of productive repairs.\n\n## Constraints\n- `1 <= n <= 2800`, `n <= r <= 3400`.\n- `n <= m <= 24000` and `m <= n*r`.\n- `1 <= a <= n`, `1 <= b <= r`.\n- All listed pairs are distinct.\n- A complete assignment exists.\n\n## Examples\n\n### Example 1\nInput\n```text\n3 3 5\n1 1\n2 2\n3 3\n1 2\n2 3\n```\nOutput\n```text\n3\n```\nThe productive repairs are `(2,1)`, `(3,1)`, and `(3,2)`. Using `(3,1)` requires a cycle of three reassignments.\n\n### Example 2\nInput\n```text\n2 3 3\n1 1\n2 2\n1 3\n```\nOutput\n```text\n2\n```\n\n### Example 3\nInput\n```text\n1 1 1\n1 1\n```\nOutput\n```text\n0\n```\n",
+  "examples": [
+    {
+      "input": "3 3 5\n1 1\n2 2\n3 3\n1 2\n2 3\n",
+      "output": "3\n"
+    },
+    {
+      "input": "2 3 3\n1 1\n2 2\n1 3\n",
+      "output": "2\n"
+    },
+    {
+      "input": "1 1 1\n1 1\n",
+      "output": "0\n"
+    }
+  ]
+}

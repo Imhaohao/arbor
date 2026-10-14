@@ -1,0 +1,28 @@
+{
+  "id": "b8-t02",
+  "title": "Checker Gates",
+  "topic": [
+    "integer geometry",
+    "sweep line",
+    "lazy segment tree",
+    "parity"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 4.36,
+  "statement": "# Checker Gates\n\nConsider all integer points (x,y) with 0 <= x <= W and 0 <= y <= H. There are n axis-aligned rectangular gates. Each gate is red or blue and contains every integer point in its closed rectangle, including its boundary.\n\nLet R(x,y) and B(x,y) be the numbers of red and blue gates containing (x,y). A point is admitted if **both** conditions hold:\n\n- R(x,y) and x have the same parity.\n- B(x,y) and y have the same parity.\n\nCount the admitted points. Gates of the same color may overlap or coincide; each occurrence is counted separately.\n\n## Input\n\nThe first line contains W, H, and n.\n\nEach of the next n lines contains c, x1, y1, x2, y2. Here c is 0 for a red gate and 1 for a blue gate, and the closed rectangle is [x1,x2] x [y1,y2].\n\n## Output\n\nPrint the number of admitted integer points.\n\n## Constraints\n\n- 0 <= W, H <= 1000000000.\n- 0 <= n <= 20000.\n- 0 <= x1 <= x2 <= W.\n- 0 <= y1 <= y2 <= H.\n- c is 0 or 1.\n\n## Examples\n\n### Example 1\nInput\n```text\n2 2 0\n```\nOutput\n```text\n4\n```\nThe admitted points are (0,0), (0,2), (2,0), and (2,2).\n\n### Example 2\nInput\n```text\n1 1 1\n0 0 0 1 1\n```\nOutput\n```text\n1\n```\nOnly (1,0) is admitted.\n\n### Example 3\nInput\n```text\n1 1 2\n0 0 0 0 0\n1 1 1 1 1\n```\nOutput\n```text\n0\n```\n",
+  "examples": [
+    {
+      "input": "2 2 0\n",
+      "output": "4\n"
+    },
+    {
+      "input": "1 1 1\n0 0 0 1 1\n",
+      "output": "1\n"
+    },
+    {
+      "input": "1 1 2\n0 0 0 0 0\n1 1 1 1 1\n",
+      "output": "0\n"
+    }
+  ]
+}

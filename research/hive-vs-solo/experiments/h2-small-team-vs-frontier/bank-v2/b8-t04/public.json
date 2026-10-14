@@ -1,0 +1,28 @@
+{
+  "id": "b8-t04",
+  "title": "Square-Step Checkpoints",
+  "topic": [
+    "geometry",
+    "dynamic programming",
+    "convex hull trick",
+    "Fenwick tree"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 6.52,
+  "statement": "# Square-Step Checkpoints\n\nCheckpoint 0 is at (0,0) and has toll 0. There are n further checkpoints, in a fixed order. Checkpoint i has integer coordinates (x[i],y[i]) and toll t[i]. Both coordinate sequences are nondecreasing. Different checkpoints may have identical coordinates.\n\nStart at checkpoint 0 and finish at checkpoint n. You may skip checkpoints, but visited indices must strictly increase. A jump from i to j costs\n\n    max((x[j]-x[i])^2, (y[j]-y[i])^2) + t[j].\n\nThe toll is paid only at the destination of each jump. Negative tolls are rebates. Find the minimum total cost of a route.\n\n## Input\n\nThe first line contains n.\n\nThe next n lines contain x[i], y[i], and t[i], in increasing order of i.\n\n## Output\n\nPrint the minimum total cost as an integer. It may be negative.\n\n## Constraints\n\n- 1 <= n <= 100000.\n- 0 <= x[i], y[i] <= 1000000000.\n- x[i-1] <= x[i] and y[i-1] <= y[i], including i = 1.\n- -1000000000000 <= t[i] <= 1000000000000.\n\n## Examples\n\n### Example 1\nInput\n```text\n1\n3 4 2\n```\nOutput\n```text\n18\n```\n\n### Example 2\nInput\n```text\n3\n1 1 2\n2 2 2\n3 3 0\n```\nOutput\n```text\n7\n```\n\n### Example 3\nInput\n```text\n3\n3 0 4\n3 3 4\n5 5 0\n```\nOutput\n```text\n17\n```\nVisit checkpoints 0, 2, and 3. The two jumps cost 13 and 4.\n",
+  "examples": [
+    {
+      "input": "1\n3 4 2\n",
+      "output": "18\n"
+    },
+    {
+      "input": "3\n1 1 2\n2 2 2\n3 3 0\n",
+      "output": "7\n"
+    },
+    {
+      "input": "3\n3 0 4\n3 3 4\n5 5 0\n",
+      "output": "17\n"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "b4-t02",
+  "title": "Carry-Shift Classes",
+  "topic": [
+    "combinatorics",
+    "group actions",
+    "Mobius inversion",
+    "modular arithmetic"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Carry-Shift Classes\n\nA state is a vector `(x_1, ..., x_n)` with every coordinate in\n`{0, ..., p-1}`, where `p` is prime. Define the operation\n\n`T(x_1, ..., x_n) = ((x_n + 1) mod p, x_1, ..., x_{n-1})`.\n\nTwo states are equivalent if one can be obtained from the other by applying\n`T` zero or more times. One equivalence class consists of all states reached\nthis way. Applying `T` exactly `np` times always restores a state.\n\nThe seam count of a state is the number of true comparisons in this list:\n- `x_i != x_{i+1}`, for each `1 <= i < n`;\n- `x_n != (x_1 - 1) mod p`.\n\nCount equivalence classes that contain **exactly `np` distinct states** and\nwhose states have seam count `k`. The seam count is unchanged by `T`.\nReturn the count modulo **998244353**. Do not count classes of smaller size.\n\n## Input\nOne line contains `n p k`.\n\n## Output\nPrint the number of qualifying equivalence classes modulo 998244353.\n\n## Constraints\n- `1 <= n <= 200000`\n- `2 <= p <= 999983`, and `p` is prime\n- `0 <= k <= n`\n- Time limit: 3 seconds. Memory limit: 256 MB.\n\n## Examples\n### Example 1\nInput\n```text\n1 5 1\n```\nOutput\n```text\n1\n```\nAll five states form one class, and the boundary comparison is true in each.\n\n### Example 2\nInput\n```text\n2 3 2\n```\nOutput\n```text\n0\n```\nThe states with two seams form a class of size three, not six.\n\n### Example 3\nInput\n```text\n4 5 3\n```\nOutput\n```text\n13\n```\n",
+  "examples": [
+    {
+      "input": "1 5 1\n",
+      "output": "1\n"
+    },
+    {
+      "input": "2 3 2\n",
+      "output": "0\n"
+    },
+    {
+      "input": "4 5 3\n",
+      "output": "13\n"
+    }
+  ]
+}

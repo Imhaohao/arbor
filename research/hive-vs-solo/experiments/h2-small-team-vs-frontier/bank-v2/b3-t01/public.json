@@ -1,0 +1,28 @@
+{
+  "id": "b3-t01",
+  "title": "One Emergency Socket",
+  "topic": [
+    "greedy",
+    "exchange argument",
+    "sorting",
+    "range maximum"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.59,
+  "statement": "# One Emergency Socket\n\nThere are n one-use modules and an integer stock of charge. Module i normally requires at least a_i charge. Running it removes a_i charge and then returns b_i charge. The module finishes before the next module starts, so the stock changes by b_i-a_i.\n\nAt most one module may instead use the emergency socket. Its requirement and return then become c_i and d_i. No other rule changes. Using the emergency socket is optional.\n\nChoose the initial nonnegative integer stock, the order of all modules, and which module (if any) uses the emergency socket. Every requirement must be met when its module starts. Find the smallest possible initial stock.\n\n## Input\n\nThe first line contains n. Each of the next n lines contains a_i b_i c_i d_i.\n\n## Output\n\nPrint the minimum initial stock.\n\n## Constraints\n\n- 1 <= n <= 100000\n- 0 <= a_i, b_i, c_i, d_i <= 10^9\n- Every module must run exactly once.\n\n## Examples\n\n### Example 1\nInput\n```text\n1\n8 3 2 0\n```\nOutput\n```text\n2\n```\n\n### Example 2\nInput\n```text\n3\n4 9 10 20\n8 2 1 1\n6 4 6 4\n```\nOutput\n```text\n4\n```\nRun module 1 normally, module 3 normally, and module 2 through the emergency socket. The stock before these operations is 4, 9, and 7.\n\n### Example 3\nInput\n```text\n2\n5 0 2 0\n5 0 100 200\n```\nOutput\n```text\n7\n```\nThe emergency mode with the greatest improvement in net return is not necessarily useful.\n",
+  "examples": [
+    {
+      "input": "1\n8 3 2 0\n",
+      "output": "2\n"
+    },
+    {
+      "input": "3\n4 9 10 20\n8 2 1 1\n6 4 6 4\n",
+      "output": "4\n"
+    },
+    {
+      "input": "2\n5 0 2 0\n5 0 100 200\n",
+      "output": "7\n"
+    }
+  ]
+}

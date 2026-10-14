@@ -1,0 +1,29 @@
+{
+  "id": "b3-t02",
+  "title": "The Acceleration Block",
+  "topic": [
+    "scheduling",
+    "greedy",
+    "exchange argument",
+    "binary search",
+    "heap"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.41,
+  "statement": "# The Acceleration Block\n\nOne machine processes n jobs, starting at time 0. A normal job i occupies the machine for p_i time units. After it leaves the machine, it needs another q_i time units to settle. Settling does not occupy the machine, and any number of jobs can settle simultaneously.\n\nYou may select at most k eligible jobs for acceleration. All selected jobs must form one consecutive block in the machine order. If this block is nonempty, it begins with a setup occupying the machine for g time units. Each selected job then occupies the machine for p_i+s time units and settles for Q time units instead of q_i. There is only one setup, not one per selected job. A flag e_i=1 means job i is eligible; e_i=0 forbids selecting it. It is permitted to select an eligible job even if q_i <= Q.\n\nEvery job must be processed exactly once. You may choose the selection, the order of all jobs, and thus the position of the acceleration block. Find the earliest time by which every job has finished settling. Selecting no jobs is allowed and incurs no setup.\n\n## Input\n\nThe first line contains n k Q g s. Each of the next n lines contains p_i q_i e_i.\n\n## Output\n\nPrint the minimum time by which all jobs have finished settling.\n\n## Constraints\n\n- 1 <= n <= 60000\n- 0 <= k <= n\n- 1 <= p_i <= 10^6\n- 0 <= q_i, Q, g <= 10^9\n- 0 <= s <= 1000\n- e_i is 0 or 1\n- All times are integers; consecutive machine operations can meet at an endpoint.\n\n## Examples\n\n### Example 1\nInput\n```text\n1 1 2 3 1\n5 20 1\n```\nOutput\n```text\n11\n```\nThe accelerated job leaves the machine at time 3+5+1=9 and settles at time 11.\n\n### Example 2\nInput\n```text\n3 1 0 0 0\n2 10 1\n9 9 1\n1 0 0\n```\nOutput\n```text\n12\n```\nAccelerate job 2. Process job 1, the acceleration block, then job 3. Accelerating the eligible job with the largest settling time would give a worse result.\n\n### Example 3\nInput\n```text\n2 2 4 10 3\n3 5 1\n2 4 1\n```\nOutput\n```text\n9\n```\nIt is optimal not to open the acceleration block.\n",
+  "examples": [
+    {
+      "input": "1 1 2 3 1\n5 20 1\n",
+      "output": "11\n"
+    },
+    {
+      "input": "3 1 0 0 0\n2 10 1\n9 9 1\n1 0 0\n",
+      "output": "12\n"
+    },
+    {
+      "input": "2 2 4 10 3\n3 5 1\n2 4 1\n",
+      "output": "9\n"
+    }
+  ]
+}

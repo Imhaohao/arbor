@@ -311,8 +311,12 @@ def staged_tasks(staging):
 
 def seal(staging, bank, key):
     os.makedirs(bank, exist_ok=True)
-    manifest = {"tasks": [], "rejected": []}
-    tasks = list(staged_tasks(staging))
+    manifest_path = os.path.join(bank, "manifest.json")
+    # Sealing into an existing bank adds tasks; earlier tasks keep their
+    # commitments and time limits.
+    manifest = json.load(open(manifest_path)) if os.path.exists(manifest_path) else {"tasks": [], "rejected": []}
+    sealed_ids = {task["id"] for task in manifest["tasks"]}
+    tasks = [item for item in staged_tasks(staging) if item[0] not in sealed_ids]
     with ThreadPoolExecutor(SEAL_WORKERS) as pool:
         reports = list(pool.map(lambda item: validate_isolated(item[1]), tasks))
     for (task_id, task_dir), report in zip(tasks, reports):
@@ -338,8 +342,8 @@ def seal(staging, bank, key):
         plain = tar_bytes(task_dir, ORACLE_FILES + extras)
         open(os.path.join(out_dir, "sealed.bin"), "wb").write(openssl(["-salt", "-pass", f"file:{key}"], plain))
         manifest["tasks"].append({"id": task_id, "oracle_sha256": hashlib.sha256(plain).hexdigest(), "time_limit_s": time_limit_s})
-    json.dump(manifest, open(os.path.join(bank, "manifest.json"), "w"), indent=2)
-    return {"sealed": len(manifest["tasks"]), "rejected": manifest["rejected"]}
+    json.dump(manifest, open(manifest_path, "w"), indent=2)
+    return {"sealed": len(manifest["tasks"]), "added": len(tasks), "rejected": manifest["rejected"]}
 
 
 @contextlib.contextmanager

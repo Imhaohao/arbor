@@ -1,0 +1,27 @@
+{
+  "id": "b6-t01",
+  "title": "Tilted Window Ledger",
+  "topic": [
+    "lazy segment tree",
+    "prefix moments",
+    "affine transformations"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 4.99,
+  "statement": "# Tilted Window Ledger\n\nAn integer array has an entry for every position from 1 to n. Process two kinds of operations in order:\n\n- `T l r u v`: simultaneously replace every a[i] with u*a[i]+v for l <= i <= r. The multiplier u is -1, 0, or 1.\n- `Q l r x`: consider **every nonempty contiguous subarray** [s,t] contained in [l,r]. Its debt is (a[s]+...+a[t]) - x*(t-s+1). Output the sum of the **squares** of these debts.\n\nThe square is taken separately for each subarray, before adding. All arithmetic is over integers, not modulo a number. Only `Q` operations produce output.\n\n## Input\n\nThe first line contains n and q. The second line contains n integers a[1],...,a[n]. Each of the next q lines is an operation in one of the formats above.\n\n## Output\n\nFor every `Q` operation, print its answer on a separate line.\n\n## Constraints\n\n- 1 <= n,q <= 30000.\n- -10^6 <= a[i],v,x <= 10^6 in the input.\n- u belongs to {-1,0,1}.\n- 1 <= l <= r <= n.\n- At least one operation is `Q`.\n- There is no bound of 10^6 on entries after operations.\n- Answers can exceed a signed 64-bit integer; output their exact decimal representations.\n\n## Examples\n\n### Example 1\nInput\n```text\n3 4\n1 2 3\nQ 1 3 0\nT 1 2 -1 1\nQ 1 3 1\nQ 2 2 -2\n```\nOutput\n```text\n84\n19\n1\n```\n\n### Example 2\nInput\n```text\n1 5\n-2\nQ 1 1 3\nT 1 1 0 4\nQ 1 1 3\nT 1 1 1 -5\nQ 1 1 0\n```\nOutput\n```text\n25\n1\n1\n```\n\n### Example 3\nInput\n```text\n2 3\n0 0\nQ 1 2 1\nT 1 2 1 2\nQ 1 2 1\n```\nOutput\n```text\n6\n6\n```\n",
+  "examples": [
+    {
+      "input": "3 4\n1 2 3\nQ 1 3 0\nT 1 2 -1 1\nQ 1 3 1\nQ 2 2 -2\n",
+      "output": "84\n19\n1\n"
+    },
+    {
+      "input": "1 5\n-2\nQ 1 1 3\nT 1 1 0 4\nQ 1 1 3\nT 1 1 1 -5\nQ 1 1 0\n",
+      "output": "25\n1\n1\n"
+    },
+    {
+      "input": "2 3\n0 0\nQ 1 2 1\nT 1 2 1 2\nQ 1 2 1\n",
+      "output": "6\n6\n"
+    }
+  ]
+}

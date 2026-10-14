@@ -1,0 +1,29 @@
+{
+  "id": "b5-t03",
+  "title": "Directed Mirror Stamps",
+  "topic": [
+    "strings",
+    "palindromic-tree",
+    "series-links",
+    "dynamic-programming",
+    "modular-counting"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 7.69,
+  "statement": "# Directed Mirror Stamps\n\nPartition a string `s` into nonempty contiguous blocks. Every block must be a\npalindrome: its characters read the same from left to right and right to left.\nA block of length `d` receives stamp `d modulo k`, an integer from 0 to `k-1`.\n\nYou are given a directed `k` by `k` permission table `A`. If one block has stamp\n`x` and the immediately following block has stamp `y`, then `A[x][y]` must be 1.\nThe first block may have any stamp. There is no condition between the last and\nfirst blocks.\n\nCount the permitted partitions modulo `998244353`. Partitions are distinguished\nby their cut positions, not by their stamp sequences. A partition with just one\nblock is permitted whenever the whole string is a palindrome, regardless of `A`.\n\n## Input\n\nThe first line contains `n k`.\nThe second line contains `s`.\nThe next `k` lines contain the rows of `A`, in stamp order 0 through `k-1`.\nEach row is a string of `k` characters, each either `0` or `1`; character `y+1`\nof row `x+1` is `A[x][y]`.\n\n## Output\n\nOutput the number of permitted partitions modulo `998244353`.\n\n## Constraints\n\n- `1 <= n <= 60000`.\n- `1 <= k <= 4`.\n- `s` has length `n` and consists of lowercase English letters.\n- `A` need not be symmetric and may contain any number of ones, including zero.\n- Time limit: 3 seconds. Memory limit: 256 MiB.\n\n## Examples\n\n### Example 1\n\nInput\n```\n3 2\naaa\n01\n10\n```\nOutput\n```\n3\n```\n\nAdjacent stamps must differ. The permitted partitions are `aaa`, `a|aa`, and\n`aa|a`. The partition `a|a|a` has equal adjacent stamps.\n\n### Example 2\n\nInput\n```\n4 3\nabba\n100\n010\n001\n```\nOutput\n```\n2\n```\n\nOnly equal adjacent stamps are allowed. The permitted partitions are `abba`\nand `a|b|b|a`.\n\n### Example 3\n\nInput\n```\n1 1\nz\n0\n```\nOutput\n```\n1\n```\n",
+  "examples": [
+    {
+      "input": "3 2\naaa\n01\n10\n",
+      "output": "3\n"
+    },
+    {
+      "input": "4 3\nabba\n100\n010\n001\n",
+      "output": "2\n"
+    },
+    {
+      "input": "1 1\nz\n0\n",
+      "output": "1\n"
+    }
+  ]
+}

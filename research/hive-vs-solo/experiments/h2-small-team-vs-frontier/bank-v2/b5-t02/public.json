@@ -1,0 +1,29 @@
+{
+  "id": "b5-t02",
+  "title": "Alternating Carbon",
+  "topic": [
+    "strings",
+    "z-function",
+    "dynamic-programming",
+    "sweep-line",
+    "heaps"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.77,
+  "statement": "# Alternating Carbon\n\nBuild a given string `s` from left to right, starting with an empty buffer and\nphase 0. The buffer must always be a prefix of `s`.\n\nIf the buffer currently has length `i < n`, row `i+1` supplies four numbers\n`a m b0 b1`. You may perform either operation:\n\n- **Type:** append the next required character `s[i+1]`, pay `a`, and keep the\n  phase unchanged.\n- **Carbon:** choose a length `d >= m`. The buffer must already contain at\n  least `d` characters, and its first `d` characters must equal the next `d`\n  required characters of `s`. Append this copy, pay `bp + up*d`, where `p` is\n  the current phase, and change the phase to `1-p`.\n\nA carbon operation cannot go past the end of `s`. Its source is entirely in\nthe buffer **before** the operation; characters being appended cannot become\npart of that same operation's source. The values `u0` and `u1` are global\nper-character carbon prices. The entire operation uses the row at its starting\nboundary, even if it appends many characters.\n\nFind the minimum total cost to obtain exactly `s`. Either final phase is allowed.\n\n## Input\n\nThe first line contains `n u0 u1`.\nThe second line contains `s`.\nFor each `j` from 1 to `n`, line `j+2` contains `a_j m_j b0_j b1_j`.\n\n## Output\n\nOutput the minimum total cost as an integer.\n\n## Constraints\n\n- `1 <= n <= 200000`.\n- `s` has length `n` and consists of lowercase English letters.\n- `0 <= u0, u1, a_j, b0_j, b1_j <= 1000000`.\n- `1 <= m_j <= n`.\n- Time limit: 3 seconds. Memory limit: 256 MiB.\n\n## Examples\n\n### Example 1\n\nInput\n```\n6 0 0\naaaaaa\n4 1 3 20\n4 1 3 20\n4 1 3 20\n4 1 3 20\n4 1 3 20\n4 1 3 20\n```\nOutput\n```\n15\n```\n\nType three characters for 12, then carbon three characters in phase 0 for 3.\nUsing a cheap carbon as early as possible would leave the buffer in phase 1,\nwhere the next carbon has a much larger starting price.\n\n### Example 2\n\nInput\n```\n8 1 0\nabababab\n5 2 2 0\n5 2 2 0\n5 2 2 0\n5 2 2 0\n5 2 2 0\n5 2 2 0\n5 2 2 0\n5 2 2 0\n```\nOutput\n```\n14\n```\n\nType `ab`, carbon `ab` for 4, then carbon `abab` for 0.\n\n### Example 3\n\nInput\n```\n1 2 3\nz\n7 1 0 0\n```\nOutput\n```\n7\n```\n",
+  "examples": [
+    {
+      "input": "6 0 0\naaaaaa\n4 1 3 20\n4 1 3 20\n4 1 3 20\n4 1 3 20\n4 1 3 20\n4 1 3 20\n",
+      "output": "15\n"
+    },
+    {
+      "input": "8 1 0\nabababab\n5 2 2 0\n5 2 2 0\n5 2 2 0\n5 2 2 0\n5 2 2 0\n5 2 2 0\n5 2 2 0\n5 2 2 0\n",
+      "output": "14\n"
+    },
+    {
+      "input": "1 2 3\nz\n7 1 0 0\n",
+      "output": "7\n"
+    }
+  ]
+}
