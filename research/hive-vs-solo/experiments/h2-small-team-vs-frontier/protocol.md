@@ -174,8 +174,10 @@ adversarial benchmarks:
 - **Pool:** the 22 unseen v2 test tasks, the 24 Gemini 4 Argon extension
   tasks (`c1`-`c8`, v2 brief), and new tasks from 8 Argon authors on a
   harder brief (`d1`-`d8`: Codeforces 2800-3500, two insights, examples
-  that do not reveal the trick). v2 dev tasks are excluded because every
-  arm has seen them.
+  that do not reveal the trick), plus 8 more Argon authors on the same
+  hard brief (`e1`-`e8`, 6 tasks each), added once pass 1 of the screen
+  showed which authors' tasks survive. v2 dev tasks are excluded because
+  every arm has seen them.
 - **Screen:** `bench screen` gives each pool task one solo attempt, with
   the same example feedback and single repair every solo arm gets, by
   Gemini 3.7 Flash High (via Cursor). That model is in no arm. Tasks it

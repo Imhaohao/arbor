@@ -97,13 +97,20 @@ function agreementLine(answer: TeamAnswer): string {
   return `The chosen program matched ${base.agreed} of ${base.trusted} brute-force reference outputs${when}.`;
 }
 
+/** Where the reference outputs came from; "agreed" only means something with two or more testers. */
+function testerLine(answer: TeamAnswer): string {
+  const testers = answer.testers.join(", ");
+  if (answer.testers.length === 0) return "No tester produced a brute force that matched the statement examples.";
+  if (answer.testers.length === 1) return `Reference outputs came from one tester's brute force (${testers}) on ${answer.trustedInputs} generated inputs.`;
+  return `Reference outputs are the ${answer.trustedInputs} generated inputs where all ${answer.testers.length} testers' brute forces agreed (${testers}).`;
+}
+
 function evidenceSummary(answer: TeamAnswer): string {
   const repair = answer.repaired ? "It was repaired after the testers found a concrete failure." : "It needed no repair.";
-  const testers = answer.testers.length ? answer.testers.join(", ") : "none passed validation";
   return [
     `Chosen: ${answer.chosen}. ${repair}`,
     agreementLine(answer),
-    `Trusted inputs (two testers agreed on the answer): ${answer.trustedInputs}. Testers: ${testers}.`,
+    testerLine(answer),
     `Reported model cost: $${answer.costUsd.toFixed(4)} across ${answer.calls.length} calls; ${answer.uncostedCalls.length} calls reported no cost.`,
   ].join("\n");
 }
