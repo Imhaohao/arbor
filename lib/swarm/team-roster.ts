@@ -7,5 +7,5 @@ export const SMALL_TEAM = [
   "cursor:grok-4.7-medium",
   "antigravity:gemini-3.8-flash-high",
 ];
-export const TESTERS = ["claude:claude-sonnet-5-5", "cursor:grok-4.7-medium"];
+export const TESTERS = ["claude:claude-sonnet-5-5", "antigravity:gemini-3.8-flash-high"];
 export const REPAIRER = "claude:claude-sonnet-5-5";

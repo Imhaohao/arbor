@@ -252,6 +252,18 @@ and makes no claim either way. New loop authors use Gemini 4 Argon High
 cannot favour either side of H2c, because the team and the router use the
 same pool.
 
+### Dev change before the v4 test: tester assignment
+
+The team's second tester changes from Grok 4.7 Medium to Gemini 3.8 Flash
+(both are team members, so the roster is unchanged). Across v2 and v3 dev,
+Sonnet's tester calls were usable 16/16 with a median of 17-39 s, while
+Grok's were usable 11/16 with a median of 745-970 s. When the Grok tester
+failed, the team's reference outputs rested on Sonnet's brute force alone.
+Gemini is a different model family from Sonnet, so agreement between the
+two is the more independent check. The tester/repairer assignment is one of
+the knobs dev may change, and this change is made before any v4 test task
+runs.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the
