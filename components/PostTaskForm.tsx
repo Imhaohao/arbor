@@ -8,6 +8,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
 import { AgentSuggestions } from "@/components/AgentSuggestions";
+import { readableError } from "@/lib/readable-error";
 import { ArrowRight, CircleNotch } from "@phosphor-icons/react";
 
 // task_type is still used by some legacy code paths (the reacher-live-launch
@@ -66,6 +67,8 @@ interface IntakeMessage {
   text: string;
   questions?: string[];
 }
+
+const BRIEF_STATUS_LABEL: Record<string, string> = { posted: "Posted", failed: "Not posted" };
 
 export function PostTaskForm() {
   const router = useRouter();
@@ -133,7 +136,7 @@ export function PostTaskForm() {
         setFinalDraft(result.final_prompt);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(readableError(err));
     } finally {
       setSubmitting(false);
     }
@@ -154,7 +157,7 @@ export function PostTaskForm() {
         setFinalDraft(result.final_prompt);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(readableError(err));
     } finally {
       setAnswering(false);
     }
@@ -176,7 +179,7 @@ export function PostTaskForm() {
       })) as { task_id: Id<"tasks"> };
       router.push(`/task/${result.task_id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(readableError(err));
       setPosting(false);
     }
   }
@@ -193,6 +196,9 @@ export function PostTaskForm() {
     intakeId !== null && (intake === undefined || messages === undefined);
   const showQuestions =
     intake?.status === "collecting" && latestQuestions.length > 0;
+  // last_error carries either an intake fallback note or, once status is
+  // "failed", the reason posting was refused; show each in its own place.
+  const postingError = intake?.status === "failed" && intake.last_error ? readableError(intake.last_error) : undefined;
   const showFinalBrief =
     intake?.status === "ready" ||
     intake?.status === "posting" ||
@@ -347,11 +353,11 @@ export function PostTaskForm() {
         <Card>
           <CardHeader
             title="Task brief"
-            meta={intake.status === "posted" ? "Posted" : "Ready for auction"}
+            meta={BRIEF_STATUS_LABEL[intake.status] ?? "Ready for auction"}
           />
-          {intake.last_error && (
+          {intake.last_error && intake.status !== "failed" && (
             <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              Automatic intake fell back to manual review: {intake.last_error}
+              Automatic intake fell back to manual review: {readableError(intake.last_error)}
             </p>
           )}
           <textarea
@@ -387,9 +393,9 @@ export function PostTaskForm() {
               </>
             )}
           </Button>
-          {error && (
+          {(error ?? postingError) && (
             <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
-              {error}
+              {error ?? postingError}
             </p>
           )}
         </Card>

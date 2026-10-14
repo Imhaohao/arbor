@@ -9,6 +9,7 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { callOpenAIJSON } from "../lib/openai";
+import { readableError } from "../lib/readable-error";
 import {
   buildFallbackFinalPrompt,
   normalizeIntakeModelResult,
@@ -44,9 +45,6 @@ function cleanOptional(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 function buildModelPrompt(args: {
   intake: Doc<"task_intakes">;
@@ -140,14 +138,14 @@ async function generateAndRecord(
     await ctx.runMutation(internal.intake._recordFinalBrief, {
       intake_id,
       final_prompt,
-      last_error: errorMessage(error),
+      last_error: readableError(error),
     });
     return {
       intake_id,
       status: "ready" as const,
       questions: [],
       final_prompt,
-      last_error: errorMessage(error),
+      last_error: readableError(error),
     };
   }
 }
@@ -289,7 +287,7 @@ export const approveAndPost = action({
     } catch (error) {
       await ctx.runMutation(internal.intake._markFailed, {
         intake_id: args.intake_id,
-        last_error: errorMessage(error),
+        last_error: readableError(error),
       });
       throw error;
     }
