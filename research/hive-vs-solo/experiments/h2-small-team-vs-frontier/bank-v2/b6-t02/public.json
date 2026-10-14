@@ -1,0 +1,28 @@
+{
+  "id": "b6-t02",
+  "title": "Second Screen Retreat",
+  "topic": [
+    "offline queries",
+    "two-dimensional Fenwick tree",
+    "order statistics",
+    "dominance"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.28,
+  "statement": "# Second Screen Retreat\n\nYou are given a fixed array of integer heights h[1],...,h[n]. A query consists of l, r, and x.\n\nFor each position i in [l,r] with h[i] > x, list all positions j in [l,i-1] satisfying h[j] >= h[i], in **decreasing order of position**. If the list has at least two positions, let b[i] be its second position. Otherwise let b[i] = l-1.\n\nThe retreat of i is i-b[i]. The query answer is the sum of these retreats over positions with h[i] > x. Positions of height at most x contribute nothing.\n\nThe threshold only selects which positions contribute. It does not change the height comparison used to find screens. Equal heights are valid screens. Answer every query independently.\n\n## Input\n\nThe first line contains n and q. The second line contains n integers h[1],...,h[n]. Each of the next q lines contains l, r, and x.\n\n## Output\n\nPrint one integer per query, in input order.\n\n## Constraints\n\n- 1 <= n,q <= 24000.\n- -10^9 <= h[i],x <= 10^9.\n- 1 <= l <= r <= n.\n\n## Examples\n\n### Example 1\nInput\n```text\n3 3\n3 5 2\n1 3 0\n1 3 2\n2 3 0\n```\nOutput\n```text\n5\n3\n3\n```\n\nIn the first query, position 3 uses position 1 as its second screen. The retreats are 1, 2, and 2.\n\n### Example 2\nInput\n```text\n4 3\n4 4 4 4\n1 4 3\n2 4 3\n1 4 4\n```\nOutput\n```text\n7\n5\n0\n```\n\n### Example 3\nInput\n```text\n1 2\n-1\n1 1 -2\n1 1 -1\n```\nOutput\n```text\n1\n0\n```\n",
+  "examples": [
+    {
+      "input": "3 3\n3 5 2\n1 3 0\n1 3 2\n2 3 0\n",
+      "output": "5\n3\n3\n"
+    },
+    {
+      "input": "4 3\n4 4 4 4\n1 4 3\n2 4 3\n1 4 4\n",
+      "output": "7\n5\n0\n"
+    },
+    {
+      "input": "1 2\n-1\n1 1 -2\n1 1 -1\n",
+      "output": "1\n0\n"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "b4-t04",
+  "title": "Divisor-Colored Trees",
+  "topic": [
+    "number theory",
+    "Ramanujan sums",
+    "matrix tree theorem",
+    "parity projection",
+    "combinatorics"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Divisor-Colored Trees\n\nThere are `n` labeled vertices `0, 1, ..., n-1`. Initially there are no\nedges. Each of `m` records contains three integers `g_i b_i r_i`, where\n`g_i` is a proper positive divisor of `n`.\n\nFor every unordered pair of distinct vertices `{u,v}` satisfying\n`gcd(|u-v|, n) = g_i`, that record adds `b_i` blue edges and `r_i` red\nedges between the pair. All added edges are distinct. Records with the\nsame `g_i` add more parallel edges; they do not replace earlier edges.\n\nCount spanning trees with an **even number of red edges**, modulo\n**1000000007**. A spanning tree is a set of `n-1` edges connecting all\nvertices and having no cycle. Different choices of parallel edges count\nas different trees. For `n=1`, the empty edge set is one spanning tree.\n\nThe graph is specified implicitly: `n` can be much larger than `m`.\n\n## Input\nThe first line contains `n m`.\nEach of the next `m` lines contains `g_i b_i r_i`.\n\n## Output\nPrint the number of spanning trees with an even red-edge count modulo\n1000000007.\n\n## Constraints\n- `1 <= n <= 1000000000`\n- `0 <= m <= 2000`\n- `1 <= g_i < n`, and `g_i` divides `n`\n- `0 <= b_i, r_i <= 1000000000`\n- If `n=1`, then `m=0`.\n- Time limit: 3 seconds. Memory limit: 256 MB.\n\n## Examples\n### Example 1\nInput\n```text\n1 0\n```\nOutput\n```text\n1\n```\n\n### Example 2\nInput\n```text\n3 1\n1 1 1\n```\nOutput\n```text\n6\n```\nEach of the three underlying vertex trees has two even-parity colorings:\nboth edges blue or both edges red.\n\n### Example 3\nInput\n```text\n4 2\n1 1 0\n2 0 1\n```\nOutput\n```text\n8\n```\nThere are four trees with no red edge and four with both red edges.\n",
+  "examples": [
+    {
+      "input": "1 0\n",
+      "output": "1\n"
+    },
+    {
+      "input": "3 1\n1 1 1\n",
+      "output": "6\n"
+    },
+    {
+      "input": "4 2\n1 1 0\n2 0 1\n",
+      "output": "8\n"
+    }
+  ]
+}

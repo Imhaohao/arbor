@@ -1,0 +1,29 @@
+{
+  "id": "b2-t04",
+  "title": "Squared Isolation Ledger",
+  "topic": [
+    "graphs",
+    "biconnected components",
+    "block-cut tree",
+    "centroid decomposition",
+    "dynamic moments"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.21,
+  "statement": "# Squared Isolation Ledger\n\nYou are given a connected undirected simple graph and a nonnegative toll `w_v` for each vertex.\n\nFor two distinct vertices `a,b`, define their separating toll `S(a,b)` as follows. Consider every vertex `v` other than `a` and `b`, deleting **only that vertex** and its incident edges from the original graph. If this makes `a` and `b` disconnected, include `w_v` in the sum. Thus the deletions are separate hypothetical experiments, not simultaneous deletions.\n\nInitially no vertex is active. Each operation toggles one vertex: inactive becomes active, or active becomes inactive. After every operation, output\n\n`sum S(a,b)^2`, over all unordered pairs of distinct active vertices.\n\nSquare the sum of separating tolls for a pair, not each toll separately. A vertex's own toll never contributes to a pair for which it is an endpoint.\n\n## Input\nThe first line contains `n m q`. The second line contains `w_1 ... w_n`. The next `m` lines contain an edge `u v`. Each of the final `q` lines contains the vertex to toggle.\n\n## Output\nPrint `q` lines: the ledger value after each toggle. Use exact integers.\n\n## Constraints\n- `1 <= n <= 18000`, `n-1 <= m <= 36000`, `m <= n*(n-1)/2`.\n- `1 <= q <= 25000`, `0 <= w_v <= 10^6`.\n- Vertex indices are between `1` and `n`.\n- The graph is connected, with no self-loops or parallel edges.\n- Answers may exceed 64-bit signed integer range.\n\n## Examples\n\n### Example 1\nInput\n```text\n3 2 4\n2 5 7\n1 2\n2 3\n1\n3\n2\n1\n```\nOutput\n```text\n0\n25\n25\n0\n```\n\n### Example 2\nInput\n```text\n3 3 3\n10 10 10\n1 2\n2 3\n3 1\n1\n2\n3\n```\nOutput\n```text\n0\n0\n0\n```\n\n### Example 3\nInput\n```text\n5 6 5\n9 9 4 9 9\n1 2\n2 3\n3 1\n3 4\n4 5\n5 3\n1\n2\n4\n5\n3\n```\nOutput\n```text\n0\n0\n32\n64\n64\n```\n",
+  "examples": [
+    {
+      "input": "3 2 4\n2 5 7\n1 2\n2 3\n1\n3\n2\n1\n",
+      "output": "0\n25\n25\n0\n"
+    },
+    {
+      "input": "3 3 3\n10 10 10\n1 2\n2 3\n3 1\n1\n2\n3\n",
+      "output": "0\n0\n0\n"
+    },
+    {
+      "input": "5 6 5\n9 9 4 9 9\n1 2\n2 3\n3 1\n3 4\n4 5\n5 3\n1\n2\n4\n5\n3\n",
+      "output": "0\n0\n32\n64\n64\n"
+    }
+  ]
+}

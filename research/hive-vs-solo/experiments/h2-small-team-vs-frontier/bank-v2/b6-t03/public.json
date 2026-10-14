@@ -1,0 +1,28 @@
+{
+  "id": "b6-t03",
+  "title": "Phase Apertures",
+  "topic": [
+    "sparse table",
+    "weighted binary lifting",
+    "monotone deque",
+    "finite-state range queries"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Phase Apertures\n\nA fixed integer array a[1],...,a[n] is scanned through an aperture with a phase in {0,1,2}. Phase p has tolerance D[p].\n\nFor a query `l r p`, start at position l in phase p, and repeatedly perform the following step until all positions through r have been scanned:\n\n1. Let s be the first unscanned position. Choose the **largest** t <= r such that max(a[s..t])-min(a[s..t]) <= D[p]. A one-position section is always permitted.\n2. Let L = t-s+1 and R = max(a[s..t])-min(a[s..t]). Pay (p+1)*L^2.\n3. Set p = (p+L+R) modulo 3 and continue at t+1.\n\nOutput the total payment. The old phase is used in the payment and on the right-hand side of the phase update. Every query starts afresh with its given phase. There is no choice to optimize: the largest permissible t is mandatory.\n\n## Input\n\nThe first line contains n and q. The second line contains D[0], D[1], D[2]. The third line contains a[1],...,a[n]. Each of the next q lines contains l, r, and p.\n\n## Output\n\nPrint the total payment for each query on its own line.\n\n## Constraints\n\n- 1 <= n,q <= 40000.\n- -10^9 <= a[i] <= 10^9.\n- 0 <= D[p] <= 2*10^9.\n- 1 <= l <= r <= n, and 0 <= p <= 2.\n\n## Examples\n\n### Example 1\nInput\n```text\n5 3\n1 3 0\n0 2 1 5 4\n1 5 0\n2 5 0\n1 3 1\n```\nOutput\n```text\n17\n8\n18\n```\n\nThe first query scans [1,1], [2,3], and [4,5], using phases 0, 1, and 1. Starting one position later changes the section boundaries and phases.\n\n### Example 2\nInput\n```text\n4 2\n0 0 0\n7 7 7 7\n1 4 2\n2 3 1\n```\nOutput\n```text\n48\n8\n```\n\n### Example 3\nInput\n```text\n1 3\n0 1 2\n-1000000000\n1 1 0\n1 1 1\n1 1 2\n```\nOutput\n```text\n1\n2\n3\n```\n",
+  "examples": [
+    {
+      "input": "5 3\n1 3 0\n0 2 1 5 4\n1 5 0\n2 5 0\n1 3 1\n",
+      "output": "17\n8\n18\n"
+    },
+    {
+      "input": "4 2\n0 0 0\n7 7 7 7\n1 4 2\n2 3 1\n",
+      "output": "48\n8\n"
+    },
+    {
+      "input": "1 3\n0 1 2\n-1000000000\n1 1 0\n1 1 1\n1 1 2\n",
+      "output": "1\n2\n3\n"
+    }
+  ]
+}

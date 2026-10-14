@@ -1,0 +1,28 @@
+{
+  "id": "b4-t05",
+  "title": "Two-Channel Selection",
+  "topic": [
+    "combinatorics",
+    "Walsh Hadamard transform",
+    "roots of unity",
+    "modular arithmetic"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Two-Channel Selection\n\nEach of `n` distinct positions carries two labels: a `b`-bit integer `a_i`\nand an integer `c_i` from `0` to `16`. Choose any set of positions.\n\nThe first channel combines its labels using bitwise XOR. The second\nchannel adds its labels modulo 17. Count sets whose first channel is\nexactly `x` and whose second channel is exactly `r`, modulo **998244353**.\n\nThe empty set has channel values `(0,0)` and is allowed. Positions with\nidentical labels are still distinct; the order of selection is irrelevant.\nThe two conditions must hold for the **same set**, not for separately\nchosen sets.\n\n## Input\nThe first line contains `n b x r`.\nEach of the next `n` lines contains `a_i c_i`.\n\n## Output\nPrint the number of qualifying sets modulo 998244353.\n\n## Constraints\n- `1 <= n <= 200000`\n- `1 <= b <= 10`\n- `0 <= a_i, x < 2^b`\n- `0 <= c_i, r < 17`\n- Time limit: 3 seconds. Memory limit: 256 MB.\n\n## Examples\n### Example 1\nInput\n```text\n3 2 0 0\n1 1\n1 16\n0 0\n```\nOutput\n```text\n4\n```\nThe first two positions must be both chosen or both omitted. The third\nposition can be chosen independently.\n\n### Example 2\nInput\n```text\n3 2 3 3\n1 1\n2 2\n3 3\n```\nOutput\n```text\n2\n```\nChoose the first two positions, or choose only the third.\n\n### Example 3\nInput\n```text\n1 1 0 0\n1 0\n```\nOutput\n```text\n1\n```\nOnly the empty set qualifies.\n",
+  "examples": [
+    {
+      "input": "3 2 0 0\n1 1\n1 16\n0 0\n",
+      "output": "4\n"
+    },
+    {
+      "input": "3 2 3 3\n1 1\n2 2\n3 3\n",
+      "output": "2\n"
+    },
+    {
+      "input": "1 1 0 0\n1 0\n",
+      "output": "1\n"
+    }
+  ]
+}

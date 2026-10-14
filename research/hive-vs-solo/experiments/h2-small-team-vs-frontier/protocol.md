@@ -118,6 +118,48 @@ Bank v2 replaces it under the same hypotheses, metric and decision rule:
   includes its chosen member's.
 - Split: shuffled with the same seed; first 8 dev, rest test.
 
+## Bank v2 authoring change (decided 2026-10-13, before any v2 task ran)
+
+The Fable 5.1 authoring run stopped at the session limit with about 17 of
+48 problems written, and those drafts and the v1 encryption key were lost
+with that session's temporary directory. Nothing from them is used. Bank v2
+is authored from scratch instead:
+
+- **Authors:** 8 Codex CLI sessions on GPT-6.1-Sol (high reasoning), 6
+  problems each, one topic per author: DP; graphs; greedy and exchange
+  arguments; combinatorics and number theory; strings; data structures;
+  trees; games, geometry and math puzzles. GPT-6.1-Sol is in no arm, but it
+  shares a family with the GPT-6-Astra arm. If that matters, it favours a
+  frontier arm and makes a team win harder. It does not touch H2c, because
+  the router and the team draw on the same pool.
+- **Brief:** Codeforces 2200-3000, spread across that range, with a
+  required `naive.py` trap. The trap gate, validation and split rule are
+  unchanged.
+- **Storage:** the key and plaintext staging live in `~/.arbor-bench/v2`
+  (mode 700) instead of a session temp directory, so they survive the run.
+  The audit's leakage patterns already cover `bank-staging` and `bench-key`.
+
+## Bank v2 as sealed (2026-10-13, before any v2 task ran)
+
+The Codex account hit its usage limit after about an hour, so the authors
+stopped at 30 validated tasks (1 rejected: `b1-t04`, left unfinished).
+Bank v2 is sealed in `bank-v2/` with 8 dev and 22 test tasks (same
+seed). Time limits come from this laptop, the same machine that grades.
+
+- **Extension:** once Codex quota resets, the same 8 authors may add more
+  tasks under the unchanged brief. New tasks go only to the test split and
+  are sealed before any test task runs. The existing dev/test assignment
+  never changes. Authors never see dev results. With Codex out of quota,
+  the extension authors are 8 Cursor sessions on Gemini 4 Argon High
+  (in no arm; ids `c1`-`c8`, 3 tasks each, same topics). Gemini 4 Argon
+  shares a family with the Gemini 3.8 Flash team member, so per-author
+  results are reported. The router and the team use the same pool, so
+  the overlap cannot favour either side of H2c.
+- **Dev without GPT-6-Astra:** the Astra arm runs through the same Codex
+  quota. Dev may skip it (`--skip`, refused on the test split), because
+  neither the team nor the router reads frontier dev results. The test
+  split runs every arm.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the

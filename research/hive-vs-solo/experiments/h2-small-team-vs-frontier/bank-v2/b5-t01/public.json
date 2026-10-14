@@ -1,0 +1,29 @@
+{
+  "id": "b5-t01",
+  "title": "Archived Echoes",
+  "topic": [
+    "strings",
+    "prefix-function",
+    "failure-tree",
+    "range-search",
+    "lowest-common-ancestor"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 3.35,
+  "statement": "# Archived Echoes\n\nYou are given a string `s` of length `n`. Positions are numbered from 1.\nThe archive at position `t` is the prefix `s[1..t]`.\n\nFor each query `i l r`, find the largest integer `d` for which there is an\narchive position `t` with `l <= t <= r` such that:\n\n- `0 <= d <= min(i, t)`;\n- the prefix `s[1..d]`, the suffix `s[i-d+1..i]`, and the suffix\n  `s[t-d+1..t]` are all equal.\n\nLength zero is always permitted and represents the empty string. The position\n`t` need not be smaller than `i`, and `t = i` is allowed when it belongs to the\nquery interval. Queries are independent; nothing in the archive is changed.\n\n## Input\n\nThe first line contains `n q`.\nThe second line contains `s`.\nEach of the next `q` lines contains `i l r`.\n\n## Output\n\nFor each query, output its largest permitted length on a separate line.\n\n## Constraints\n\n- `1 <= n, q <= 50000`.\n- `s` consists of lowercase English letters and has length `n`.\n- `1 <= i <= n` and `1 <= l <= r <= n`.\n- Time limit: 3 seconds. Memory limit: 256 MiB.\n\n## Examples\n\n### Example 1\n\nInput\n```\n5 4\nababa\n5 2 4\n4 1 3\n3 2 2\n2 1 1\n```\nOutput\n```\n3\n2\n0\n0\n```\n\nFor the first query, choose `t = 3` and `d = 3`: all three strings are `aba`.\nFor the third query, every nonempty prefix ends in `a` or starts in `a`, while\nthe only archived suffix must end at the `b` in position 2; none can satisfy\nboth equalities.\n\n### Example 2\n\nInput\n```\n4 2\naaaa\n4 1 2\n3 2 4\n```\nOutput\n```\n2\n3\n```\n\n### Example 3\n\nInput\n```\n1 1\nz\n1 1 1\n```\nOutput\n```\n1\n```\n",
+  "examples": [
+    {
+      "input": "5 4\nababa\n5 2 4\n4 1 3\n3 2 2\n2 1 1\n",
+      "output": "3\n2\n0\n0\n"
+    },
+    {
+      "input": "4 2\naaaa\n4 1 2\n3 2 4\n",
+      "output": "2\n3\n"
+    },
+    {
+      "input": "1 1\nz\n1 1 1\n",
+      "output": "1\n"
+    }
+  ]
+}

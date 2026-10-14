@@ -1,0 +1,33 @@
+{
+  "id": "b3-t03",
+  "title": "Two Safety Clocks",
+  "topic": [
+    "scheduling",
+    "binary search",
+    "sweep line",
+    "dynamic programming",
+    "Fenwick tree"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 6.71,
+  "statement": "# Two Safety Clocks\n\nJob i occupies the fixed half-open interval [s_i, e_i) on one machine. It cannot be moved. It has an outgoing safety buffer a_i and an incoming safety buffer b_i.\n\nChoose a nonnegative integer calibration X. Every outgoing and incoming buffer is reduced by X, but never below zero.\n\nYou must select at least k of the n jobs. Selected intervals must not overlap. For every consecutive pair of selected jobs i, j in chronological order, require\n\n    s_j - e_i >= max(0, a_i-X, b_j-X).\n\nOnly consecutive selected jobs are tested; unselected jobs do not occupy the machine and impose no requirements. There is no buffer before the first selected job or after the last.\n\nFind the minimum possible calibration X, or report that selecting k jobs is impossible for every calibration.\n\n## Input\n\nThe first line contains n k. Each of the next n lines contains s_i e_i a_i b_i. The lines need not be in chronological order.\n\n## Output\n\nPrint the minimum X, or -1 if there is no solution.\n\n## Constraints\n\n- 1 <= k <= n <= 20000\n- 0 <= s_i < e_i <= 10^9\n- 0 <= a_i, b_i <= 10^9\n- All values are integers.\n\n## Examples\n\n### Example 1\nInput\n```text\n3 2\n0 2 100 0\n0 3 0 0\n4 5 0 0\n```\nOutput\n```text\n0\n```\nSelect jobs 2 and 3. The job that ends first is not always the best first selection.\n\n### Example 2\nInput\n```text\n2 2\n0 2 8 0\n5 6 0 6\n```\nOutput\n```text\n5\n```\nThe gap is 3. Calibration 5 leaves buffers 3 and 1 for this pair.\n\n### Example 3\nInput\n```text\n3 2\n0 5 0 0\n1 6 0 0\n2 7 0 0\n```\nOutput\n```text\n-1\n```\n\n### Example 4\nInput\n```text\n1 1\n5 8 100 100\n```\nOutput\n```text\n0\n```\n",
+  "examples": [
+    {
+      "input": "3 2\n0 2 100 0\n0 3 0 0\n4 5 0 0\n",
+      "output": "0\n"
+    },
+    {
+      "input": "2 2\n0 2 8 0\n5 6 0 6\n",
+      "output": "5\n"
+    },
+    {
+      "input": "3 2\n0 5 0 0\n1 6 0 0\n2 7 0 0\n",
+      "output": "-1\n"
+    },
+    {
+      "input": "1 1\n5 8 100 100\n",
+      "output": "0\n"
+    }
+  ]
+}

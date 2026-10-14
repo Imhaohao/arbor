@@ -1,0 +1,28 @@
+{
+  "id": "b4-t01",
+  "title": "Self-Sized GCD",
+  "topic": [
+    "combinatorics",
+    "number theory",
+    "Mobius inversion",
+    "binomial coefficients"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# Self-Sized GCD\n\nYou are given an array of positive integers. Choose a nonempty set of array\npositions. It is accepted if the greatest common divisor of the values at\nthose positions equals the number of chosen positions.\n\nCount accepted sets modulo **998244353**. Positions are distinct even when\ntheir values are equal. The order of chosen positions does not matter.\n\n## Input\nThe first line contains an integer `n`.\nThe second line contains `n` integers `a_1, ..., a_n`.\n\n## Output\nPrint the number of accepted sets modulo 998244353.\n\n## Constraints\n- `1 <= n <= 150000`\n- `1 <= a_i <= 150000`\n- Time limit: 3 seconds. Memory limit: 256 MB.\n\n## Examples\n### Example 1\nInput\n```text\n3\n1 2 2\n```\nOutput\n```text\n2\n```\nThe singleton containing the first position and the pair containing the\nlast two positions are accepted.\n\n### Example 2\nInput\n```text\n4\n2 4 6 3\n```\nOutput\n```text\n3\n```\nThe accepted pairs have values `(2,4)`, `(2,6)`, and `(4,6)`.\n\n### Example 3\nInput\n```text\n1\n150000\n```\nOutput\n```text\n0\n```\n",
+  "examples": [
+    {
+      "input": "3\n1 2 2\n",
+      "output": "2\n"
+    },
+    {
+      "input": "4\n2 4 6 3\n",
+      "output": "3\n"
+    },
+    {
+      "input": "1\n150000\n",
+      "output": "0\n"
+    }
+  ]
+}

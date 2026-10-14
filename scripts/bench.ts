@@ -1,7 +1,7 @@
 // Small-team-vs-frontier benchmark CLI.
 //
 //   npx tsx scripts/bench.ts seal   --staging DIR --bank DIR --key FILE [--dev 12]
-//   npx tsx scripts/bench.ts run    --split dev|test --bank DIR --key FILE --out DIR [--limit N] [--tasks 4]
+//   npx tsx scripts/bench.ts run    --split dev|test --bank DIR --key FILE --out DIR [--limit N] [--tasks 4] [--skip ARM]   (--skip: dev only, frontier arms only)
 //   npx tsx scripts/bench.ts report --out DIR [--split test]
 //   npx tsx scripts/bench.ts audit  --out DIR           # leakage / cheating scan
 //
@@ -76,13 +76,29 @@ function shuffled<T>(items: readonly T[], seed: number): T[] {
   return out;
 }
 
+interface Split {
+  seed: number;
+  dev: string[];
+  test: string[];
+}
+
+function freshSplit(bank: string, devTasks: number): Split {
+  const order = shuffled(bankTaskIds(bank), SPLIT_SEED);
+  return { seed: SPLIT_SEED, dev: order.slice(0, devTasks).sort(), test: order.slice(devTasks).sort() };
+}
+
+/** Tasks sealed into an existing bank join the test split; nothing already assigned moves. */
+function extendedSplit(bank: string): Split {
+  const split = JSON.parse(readFileSync(join(bank, "split.json"), "utf8")) as Split;
+  const assigned = new Set([...split.dev, ...split.test]);
+  return { ...split, test: [...split.test, ...bankTaskIds(bank).filter((id) => !assigned.has(id))].sort() };
+}
+
 function seal(flags: Flags): void {
   const bank = required(flags, "bank");
   const report = execFileSync("python3", [GRADER, "seal", required(flags, "staging"), bank, required(flags, "key")], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   console.log(report.trim());
-  const order = shuffled(bankTaskIds(bank), SPLIT_SEED);
-  const devTasks = Number(flags.values.get("dev") ?? DEFAULT_DEV_TASKS);
-  const split = { seed: SPLIT_SEED, dev: order.slice(0, devTasks).sort(), test: order.slice(devTasks).sort() };
+  const split = existsSync(join(bank, "split.json")) ? extendedSplit(bank) : freshSplit(bank, Number(flags.values.get("dev") ?? DEFAULT_DEV_TASKS));
   writeFileSync(join(bank, "split.json"), `${JSON.stringify(split, null, 2)}\n`);
   console.log(`split: ${split.dev.length} dev, ${split.test.length} test`);
 }
@@ -118,10 +134,10 @@ function rosterFromDev(outDir: string): RosterEntry[] | undefined {
   });
 }
 
-async function runTask(config: GradingConfig, taskId: string, split: string, roster: RosterEntry[] | undefined): Promise<void> {
+async function runTask(config: GradingConfig, taskId: string, split: string, roster: RosterEntry[] | undefined, skipped: ReadonlySet<string>): Promise<void> {
   const [task] = loadTasks(config.bank, [taskId]);
   log(`task ${taskId} (${task.title}): solving`);
-  const soloSpecs = [...SMALL_TEAM, ...FRONTIER].map(parseWorker);
+  const soloSpecs = [...SMALL_TEAM, ...FRONTIER].filter((label) => !skipped.has(label)).map(parseWorker);
   const [solos, tools] = await Promise.all([
     Promise.all(soloSpecs.map((spec) => soloAttempt(config, spec, task))),
     prepareTeamTools(config, task, TESTERS.map(parseWorker)),
@@ -145,6 +161,19 @@ async function gradedSolo(config: GradingConfig, taskId: string, solo: SoloResul
   return { code_sha: sha(solo.code), examplesPassed: solo.examplesPassed, grade: await gradeCode(config, taskId, solo.code, seed), calls: solo.calls };
 }
 
+/**
+ * Dev only: a frontier arm whose CLI is out of quota can be skipped, because
+ * neither the team nor the router depends on frontier dev results. The test
+ * split always runs every pre-registered arm.
+ */
+function skippedFrontierArms(flags: Flags, split: string): Set<string> {
+  const skipped = new Set((flags.values.get("skip") ?? "").split(",").filter(Boolean));
+  if (skipped.size > 0 && split !== "dev") throw new Error("--skip is only allowed on the dev split");
+  const unknown = [...skipped].filter((label) => !FRONTIER.includes(label));
+  if (unknown.length > 0) throw new Error(`--skip accepts only frontier arms, not ${unknown.join(", ")}`);
+  return skipped;
+}
+
 async function run(flags: Flags): Promise<void> {
   const bank = required(flags, "bank");
   const outDir = required(flags, "out");
@@ -157,11 +186,12 @@ async function run(flags: Flags): Promise<void> {
   const config: GradingConfig = { root: ROOT, bank, key, denyReads: [bank, dirname(key)], outDir, callTimeoutMs: CALL_TIMEOUT_MS, log };
   ensureBenchCodexHome(ROOT);
   const roster = splitName === "test" ? rosterFromDev(outDir) : undefined;
+  const skipped = skippedFrontierArms(flags, splitName);
   log(`${splitName}: ${queue.length} tasks to run (${done.size} already done); router ${roster ? "on" : "off (no dev results)"}`);
   const workers = Number(flags.values.get("tasks") ?? 4);
   await Promise.all(Array.from({ length: workers }, async () => {
     for (let taskId = queue.shift(); taskId; taskId = queue.shift()) {
-      await runTask(config, taskId, splitName, roster).catch((error: unknown) => log(`task ${taskId} FAILED: ${error instanceof Error ? error.message : error}`));
+      await runTask(config, taskId, splitName, roster, skipped).catch((error: unknown) => log(`task ${taskId} FAILED: ${error instanceof Error ? error.message : error}`));
     }
   }));
 }

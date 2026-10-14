@@ -1,0 +1,27 @@
+{
+  "id": "b7-t01",
+  "title": "One Broken Alternation",
+  "topic": [
+    "trees",
+    "rerooting",
+    "tree-dp"
+  ],
+  "author": "codex:gpt-6.1-sol",
+  "checker": "tokens",
+  "time_limit_s": 2.0,
+  "statement": "# One Broken Alternation\n\nYou are given an undirected tree with an integer weight `a[v]` at each vertex.\nFor **each** vertex `r`, independently, perform the following optimization.\n\nChoose a nonempty vertex set `S` that contains `r` and whose induced subgraph is\nconnected. Assign each vertex of `S` a sign, either `+1` or `-1`, with the sign of\n`r` fixed to `+1`. Among the tree edges with both endpoints in `S`, **at most one**\nmay have endpoints with equal signs. All other such edges must have opposite\nsigns. You may also choose to have no equal-sign edge.\n\nThe score is the sum of `sign[v] * a[v]` over `v` in `S`.\nOutput the maximum score for every possible `r`. Choices for different roots\nare unrelated. Vertices outside `S` impose no sign restrictions.\n\n## Input\n\nThe first line contains `n`.\nThe second line contains `a[1], ..., a[n]`.\nEach of the next `n-1` lines contains two vertices `u v`, describing an edge.\n\n## Output\n\nPrint `n` integers: the maximum scores for roots `1, ..., n`, in that order.\nUse a signed 64-bit integer type for scores.\n\n## Constraints\n\n- `1 <= n <= 80000`.\n- `-10^9 <= a[v] <= 10^9`.\n- `1 <= u, v <= n`.\n- The edges form a tree.\n\n## Examples\n\n### Example 1\n\nInput\n```\n1\n-7\n```\nOutput\n```\n-7\n```\n\n### Example 2\n\nInput\n```\n3\n4 6 -5\n1 2\n2 3\n```\nOutput\n```\n15 15 1\n```\nFor root `1`, selecting all vertices with signs `+1, +1, -1` gives `15`.\nFor root `3`, selecting vertices `2` and `3` with both signs `+1` gives `1`.\n\n### Example 3\n\nInput\n```\n5\n0 3 3 3 3\n1 2\n1 3\n1 4\n1 5\n```\nOutput\n```\n3 12 12 12 12\n```\nWith root `1`, only one selected leaf can have a positive sign. With a leaf as\nroot, all four leaves can have positive signs and the center a negative sign.\n",
+  "examples": [
+    {
+      "input": "1\n-7\n",
+      "output": "-7\n"
+    },
+    {
+      "input": "3\n4 6 -5\n1 2\n2 3\n",
+      "output": "15 15 1\n"
+    },
+    {
+      "input": "5\n0 3 3 3 3\n1 2\n1 3\n1 4\n1 5\n",
+      "output": "3 12 12 12 12\n"
+    }
+  ]
+}
