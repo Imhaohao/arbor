@@ -18,7 +18,7 @@ mkdir -p "$DIR" "$BASE/codex-author-home"
 [ -e "$BASE/codex-author-home/auth.json" ] || ln -s "$HOME/.codex/auth.json" "$BASE/codex-author-home/auth.json"
 export CODEX_HOME=$BASE/codex-author-home
 BACKEND=${AUTHOR_BACKEND:-codex}
-CURSOR_MODEL=gemini-4-argon-high
+CURSOR_MODEL=${AUTHOR_MODEL:-gemini-4-argon-high}
 AUTHOR_TAG=$([ "$BACKEND" = cursor ] && echo "cursor:$CURSOR_MODEL+probe" || echo "codex:gpt-6.1-sol+probe")
 CODEX_ARGS=(-m gpt-6.1-sol -c 'model_provider="caveman"'
   -c 'model_providers.caveman={name="Caveman",base_url="http://127.0.0.1:8787/chatgpt",wire_api="responses",requires_openai_auth=true}'

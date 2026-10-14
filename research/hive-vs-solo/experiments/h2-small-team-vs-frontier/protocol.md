@@ -238,6 +238,20 @@ Bank v4:
   stops at whatever has survived by 2026-10-14 12:00 PDT, whichever comes
   first. That count is fixed before any test task runs.
 
+### Amendment, 2026-10-14 11:30 PDT (no v4 test task has run)
+
+The noon cutoff would leave about 6-8 tasks: the machine was idle for most
+of the night, Codex hit its quota again, and half of the Argon screen calls
+fail on Cursor connection stalls or timeouts (all re-screened, never kept).
+With 8 tasks even a perfect team record cannot reach p < 0.05, so the test
+could not answer the question. The size rule becomes: run once 30 tasks
+have survived, or at 2026-10-14 20:00 PDT with whatever has survived,
+whichever comes first. A run below 15 tasks is reported as underpowered
+and makes no claim either way. New loop authors use Gemini 4 Argon High
+(`g5`-`g8`) and Grok 4.7 High (`h1`-`h4`) through Cursor. Author identity
+cannot favour either side of H2c, because the team and the router use the
+same pool.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the
