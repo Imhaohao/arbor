@@ -3,6 +3,7 @@
 //   npx tsx scripts/bench.ts seal   --staging DIR --bank DIR --key FILE [--dev 12]
 //   npx tsx scripts/bench.ts run    --split dev|test --bank DIR --key FILE --out DIR [--limit N] [--tasks 4] [--skip ARM]   (--skip: dev only, frontier arms only)
 //   npx tsx scripts/bench.ts screen --bank DIR --key FILE --out DIR --screener LABEL [--tasks 4]   (difficulty screen, before sealing)
+//   npx tsx scripts/bench.ts probe  --task STAGED_TASK_DIR --screener LABEL   (one task, throwaway bank; for authoring loops)
 //   npx tsx scripts/bench.ts report --out DIR [--split test]
 //   npx tsx scripts/bench.ts audit  --out DIR           # leakage / cheating scan
 //
@@ -10,9 +11,9 @@
 // the test split has run invalidates the comparison.
 
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { createHash, randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { mulberry32, pairedComparison, wilsonInterval, type RosterEntry } from "../lib/swarm/bench-core";
 import {
@@ -191,8 +192,7 @@ async function run(flags: Flags): Promise<void> {
   await drain(queue, Number(flags.values.get("tasks") ?? 4), (taskId) => runTask(config, taskId, splitName, roster, skipped));
 }
 
-function gradingConfig(flags: Flags, bank: string, outDir: string): GradingConfig {
-  const key = required(flags, "key");
+function gradingConfig(flags: Flags, bank: string, outDir: string, key = required(flags, "key")): GradingConfig {
   return { root: ROOT, bank, key, denyReads: [bank, dirname(key)], outDir, callTimeoutMs: CALL_TIMEOUT_MS, log };
 }
 
@@ -206,6 +206,44 @@ async function drain(queue: string[], workers: number, job: (taskId: string) => 
 
 // ── screen ──────────────────────────────────────────────────────────────────
 
+function requireScreener(flags: Flags): string {
+  const screener = flags.values.get("screener") ?? "";
+  const arms = [...SMALL_TEAM, ...FRONTIER, ...TESTERS, REPAIRER, CONDUCTOR];
+  if (!screener || arms.includes(screener)) throw new Error(`--screener must name a model in no arm (got "${screener}")`);
+  return screener;
+}
+
+async function screenOne(config: GradingConfig, bank: string, taskId: string, screener: string) {
+  const [task] = loadTasks(bank, [taskId]);
+  const solo = await soloAttempt(config, parseWorker(screener), task);
+  const grade = await gradeCode(config, taskId, solo.code, newSeed());
+  return { passed: grade.passed, verdict: grade.first_failure?.verdict ?? "ok", examplesPassed: solo.examplesPassed, code: solo.code, calls: solo.calls };
+}
+
+/**
+ * Author-side difficulty probe: seal one staged task into a throwaway bank
+ * and run the screener on it. Prints {valid, passed, verdict, code} so an
+ * authoring loop can ask for a harder revision. A probe never admits a task
+ * to a bank; the pool still goes through `screen`.
+ */
+async function probe(flags: Flags): Promise<void> {
+  const screener = requireScreener(flags);
+  const work = mkdtempSync(join(tmpdir(), "bench-probe-"));
+  try {
+    mkdirSync(join(work, "staging", "p"), { recursive: true });
+    symlinkSync(required(flags, "task"), join(work, "staging", "p", "t01"));
+    const key = join(work, "bench-key");
+    writeFileSync(key, randomBytes(32).toString("hex"));
+    const bank = join(work, "bank");
+    const sealed = JSON.parse(execFileSync("python3", [GRADER, "seal", join(work, "staging"), bank, key], { encoding: "utf8" }).trim().split("\n").at(-1) ?? "{}");
+    if (sealed.sealed !== 1) return console.log(JSON.stringify({ valid: false, problems: sealed.rejected?.[0]?.problems ?? [] }));
+    const result = await screenOne(gradingConfig(flags, bank, work, key), bank, "p-t01", screener);
+    console.log(JSON.stringify({ valid: true, screener, passed: result.passed, verdict: result.verdict, examplesPassed: result.examplesPassed, code: result.code }));
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
+}
+
 /**
  * Difficulty screen for a candidate pool, run before a bank is sealed: one
  * solo attempt by a model that is in no arm, graded on hidden tests. Tasks
@@ -215,19 +253,15 @@ async function drain(queue: string[], workers: number, job: (taskId: string) => 
 async function screen(flags: Flags): Promise<void> {
   const bank = required(flags, "bank");
   const outFile = join(required(flags, "out"), "screen.jsonl");
-  const screener = flags.values.get("screener") ?? "";
-  const arms = [...SMALL_TEAM, ...FRONTIER, ...TESTERS, REPAIRER, CONDUCTOR];
-  if (!screener || arms.includes(screener)) throw new Error(`--screener must name a model in no arm (got "${screener}")`);
+  const screener = requireScreener(flags);
   const done = new Set(readResults(outFile).map((row) => row.task as string));
   const queue = bankTaskIds(bank).filter((id) => !done.has(id));
   const config = gradingConfig(flags, bank, dirname(outFile));
   log(`screen: ${queue.length} tasks with ${screener} (${done.size} already done)`);
   await drain(queue, Number(flags.values.get("tasks") ?? 4), async (taskId) => {
-    const [task] = loadTasks(bank, [taskId]);
-    const solo = await soloAttempt(config, parseWorker(screener), task);
-    const grade = await gradeCode(config, taskId, solo.code, newSeed());
-    appendResult(outFile, { task: taskId, screener, passed: grade.passed, verdict: grade.first_failure?.verdict ?? "ok", examplesPassed: solo.examplesPassed, calls: solo.calls });
-    log(`screen ${taskId}: ${grade.passed ? "solved (drop)" : `failed (${grade.first_failure?.verdict}) (keep)`}`);
+    const { code: _code, ...result } = await screenOne(config, bank, taskId, screener);
+    appendResult(outFile, { task: taskId, screener, ...result });
+    log(`screen ${taskId}: ${result.passed ? "solved (drop)" : `failed (${result.verdict}) (keep)`}`);
   });
 }
 
@@ -356,7 +390,7 @@ function audit(flags: Flags): void {
   console.log(JSON.stringify({ ...summary, submissionsWithSuspiciousCode: codes.length }, null, 2));
 }
 
-const COMMANDS: Record<string, (flags: Flags) => void | Promise<void>> = { seal, screen, run, report, audit };
+const COMMANDS: Record<string, (flags: Flags) => void | Promise<void>> = { seal, screen, probe, run, report, audit };
 
 async function main(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2));
