@@ -18,6 +18,23 @@ assert.equal(
   "Budget must be positive",
 );
 
+// A provider's JSON error body collapses to its own message (dashboard review queue, 2026-10-13).
+assert.equal(
+  readableError(
+    'hive_backstop_failed: Model API error 429: { "error": { "message": "You exceeded your current quota, please check your plan and billing details.", "type": "insufficient_quota", "param": null } }',
+  ),
+  "hive_backstop_failed: Model API error 429: You exceeded your current quota, please check your plan and billing details.",
+);
+
+// A body truncated in storage still yields the provider's sentence.
+assert.equal(
+  readableError('Model API error 429: { "error": { "message": "You exceeded your current quota.", "type": "insuff'),
+  "Model API error 429: You exceeded your current quota.",
+);
+
+// Braces that are not JSON are left alone.
+assert.equal(readableError("expected {n} items"), "expected {n} items");
+
 // Plain messages and non-Errors pass through.
 assert.equal(readableError(new Error("Final brief cannot be empty.")), "Final brief cannot be empty.");
 assert.equal(readableError("timeout"), "timeout");

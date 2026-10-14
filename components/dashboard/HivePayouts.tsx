@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/shadcn/badge";
 import { currentPeriod } from "@/lib/hive/settlement-core";
 import { formatMoney, formatScore } from "@/lib/utils";
+import { readableError } from "@/lib/readable-error";
 
 interface PayoutRow {
   owner_id: string;
@@ -228,7 +229,7 @@ export function HivePayouts({ ownerId }: { ownerId?: string }) {
                       </span>
                     </div>
                     <p className="mt-2 line-clamp-2 text-xs text-ink-muted">
-                      {row.reason}
+                      {readableError(row.reason)}
                     </p>
                     <Link
                       href={`/task/${row.task_id}`}
