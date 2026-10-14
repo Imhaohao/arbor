@@ -77,6 +77,42 @@ Our measured 3/10 (30%) against a 47.2% ceiling means the roster sits off the
 optimum: measured solo delivery was 8.3%, far below the p≈0.37 that maximises
 lift. Moving the roster toward p≈0.37 should raise the win rate toward ~47%.
 
+### 5. H2: finding problems hard enough to separate the arms is the real work
+
+H2 asks whether a team of small models (Haiku 5.5, Sonnet 5.5, Grok 4.7
+Medium, Gemini 3.8 Flash), which picks among its members' programs with
+independent brute-force testers and repairs the pick from concrete
+counterexamples, beats Opus 5.5, GPT-6-Astra, and a Fugu-style router that
+sends each problem to one member. Every bank so far was graded on sealed
+hidden tests.
+
+| Bank | Authors | Filter | Dev result |
+|---|---|---|---|
+| v1 | 8 Sonnet | author's own rating | everyone 12/12 except Grok |
+| v2 | 8 Codex GPT-6.1-Sol | "Codeforces 2200-3000" plus a naive-solution trap | every Claude and Gemini arm 8/8 |
+| v3 | Argon and Codex | one failed attempt by Gemini 3.7 Flash | Sonnet, Opus and the team 7/8; Haiku and Gemini Flash 5/8 |
+| v4 | Argon and Grok, with a probe loop | one failed attempt by Gemini 4 Argon Medium | test pending |
+
+What this shows:
+
+- **A model's claim that it wrote a 3000-rated problem means little.** No
+  Codex-written v2 task (0/22) survived even the weak Gemini 3.7 screen.
+  Argon-written tasks survived at 7/24. Asking the same authors for a
+  harder brief did not raise survival (2/29).
+- **The screener must be at least as strong as the members.** Re-screening
+  the 3.7 survivors with Argon Medium dropped 12 of 17. On v3 dev, the
+  Argon-hard tasks were the ones where members split (`d2-t01`: only
+  Sonnet and Opus solved it).
+- **The router baseline is strong because one member is.** Sonnet 5.5
+  solved every v3 dev task the team solved. A router that picks Sonnet ties
+  the team unless a task defeats Sonnet and the team still recovers it.
+- **Load corrupts the measurement.** Under parallel authoring and screening,
+  many "failures" were `no_code`: a call hit the 8-minute limit or the
+  provider dropped it. On `e8-t01`, which nobody solved, the team had picked
+  a correct but slow program, and both repair calls failed on
+  infrastructure. Failed calls now record the CLI's error text, and the
+  test runs with nothing else on the machine.
+
 ## Lessons and constraints
 
 - **Never trust a delivery metric that only checks for a non-empty string.**
