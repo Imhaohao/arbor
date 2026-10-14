@@ -23,7 +23,7 @@ EOF
 }
 
 while :; do
-  for k in $BASE/staging/[fgh]*/t*/.kept(N); do
+  for k in $BASE/staging/[fghj]*/t*/.kept(N); do
     d=${k:h}; a=${d:h:t}; t=${d:t}
     [ -e $C/$a/$t ] && continue
     python3 $REPO/lib/swarm/bench-grader.py validate $d 2>/dev/null | tail -1 | grep -q '"ok": true' || continue

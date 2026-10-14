@@ -19,7 +19,13 @@ mkdir -p "$DIR" "$BASE/codex-author-home"
 export CODEX_HOME=$BASE/codex-author-home
 BACKEND=${AUTHOR_BACKEND:-codex}
 CURSOR_MODEL=${AUTHOR_MODEL:-gemini-4-argon-high}
-AUTHOR_TAG=$([ "$BACKEND" = cursor ] && echo "cursor:$CURSOR_MODEL+probe" || echo "codex:gpt-6.1-sol+probe")
+AGY_MODEL=${AUTHOR_MODEL:-gemini-3.8-flash-high}
+case $BACKEND in
+  cursor) AUTHOR_TAG="cursor:$CURSOR_MODEL+probe" ;;
+  agy) AUTHOR_TAG="antigravity:$AGY_MODEL+probe" ;;
+  *) AUTHOR_TAG="codex:gpt-6.1-sol+probe" ;;
+esac
+AGY_ARGS=(-p --mode accept-edits --model $AGY_MODEL --output-format json)
 CODEX_ARGS=(-m gpt-6.1-sol -c 'model_provider="caveman"'
   -c 'model_providers.caveman={name="Caveman",base_url="http://127.0.0.1:8787/chatgpt",wire_api="responses",requires_openai_auth=true}'
   -c model_reasoning_effort=high -c 'sandbox_mode="workspace-write"' --skip-git-repo-check)
@@ -52,7 +58,15 @@ author_continue() {
 }
 
 author_start_once() {
-  if [ "$BACKEND" = cursor ]; then
+  if [ "$BACKEND" = agy ]; then
+    OUT=$(~/.local/bin/agy "${AGY_ARGS[@]}" "$1" < /dev/null 2>&1)
+    SESSION=$(echo "$OUT" | python3 -c 'import json,sys
+for line in sys.stdin:
+    line=line.strip()
+    if line.startswith("{"):
+        try: print(json.loads(line).get("conversation_id","")); break
+        except Exception: pass')
+  elif [ "$BACKEND" = cursor ]; then
     SESSION=$(cursor-agent create-chat 2>/dev/null | tail -1 | tr -d '[:space:]')
     OUT=$(cursor-agent -p --trust --force --model $CURSOR_MODEL --resume "$SESSION" "$1" < /dev/null 2>&1)
   else
@@ -63,7 +77,9 @@ author_start_once() {
 }
 
 author_continue_once() {
-  if [ "$BACKEND" = cursor ]; then
+  if [ "$BACKEND" = agy ]; then
+    OUT=$(~/.local/bin/agy "${AGY_ARGS[@]}" --conversation "$SESSION" "$1" < /dev/null 2>&1)
+  elif [ "$BACKEND" = cursor ]; then
     OUT=$(cursor-agent -p --trust --force --model $CURSOR_MODEL --resume "$SESSION" "$1" < /dev/null 2>&1)
   else
     OUT=$(codex exec resume "${CODEX_ARGS[@]}" "$SESSION" "$1" 2>&1)
