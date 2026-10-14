@@ -191,6 +191,21 @@ adversarial benchmarks:
   with the same seed and an 8-task dev split. Hypotheses, metric, arms and
   decision rule are unchanged.
 
+### Screen log (kept current until bank v3 is sealed)
+
+- Passes 1-2 (75 tasks): Codex v2 tasks 0/22 survive, Argon v2-brief
+  tasks 7/24, Argon hard-brief tasks 2/29. The harder brief did not raise
+  survival.
+- `d8-t01` is excluded: its generator crashes on medium seeds, which
+  validation never drew. The grader now checks 20 medium and 10 large
+  seeds (commit ebece71), and every survivor passes it.
+- Because a harder brief alone did not help, further authors use
+  `author-loop.sh` (kept with the run): Codex GPT-6.1-Sol writes one task,
+  `bench probe` runs the screener on it, and if the screener solves it the
+  same session gets the screener's program and up to 3 rounds to make the
+  task harder. Every task still passes the formal `bench screen` before it
+  can be sealed; probe runs never admit a task.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the

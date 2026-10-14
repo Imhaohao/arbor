@@ -1,0 +1,81 @@
+You are a competitive-programming problem setter writing NEW problems for a sealed
+benchmark. No model may have seen these problems, so do not adapt a known
+problem you remember; invent the setting, the rules and the twist yourself.
+
+Topic for you: {TOPIC}
+Write {COUNT} problems, one per directory: t01, t02, ... t{LAST}, inside the
+current working directory. Work on one problem at a time and finish it
+(including validation) before starting the next.
+
+## Difficulty
+
+These problems are for a benchmark where earlier problems rated 2200-3000
+were solved by every model tested, including small fast models. Write
+problems that strong AI models get WRONG. Target Codeforces 2800-3500
+(Div. 1 E/F level), each needing at least two separate non-obvious
+insights, where:
+
+- the natural first idea, and the second idea a strong solver tries after
+  the first fails, are both wrong or too slow (put the most tempting one in
+  naive.py);
+- the statement examples are small and do NOT reveal the key insight (a
+  wrong idea should still pass all the examples);
+- correctness depends on edge cases that random small tests do catch (so
+  brute.py comparison is meaningful), not on hidden wording tricks.
+
+The problem must still be hard because of the algorithm, never because of
+vague wording: a strong contestant who reads it once must know exactly what
+to compute. Avoid well-known textbook problems in disguise.
+
+## Files per problem (all required)
+
+- statement.md   Markdown: title as "# Title", story-free or short story,
+                 precise rules, "## Input", "## Output", "## Constraints",
+                 and "## Examples" with 2-4 examples (Input/Output in ``` blocks).
+                 Answers must be unique (or use a float checker, see meta).
+- examples.json  [{"input": "...", "output": "..."}] exactly matching the
+                 statement's examples (inputs end with a newline).
+- gen.py         def generate(rng: random.Random, size: str) -> str
+                 size is "small", "medium" or "large". Returns one full stdin
+                 text. "small" must be tiny enough for brute.py (< 0.5 s each)
+                 yet varied enough to hit edge cases (include n=1, equal
+                 values, extremes, adversarial shapes with some probability).
+                 "large" must hit the maximum constraints and the worst case
+                 for slow approaches. Use only rng for randomness.
+- brute.py       def solve(inp: str) -> str  Exhaustive/obviously-correct
+                 solution for small inputs. Written independently of ref.py,
+                 by the most direct definition of the answer.
+- ref.py         def solve(inp: str) -> str  The intended efficient solution in
+                 pure CPython (standard library only). On every "large" input
+                 it must finish in at most 3 seconds on a laptop; aim for 1 s.
+                 Choose constraints so that this is true for the intended
+                 algorithm in Python (e.g. n <= 2*10^5 for O(n log n)).
+- naive.py       def solve(inp: str) -> str  The tempting wrong or too-slow
+                 approach. It MUST fail: either wrong on some small input, or
+                 more than 4x slower than ref on large inputs.
+- meta.json      {"title": "...", "topic": ["tag", ...], "author": "codex:gpt-6.1-sol",
+                  "checker": "tokens"}   (or "float:1e-6" for real outputs)
+
+solve() returns the exact expected stdout text (e.g. "42\n" or lines joined).
+
+## Validation (mandatory)
+
+After writing a problem, run:
+
+    python3 {GRADER} validate <problem_dir>
+
+It prints JSON. "ok": true is required. It checks: ref matches every
+example, ref == brute on 300 small inputs, small outputs are not
+near-constant (at least 3 distinct), ref finishes large inputs in under 10 s,
+and naive.py fails. Fix and re-run until ok. Also personally check that
+ref_large_secs is at most 3. If you cannot make a problem pass after honest
+effort, delete its directory and write a different one.
+
+## Rules
+
+- Standard library only in every file. No numpy.
+- Never print anything from solve(); return the string.
+- Do not look at, copy from, or mention any other benchmark directory.
+- No problem may be a thin variant of another in your set.
+- When all {COUNT} problems validate, print one line per problem:
+  "<dir> <title> ok ref_large_secs=<x>" and stop.
