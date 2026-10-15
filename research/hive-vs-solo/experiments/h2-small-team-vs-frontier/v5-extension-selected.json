@@ -1,0 +1,437 @@
+{
+ "atcoder": [
+  {
+   "site": "atcoder",
+   "contest": "abc467",
+   "id": "abc467_g",
+   "name": "Many Sweets Problem",
+   "difficulty": 2544,
+   "date": "2026-07-18"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc225",
+   "id": "arc225_e",
+   "name": "Gap Swap (hard)",
+   "difficulty": 2645,
+   "date": "2026-07-19"
+  },
+  {
+   "site": "atcoder",
+   "contest": "abc469",
+   "id": "abc469_g",
+   "name": "K-nacci Operations",
+   "difficulty": 2804,
+   "date": "2026-08-01"
+  },
+  {
+   "site": "atcoder",
+   "contest": "abc470",
+   "id": "abc470_e",
+   "name": "Concentration",
+   "difficulty": 2096,
+   "date": "2026-08-08"
+  },
+  {
+   "site": "atcoder",
+   "contest": "abc470",
+   "id": "abc470_g",
+   "name": "\u03a3ex",
+   "difficulty": 2097,
+   "date": "2026-08-08"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc226",
+   "id": "arc226_c",
+   "name": "Square Corner Packing",
+   "difficulty": 2070,
+   "date": "2026-08-09"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc226",
+   "id": "arc226_d",
+   "name": "Penta-Queue",
+   "difficulty": 2642,
+   "date": "2026-08-09"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc226",
+   "id": "arc226_e",
+   "name": "Cellular Messenger",
+   "difficulty": 3505,
+   "date": "2026-08-09"
+  },
+  {
+   "site": "atcoder",
+   "contest": "abc471",
+   "id": "abc471_g",
+   "name": "Caeser Syllables",
+   "difficulty": 2464,
+   "date": "2026-08-15"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc227",
+   "id": "arc227_c",
+   "name": "Follow the Letters",
+   "difficulty": 2121,
+   "date": "2026-08-16"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc227",
+   "id": "arc227_d",
+   "name": "Median of Binary Strings",
+   "difficulty": 2277,
+   "date": "2026-08-16"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc227",
+   "id": "arc227_e",
+   "name": "Shift and XOR Switches",
+   "difficulty": 2710,
+   "date": "2026-08-16"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc227",
+   "id": "arc227_f",
+   "name": "Erase and Raise",
+   "difficulty": 3159,
+   "date": "2026-08-16"
+  },
+  {
+   "site": "atcoder",
+   "contest": "abc472",
+   "id": "abc472_g",
+   "name": "Cascading Grid ",
+   "difficulty": 2018,
+   "date": "2026-08-22"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc228",
+   "id": "arc228_a",
+   "name": "Row and Col swap",
+   "difficulty": 2751,
+   "date": "2026-08-30"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc228",
+   "id": "arc228_c",
+   "name": "Partially Sort",
+   "difficulty": 2953,
+   "date": "2026-08-30"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc228",
+   "id": "arc228_d",
+   "name": "Amidakuji 2",
+   "difficulty": 3506,
+   "date": "2026-08-30"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc228",
+   "id": "arc228_e",
+   "name": "Pair of Permutations",
+   "difficulty": 3835,
+   "date": "2026-08-30"
+  },
+  {
+   "site": "atcoder",
+   "contest": "abc474",
+   "id": "abc474_g",
+   "name": "LRUD Moving 2",
+   "difficulty": 2280,
+   "date": "2026-09-05"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc229",
+   "id": "arc229_e",
+   "name": "Taka and Hashi",
+   "difficulty": 2004,
+   "date": "2026-09-05"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc229",
+   "id": "arc229_f",
+   "name": "Angst for All Pairs 2",
+   "difficulty": 2302,
+   "date": "2026-09-05"
+  },
+  {
+   "site": "atcoder",
+   "contest": "abc475",
+   "id": "abc475_g",
+   "name": "Has Many Divisors",
+   "difficulty": 2360,
+   "date": "2026-09-12"
+  },
+  {
+   "site": "atcoder",
+   "contest": "abc476",
+   "id": "abc476_g",
+   "name": "Increasing Popcount",
+   "difficulty": 2477,
+   "date": "2026-09-19"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc230",
+   "id": "arc230_b",
+   "name": "Chmax and Chmin",
+   "difficulty": 2632,
+   "date": "2026-09-20"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc230",
+   "id": "arc230_c",
+   "name": "Buildings",
+   "difficulty": 2947,
+   "date": "2026-09-20"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc230",
+   "id": "arc230_d",
+   "name": "Min Max Matrix",
+   "difficulty": 2395,
+   "date": "2026-09-20"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc230",
+   "id": "arc230_e",
+   "name": "Minister",
+   "difficulty": 3827,
+   "date": "2026-09-20"
+  },
+  {
+   "site": "atcoder",
+   "contest": "abc477",
+   "id": "abc477_g",
+   "name": "Frequency Query on Tree",
+   "difficulty": 2226,
+   "date": "2026-09-26"
+  },
+  {
+   "site": "atcoder",
+   "contest": "agc078",
+   "id": "agc078_a",
+   "name": "Rearrange ABC",
+   "difficulty": 3423,
+   "date": "2026-09-27"
+  },
+  {
+   "site": "atcoder",
+   "contest": "agc078",
+   "id": "agc078_b",
+   "name": "L Robust IS",
+   "difficulty": 3203,
+   "date": "2026-09-27"
+  },
+  {
+   "site": "atcoder",
+   "contest": "agc078",
+   "id": "agc078_c",
+   "name": "AB vs. BA",
+   "difficulty": 3611,
+   "date": "2026-09-27"
+  },
+  {
+   "site": "atcoder",
+   "contest": "abc478",
+   "id": "abc478_g",
+   "name": "Division Point Hull",
+   "difficulty": 2582,
+   "date": "2026-10-03"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc231",
+   "id": "arc231_c",
+   "name": "One Sky, Many Stars",
+   "difficulty": 2267,
+   "date": "2026-10-04"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc231",
+   "id": "arc231_d",
+   "name": "Choose Your Role",
+   "difficulty": 2437,
+   "date": "2026-10-04"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc231",
+   "id": "arc231_e",
+   "name": "Odd Inversion",
+   "difficulty": 2393,
+   "date": "2026-10-04"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc231",
+   "id": "arc231_f",
+   "name": "Two Unbalanced Subtrees",
+   "difficulty": 2929,
+   "date": "2026-10-04"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc232",
+   "id": "arc232_a",
+   "name": "Two in the Range",
+   "difficulty": 2331,
+   "date": "2026-10-10"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc232",
+   "id": "arc232_b",
+   "name": "Two Flips",
+   "difficulty": 2656,
+   "date": "2026-10-10"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc232",
+   "id": "arc232_c",
+   "name": "All Add or Single Negate",
+   "difficulty": 2360,
+   "date": "2026-10-10"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc232",
+   "id": "arc232_d",
+   "name": "Delete Different",
+   "difficulty": 3085,
+   "date": "2026-10-10"
+  },
+  {
+   "site": "atcoder",
+   "contest": "arc232",
+   "id": "arc232_e",
+   "name": "Doubling",
+   "difficulty": 3596,
+   "date": "2026-10-10"
+  },
+  {
+   "site": "atcoder",
+   "contest": "abc479",
+   "id": "abc479_g",
+   "name": "Tuning",
+   "difficulty": 2386,
+   "date": "2026-10-11"
+  }
+ ],
+ "codeforces": [
+  {
+   "site": "codeforces",
+   "contestId": 2266,
+   "index": "G",
+   "name": "Modular Tree",
+   "rating": 2200,
+   "date": "2026-09-21",
+   "tags": [
+    "dfs and similar",
+    "dp",
+    "greedy",
+    "math",
+    "number theory",
+    "trees"
+   ]
+  },
+  {
+   "site": "codeforces",
+   "contestId": 2259,
+   "index": "H",
+   "name": "Treasure Map Destruction (Counting Version)",
+   "rating": 2200,
+   "date": "2026-09-05",
+   "tags": [
+    "dfs and similar",
+    "dp",
+    "dsu",
+    "graphs",
+    "math"
+   ]
+  },
+  {
+   "site": "codeforces",
+   "contestId": 2257,
+   "index": "E",
+   "name": "Busy Beaver",
+   "rating": 2100,
+   "date": "2026-08-17",
+   "tags": [
+    "brute force",
+    "data structures",
+    "divide and conquer",
+    "dp",
+    "greedy",
+    "implementation",
+    "sortings"
+   ]
+  },
+  {
+   "site": "codeforces",
+   "contestId": 2254,
+   "index": "G",
+   "name": "Nightcrawler",
+   "rating": 2200,
+   "date": "2026-08-04",
+   "tags": [
+    "data structures",
+    "dfs and similar",
+    "dp",
+    "greedy",
+    "sortings",
+    "trees"
+   ]
+  },
+  {
+   "site": "codeforces",
+   "contestId": 2253,
+   "index": "E",
+   "name": "Diameter Intersections",
+   "rating": 2200,
+   "date": "2026-08-07",
+   "tags": [
+    "brute force",
+    "dfs and similar",
+    "fft",
+    "graphs",
+    "implementation",
+    "trees"
+   ]
+  },
+  {
+   "site": "codeforces",
+   "contestId": 2252,
+   "index": "E",
+   "name": "Generational Triplets",
+   "rating": 2100,
+   "date": "2026-08-06",
+   "tags": [
+    "bitmasks",
+    "combinatorics",
+    "dp",
+    "math"
+   ]
+  }
+ ],
+ "rule": "AtCoder ARC/AGC/ABC contests started on or after 2026-07-15 and finished by 2026-10-15 with kenkoooo estimated difficulty >= 2000; Codeforces problems from the same window rated 2100-2299 (ratings as of 2026-10-15 07:45 PDT), excluding 2255C (interactive) and 2264E1 (easy version of pooled 2264E2)."
+}
