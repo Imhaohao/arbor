@@ -1,0 +1,42 @@
+03:38:26 test: 10 tasks to run (0 already done); router on
+03:38:26 task e7-t01 (Polarity Cascade): solving
+03:38:26 task f1-t01 (Directional Collision Avoidance): solving
+(node:11307) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+03:45:37     antigravity:gemini-3.8-flash-high solve failed (other); retrying
+03:51:46 task e7-t01: team selecting (60 trusted inputs from 2 testers)
+03:52:21 task e7-t01: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, cursor:grok-4.7-medium, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive, router
+03:52:21 task f7-t01 (Buffered Relays): solving
+03:58:26 task f1-t01: team selecting (60 trusted inputs from 2 testers)
+03:58:59 task f1-t01: passed by claude:claude-sonnet-5-5, claude:claude-opus-5-5, codex:gpt-6-astra, hive, router
+03:58:59 task f7-t02 (Folded Tail Ledger): solving
+04:12:21 task f7-t01: team selecting (60 trusted inputs from 2 testers)
+04:12:50 task f7-t01: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, claude:claude-opus-5-5, codex:gpt-6-astra, hive, router
+04:12:50 task f8-t02 (Two Quotient Boards): solving
+04:19:00 task f7-t02: team selecting (60 trusted inputs from 2 testers)
+04:19:48 task f7-t02: passed by claude:claude-sonnet-5-5, claude:claude-opus-5-5, codex:gpt-6-astra, hive, router
+04:19:48 task g2-t01 (Cross-Branch Relay Pairing): solving
+04:32:50 task f8-t02: team selecting (60 trusted inputs from 2 testers)
+04:33:44 task f8-t02: passed by claude:claude-sonnet-5-5, claude:claude-opus-5-5, codex:gpt-6-astra, hive, router
+04:33:44 task g3-t01 (Hollow Border Stride): solving
+04:39:48 task g2-t01: team selecting (60 trusted inputs from 2 testers)
+04:53:44 task g3-t01: team selecting (60 trusted inputs from 2 testers)
+04:54:52 task g3-t01: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, antigravity:gemini-3.8-flash-high, claude:claude-opus-5-5, codex:gpt-6-astra, hive, router
+04:54:52 task g3-t03 (Bi-Dominant Crest Resonance): solving
+04:56:46 task g2-t01 FAILED: task.topic.join is not a function
+04:56:46 task g4-t04 (Deferred Sweep): solving
+05:02:05     antigravity:gemini-3.8-flash-high solve failed (other); retrying
+05:10:02     antigravity:gemini-3.8-flash-high solve failed (other); retrying
+05:17:48 task g4-t04: team selecting (60 trusted inputs from 2 testers)
+05:18:18 task g3-t03: team selecting (60 trusted inputs from 2 testers)
+05:19:15 task g3-t03: passed by claude:claude-haiku-5-5, claude:claude-sonnet-5-5, codex:gpt-6-astra, hive, router
+05:19:15 task g6-t04 (Bimodal Cluster Stress-Testing): solving
+05:39:15 task g6-t04: team selecting (60 trusted inputs from 2 testers)
+05:50:20 task g4-t04: passed by claude:claude-opus-5-5, codex:gpt-6-astra
+05:52:48 task g6-t04: passed by nobody
+05:53:14 test: 1 tasks to run (9 already done); router on
+05:53:14 task g2-t01 (Cross-Branch Relay Pairing): solving
+(node:18745) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+06:13:14 task g2-t01: team selecting (60 trusted inputs from 2 testers)
+06:29:09 task g2-t01: passed by codex:gpt-6-astra, hive

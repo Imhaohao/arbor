@@ -91,7 +91,7 @@ hidden tests.
 | v1 | 8 Sonnet | author's own rating | everyone 12/12 except Grok |
 | v2 | 8 Codex GPT-6.1-Sol | "Codeforces 2200-3000" plus a naive-solution trap | every Claude and Gemini arm 8/8 |
 | v3 | Argon and Codex | one failed attempt by Gemini 3.7 Flash | Sonnet, Opus and the team 7/8; Haiku and Gemini Flash 5/8 |
-| v4 | Argon and Grok, with a probe loop | one failed attempt by Gemini 4 Argon Medium | test pending |
+| v4 | Argon, Grok and Codex, with a probe loop | one failed attempt by Gemini 4 Argon Medium | test, below |
 
 What this shows:
 
@@ -112,6 +112,48 @@ What this shows:
   a correct but slow program, and both repair calls failed on
   infrastructure. Failed calls now record the CLI's error text, and the
   test runs with nothing else on the machine.
+
+### 6. H2 v4 test: the team edges the router, but 10 tasks cannot show it
+
+Ten Argon-screened tasks, 20-minute call limit, nothing else on the
+machine. Graded on sealed hidden tests.
+
+| Arm | Solved |
+|---|---|
+| GPT-6-Astra | 9/10 |
+| Small-model team | 8/10 |
+| Opus 5.5 | 7/10 |
+| Sonnet 5.5 | 7/10 |
+| Fugu-style router (picked Sonnet every time) | 7/10 |
+| Haiku 5.5 | 4/10 |
+| Gemini 3.8 Flash | 2/10 |
+| Grok 4.7 Medium | 1/10 |
+
+| Comparison | Team only | Other only | One-sided p | Verdict |
+|---|---|---|---|---|
+| team vs router (H2c) | 1 | 0 | 0.50 | not shown |
+| team vs Opus 5.5 (H2a) | 2 | 1 | 0.50 | not shown |
+| team vs GPT-6-Astra (H2b) | 0 | 1 | 1.00 | not shown |
+
+The run has 10 tasks, below the pre-registered floor of 15, so it makes
+no claim either way. Two observations are still worth keeping:
+
+- **The one team-over-router task is the mechanism working as designed.**
+  On `g2-t01`, Haiku wrote a correct but slow program (it matched all 60
+  brute-force outputs and timed out on 4 large inputs). The team's large-
+  input check exposed the slowness, and Sonnet's repair made it fast enough
+  to pass every hidden test. The router's choice, Sonnet, produced no
+  usable program; Opus produced wrong answers.
+- **The team cost far more.** Claude-reported spend was $32.60 for the
+  team against $5.91 for the router, before counting the Cursor and
+  Antigravity calls that report no price. Haiku alone cost $22.29, more
+  than Opus ($10.88), because it thinks at length on hard tasks.
+
+A powered answer to H2c needs many tasks where Sonnet fails. Here Sonnet
+failed 3 of 10 and the team recovered 1 of those 3. At that rate a 5-0
+discordant split, the smallest that reaches p < 0.05, needs about 15
+Sonnet-failing tasks, which means roughly 50 Argon-screened tasks. The
+pipeline produced 10 in a day.
 
 ## Lessons and constraints
 
