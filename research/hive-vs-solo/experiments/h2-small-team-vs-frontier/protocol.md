@@ -279,6 +279,14 @@ minutes for every arm, tester, repairer and the conductor, and the same 10
 tasks are run again from scratch. The aborted run's records are kept in
 `runs-v4/aborted-8min/`. Nothing else changes.
 
+### Harness crash on g2-t01 during the v4 test (2026-10-14 21:57 PDT)
+
+The run crashed on `g2-t01` before writing any result: its author wrote
+`topic` as a string, and the router's prompt builder expected a list.
+`loadTasks` now turns a string topic into a one-item list. No arm's result
+for that task was recorded or seen. The task is run again from scratch
+after the other nine finish.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the

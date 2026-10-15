@@ -470,7 +470,14 @@ export async function routerAttempt(
 // ── bank and results ────────────────────────────────────────────────────────
 
 export function loadTasks(bank: string, ids: readonly string[]): PublicTask[] {
-  return ids.map((id) => JSON.parse(readFileSync(join(bank, id, "public.json"), "utf8")) as PublicTask);
+  return ids.map((id) => withTopicList(JSON.parse(readFileSync(join(bank, id, "public.json"), "utf8")) as PublicTask));
+}
+
+/** Some authors wrote meta.json's topic as one string; every consumer expects a list. */
+function withTopicList(task: PublicTask): PublicTask {
+  const topic = task.topic as unknown;
+  if (Array.isArray(topic)) return task;
+  return { ...task, topic: typeof topic === "string" && topic ? [topic] : [] };
 }
 
 export function bankTaskIds(bank: string): string[] {
