@@ -307,7 +307,7 @@ positives.
 - **Hypotheses and decision rule:** unchanged. H2c (team > router) is the
   question this run is sized for.
 
-### v5 amendment, 2026-10-15 05:45 PDT (no v5 test task has run)
+### v5 amendment, 2026-10-15 05:24 PDT (no v5 test task has run)
 
 Model-written problems survive the Argon screen too rarely: 1 survivor in
 the first 6 hours of v5. The v5 pool may also include **adapted
