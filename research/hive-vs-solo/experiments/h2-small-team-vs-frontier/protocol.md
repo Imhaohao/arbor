@@ -330,6 +330,17 @@ training cutoff is June 2026; the other models' cutoffs are not published.
   training would do better on the earlier split.
 - Size, deadline, hypotheses and decision rule are unchanged.
 
+### v5 Codeforces adaptation log (2026-10-15 07:30 PDT, no v5 test task has run)
+
+Of the 38 listed problems, 30 were taken forward. Excluded before any
+adaptation, for reasons independent of any arm: interactive (`2245G`),
+constructive or program output that an exact-match checker cannot grade
+(`2249D`, `2262D`, `2264F`, `2268F`), and no editorial for a 2900-3500
+problem (`2245H`, `2247E`, `2247F`). Problems that accept several outputs
+are adapted to print a uniquely determined value (`2249F` prints the path
+length; `2262F` prints the minimum number of moves). Adapted tasks use
+author ids `x<problem>` and enter the same Argon screen.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the

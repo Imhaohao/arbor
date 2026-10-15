@@ -17,13 +17,13 @@ excluded = set(sys.argv[1].split())
 latest = {}
 for line in open(os.path.expanduser('~/.arbor-bench/v3/screen-argon/screen.jsonl')):
     row = json.loads(line); latest[row['task']] = row
-keep = sorted(t for t, r in latest.items() if not r['passed'] and r['verdict'] != 'no_code' and t not in excluded and t[0] in 'km')
+keep = sorted(t for t, r in latest.items() if not r['passed'] and r['verdict'] != 'no_code' and t not in excluded and t[0] in 'kmx')
 print(len(keep), ' '.join(keep))
 EOF
 }
 
 while :; do
-  for k in $BASE/staging/[km]*/t*/.kept(N); do
+  for k in $BASE/staging/[kmx]*/t*/.kept(N); do
     d=${k:h}; a=${d:h:t}; t=${d:t}
     [ -e $C/$a/$t ] && continue
     python3 $REPO/lib/swarm/bench-grader.py validate $d 2>/dev/null | tail -1 | grep -q '"ok": true' || continue

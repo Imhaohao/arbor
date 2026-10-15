@@ -1,0 +1,59 @@
+You are adapting an existing competitive-programming problem into a task for a
+sealed benchmark. The source problem (statement, official examples, and the
+official editorial or solution code) is in ./source.json. Write the adapted
+task in the directory t01 inside the current working directory.
+
+## What to keep and what to change
+
+- Keep the exact mathematical task. Rewrite the statement in your own words
+  with a different story and different names, so it is not a copy of the
+  original text. It must stay unambiguous and fully specified.
+- Keep the official examples as the statement's examples, unless you change
+  the output format (below), in which case convert them faithfully.
+- If the original accepts several correct outputs (for example "print any
+  valid path"), change the output to a uniquely determined value (for
+  example the optimal length, or -1) and convert the examples accordingly.
+- Print YES/NO in exactly that case.
+- Choose constraints so the reference solution runs on the largest input in
+  at most 3 seconds in CPython (standard library only). Shrink the original
+  limits if needed, but keep them large enough that the slow obvious approach
+  (naive.py) is too slow or wrong.
+
+## Files in t01 (all required)
+
+- statement.md   "# Title", the rewritten statement, "## Input", "## Output",
+                 "## Constraints", "## Examples" (Input/Output in ``` blocks).
+- examples.json  [{"input": "...", "output": "..."}] matching the statement.
+- gen.py         def generate(rng: random.Random, size: str) -> str
+                 size is "small", "medium" or "large". small must be tiny
+                 enough for brute.py (< 0.5 s) yet varied (edge cases with
+                 some probability); large must hit your maximum constraints
+                 and the worst case. Use only rng for randomness. It must
+                 never crash for any seed.
+- brute.py       def solve(inp: str) -> str  exhaustive / obviously correct,
+                 written independently of ref.py from the definition.
+- ref.py         def solve(inp: str) -> str  the intended efficient solution;
+                 port the official editorial or code to Python.
+- naive.py       def solve(inp: str) -> str  the tempting wrong or too-slow
+                 approach. It MUST fail validation (wrong on some small input
+                 or more than 4x slower than ref on large inputs).
+- meta.json      {"title": "...", "topic": ["tag", ...],
+                  "author": "adapted:{SOURCE}", "checker": "tokens"}
+
+solve() returns the exact expected stdout text.
+
+## Validation (mandatory)
+
+Run:
+
+    python3 {GRADER} validate t01
+
+"ok": true is required (ref matches every example, ref == brute on 300 small
+inputs, at least 3 distinct small outputs, ref under 10 s on large inputs,
+generator never crashes on medium/large seeds, naive.py fails). Also check
+ref_large_secs <= 3. Fix and re-run until ok. If the problem truly cannot be
+adapted (for example the reference cannot be made correct), delete t01 and
+print "CANNOT ADAPT: <reason>".
+
+Standard library only. Never print from solve(). When done, print
+"t01 <title> ok ref_large_secs=<x>".
