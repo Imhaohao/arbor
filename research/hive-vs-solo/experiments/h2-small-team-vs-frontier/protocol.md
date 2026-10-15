@@ -330,7 +330,7 @@ training cutoff is June 2026; the other models' cutoffs are not published.
   training would do better on the earlier split.
 - Size, deadline, hypotheses and decision rule are unchanged.
 
-### v5 Codeforces adaptation log (2026-10-15 07:30 PDT, no v5 test task has run)
+### v5 Codeforces adaptation log (2026-10-15 05:36 PDT, no v5 test task has run)
 
 Of the 38 listed problems, 30 were taken forward. Excluded before any
 adaptation, for reasons independent of any arm: interactive (`2245G`),
