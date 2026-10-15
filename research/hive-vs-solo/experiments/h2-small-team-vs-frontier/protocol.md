@@ -287,6 +287,26 @@ The run crashed on `g2-t01` before writing any result: its author wrote
 for that task was recorded or seen. The task is run again from scratch
 after the other nine finish.
 
+## Bank v5: confirmatory run (pre-registered 2026-10-14 23:50 PDT, before any v5 task exists)
+
+v4 (10 tasks) is reported as an underpowered pilot: team vs router 1-0,
+p = 0.5, no claim. v5 is a separate confirmatory test. It is never pooled
+with v4, because adding data after seeing a result inflates false
+positives.
+
+- **Method:** identical to v4. Gemini 4 Argon Medium screen with no_code
+  re-screened, 20-minute call limit, testers Sonnet + Gemini Flash,
+  repairer Sonnet, router profiles from v3 dev, test run alone on the
+  machine at 2 tasks at a time.
+- **Pool:** only new tasks from authors `k*` (Cursor Argon/Grok) and `m*`
+  (Codex), written through `author-loop.sh`. Tasks used in v3 dev or v4 are
+  excluded, as is every task screened before this point.
+- **Size:** the run starts at 40 surviving tasks, or at 2026-10-18 20:00
+  PDT with whatever has survived. Below 25 it is reported as underpowered
+  and makes no claim.
+- **Hypotheses and decision rule:** unchanged. H2c (team > router) is the
+  question this run is sized for.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the
