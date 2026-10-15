@@ -307,6 +307,29 @@ positives.
 - **Hypotheses and decision rule:** unchanged. H2c (team > router) is the
   question this run is sized for.
 
+### v5 amendment, 2026-10-15 05:45 PDT (no v5 test task has run)
+
+Model-written problems survive the Argon screen too rarely: 1 survivor in
+the first 6 hours of v5. The v5 pool may also include **adapted
+Codeforces problems**: every problem rated 2300 or higher from contests
+that started on or after 2026-07-15 and had finished by 2026-10-15 (38
+problems from 15 contests, listed in `cf-selected.json`). Opus 5.5's
+training cutoff is June 2026; the other models' cutoffs are not published.
+
+- **Adaptation:** an author rewrites each statement in its own words with
+  the same semantics, keeps the official examples, and writes the
+  generator, brute force, reference and naive trap. The reference may
+  follow the official editorial. Constraints may shrink so the reference
+  runs in CPython within the time rule. Original statements and
+  editorials stay outside the repository.
+- **Same gates:** each adapted task passes the same validation and the
+  same Argon Medium screen as every other task. Human ratings do not
+  replace the screen.
+- **Contamination check:** results are also reported split by contest
+  date (before and after 2026-09-01). A model that saw a problem in
+  training would do better on the earlier split.
+- Size, deadline, hypotheses and decision rule are unchanged.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the

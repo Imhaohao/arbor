@@ -1,0 +1,268 @@
+[
+ {
+  "contestId": 2268,
+  "index": "F",
+  "rating": 3500,
+  "name": "Deglado",
+  "date": "2026-09-26"
+ },
+ {
+  "contestId": 2268,
+  "index": "E",
+  "rating": 2700,
+  "name": "Kia Kio and Tree of Life",
+  "date": "2026-09-26"
+ },
+ {
+  "contestId": 2268,
+  "index": "D",
+  "rating": 2600,
+  "name": "AghaBalaSar and Hamed",
+  "date": "2026-09-26"
+ },
+ {
+  "contestId": 2268,
+  "index": "C",
+  "rating": 2300,
+  "name": "KiaKio and Energy Intervals",
+  "date": "2026-09-26"
+ },
+ {
+  "contestId": 2267,
+  "index": "G",
+  "rating": 2600,
+  "name": "New LRT",
+  "date": "2026-09-25"
+ },
+ {
+  "contestId": 2267,
+  "index": "F2",
+  "rating": 2300,
+  "name": "XOR Transformations (Hard Version)",
+  "date": "2026-09-25"
+ },
+ {
+  "contestId": 2266,
+  "index": "H",
+  "rating": 2400,
+  "name": "Deque Malfunction",
+  "date": "2026-09-21"
+ },
+ {
+  "contestId": 2264,
+  "index": "F",
+  "rating": 2800,
+  "name": "Deranged Calculator",
+  "date": "2026-09-13"
+ },
+ {
+  "contestId": 2264,
+  "index": "E2",
+  "rating": 2700,
+  "name": "A Prime Flood (Hard Version)",
+  "date": "2026-09-13"
+ },
+ {
+  "contestId": 2262,
+  "index": "F",
+  "rating": 3500,
+  "name": "Rank Removal",
+  "date": "2026-09-12"
+ },
+ {
+  "contestId": 2262,
+  "index": "E",
+  "rating": 3100,
+  "name": "Paired Bracket Sequences",
+  "date": "2026-09-12"
+ },
+ {
+  "contestId": 2262,
+  "index": "D",
+  "rating": 2900,
+  "name": "PLUSworld",
+  "date": "2026-09-12"
+ },
+ {
+  "contestId": 2262,
+  "index": "C",
+  "rating": 2300,
+  "name": "Traveling the World",
+  "date": "2026-09-12"
+ },
+ {
+  "contestId": 2260,
+  "index": "G",
+  "rating": 2900,
+  "name": "Sortable Permutations",
+  "date": "2026-09-08"
+ },
+ {
+  "contestId": 2260,
+  "index": "F",
+  "rating": 2500,
+  "name": "Edge Three-Coloring",
+  "date": "2026-09-08"
+ },
+ {
+  "contestId": 2258,
+  "index": "F",
+  "rating": 3000,
+  "name": "Plus Minus Tree",
+  "date": "2026-08-29"
+ },
+ {
+  "contestId": 2258,
+  "index": "E",
+  "rating": 2400,
+  "name": "DivMEX",
+  "date": "2026-08-29"
+ },
+ {
+  "contestId": 2258,
+  "index": "D",
+  "rating": 2500,
+  "name": "Magic Tiles",
+  "date": "2026-08-29"
+ },
+ {
+  "contestId": 2257,
+  "index": "F2",
+  "rating": 2700,
+  "name": "Beaver's Jumping Track (Hard Version)",
+  "date": "2026-08-17"
+ },
+ {
+  "contestId": 2257,
+  "index": "F1",
+  "rating": 2500,
+  "name": "Beaver's Jumping Track (Easy Version)",
+  "date": "2026-08-17"
+ },
+ {
+  "contestId": 2255,
+  "index": "F",
+  "rating": 3100,
+  "name": "Who Will Witness the End?",
+  "date": "2026-08-09"
+ },
+ {
+  "contestId": 2255,
+  "index": "E2",
+  "rating": 3400,
+  "name": "What Will Remain at the End? (Hard Version)",
+  "date": "2026-08-09"
+ },
+ {
+  "contestId": 2255,
+  "index": "E1",
+  "rating": 2900,
+  "name": "What Will Remain at the End? (Easy Version)",
+  "date": "2026-08-09"
+ },
+ {
+  "contestId": 2255,
+  "index": "D",
+  "rating": 2300,
+  "name": "How Long Until Nothing Remains?",
+  "date": "2026-08-09"
+ },
+ {
+  "contestId": 2253,
+  "index": "F",
+  "rating": 2600,
+  "name": "4-beauty",
+  "date": "2026-08-07"
+ },
+ {
+  "contestId": 2252,
+  "index": "F",
+  "rating": 2600,
+  "name": "Spectral Components",
+  "date": "2026-08-06"
+ },
+ {
+  "contestId": 2249,
+  "index": "F",
+  "rating": 3200,
+  "name": "Even Simple Path",
+  "date": "2026-07-26"
+ },
+ {
+  "contestId": 2249,
+  "index": "E2",
+  "rating": 3000,
+  "name": "String (Hard Version)",
+  "date": "2026-07-26"
+ },
+ {
+  "contestId": 2249,
+  "index": "E1",
+  "rating": 2800,
+  "name": "String (Easy Version)",
+  "date": "2026-07-26"
+ },
+ {
+  "contestId": 2249,
+  "index": "D",
+  "rating": 2300,
+  "name": "Xor Permutation Matrix",
+  "date": "2026-07-26"
+ },
+ {
+  "contestId": 2248,
+  "index": "G",
+  "rating": 3000,
+  "name": "No Balance Left",
+  "date": "2026-08-01"
+ },
+ {
+  "contestId": 2248,
+  "index": "F",
+  "rating": 2500,
+  "name": "Matrix Elimination",
+  "date": "2026-08-01"
+ },
+ {
+  "contestId": 2247,
+  "index": "F",
+  "rating": 2900,
+  "name": "Paths on a Grid",
+  "date": "2026-07-18"
+ },
+ {
+  "contestId": 2247,
+  "index": "E",
+  "rating": 2300,
+  "name": "Build a Tree",
+  "date": "2026-07-18"
+ },
+ {
+  "contestId": 2245,
+  "index": "H",
+  "rating": 3500,
+  "name": "Connect Connect See",
+  "date": "2026-07-16"
+ },
+ {
+  "contestId": 2245,
+  "index": "G",
+  "rating": 3000,
+  "name": "NPC Challenge",
+  "date": "2026-07-16"
+ },
+ {
+  "contestId": 2245,
+  "index": "F",
+  "rating": 2800,
+  "name": "Familiar?",
+  "date": "2026-07-16"
+ },
+ {
+  "contestId": 2245,
+  "index": "E",
+  "rating": 2300,
+  "name": "Tom and Jerry",
+  "date": "2026-07-16"
+ }
+]
