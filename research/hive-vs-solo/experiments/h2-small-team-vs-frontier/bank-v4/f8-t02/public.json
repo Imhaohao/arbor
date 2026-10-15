@@ -1,0 +1,33 @@
+{
+  "id": "f8-t02",
+  "title": "Two Quotient Boards",
+  "topic": [
+    "combinatorics",
+    "number theory",
+    "games",
+    "inclusion-exclusion",
+    "Mobius inversion",
+    "Sprague-Grundy",
+    "Walsh-Hadamard transform",
+    "binary linear basis",
+    "lcm regrouping"
+  ],
+  "author": "codex:gpt-6.1-sol+probe",
+  "checker": "tokens",
+  "time_limit_s": 2.48,
+  "statement": "# Two Quotient Boards\n\nThere are `n` indexed labels with positive integer values `a_1, ..., a_n`.\n\nA configuration is a vector `(c_1, ..., c_n)` with each `c_i` in `{0, 1, 2}`.\nAt least one entry must equal `1`. For this configuration define\n\n- `g`: the greatest common divisor of all `a_i` with `c_i > 0`;\n- `h`: the greatest common divisor of all `a_i` with `c_i = 1`.\n\nConstruct two separate boards:\n\n- **First board:** for every index `i`, put `c_i` separate heaps of value\n  `a_i / g` on this board. An index with `c_i = 0` contributes no heap.\n- **Second board:** for every index `i` with `c_i = 1`, put one heap of value\n  `a_i / h` on this board. An index with `c_i = 0` or `c_i = 2` contributes\n  no heap to this board.\n\nEach board is played as an independent game with the following rules.\nTwo players alternate moves. A move chooses one heap of value `x` and\nreplaces it by a positive proper divisor `y` of `x`, provided that `x / y`\nis **composite**. A positive integer is composite if it is greater than `1`\nand is not prime; `1` is not composite. Other heaps do not change. A player\nwith no legal move loses. Both players play optimally.\n\nThe normalization happens only when the boards are constructed. Neither\n`g` nor `h` is recomputed during either game. The two heaps contributed by\n`c_i = 2` are separate, and a move changes only one of them. Playing on one\nboard has no effect on the other board.\n\nCount the configurations for which the player who moves first loses on\n**each** of the two boards. This requires losing when the first board is\nplayed alone and losing when the second board is played alone; it does not\nmean playing a single game that allows moves on either board.\n\nPrint the count modulo `998244353`.\n\nConfigurations are distinguished by their vectors, even if some label\nvalues are equal or two vectors construct identical boards. Choosing\n`c_i = 2` is one choice, not two ordered choices. A board with no legal move\ninitially is losing for the player who moves first.\n\n## Input\n\nThe first line contains an integer `n`.\n\nThe second line contains `n` integers `a_1, ..., a_n`.\n\n## Output\n\nPrint one integer: the required count modulo `998244353`.\n\n## Constraints\n\n- `1 <= n <= 180000`.\n- `1 <= a_i <= 60000`.\n- Time limit: 3 seconds.\n- Memory limit: 256 MiB.\n\n## Examples\n\n### Example 1\n\nInput\n```text\n1\n36\n```\n\nOutput\n```text\n1\n```\n\nThe only allowed vector is `(1)`. Both boards contain a heap of value `1`.\n\n### Example 2\n\nInput\n```text\n2\n4 9\n```\n\nOutput\n```text\n3\n```\n\n### Example 3\n\nInput\n```text\n3\n1 4 9\n```\n\nOutput\n```text\n9\n```\n",
+  "examples": [
+    {
+      "input": "1\n36\n",
+      "output": "1\n"
+    },
+    {
+      "input": "2\n4 9\n",
+      "output": "3\n"
+    },
+    {
+      "input": "3\n1 4 9\n",
+      "output": "9\n"
+    }
+  ]
+}

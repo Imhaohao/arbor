@@ -1,0 +1,30 @@
+{
+  "id": "f7-t01",
+  "title": "Buffered Relays",
+  "topic": [
+    "strings",
+    "suffix automaton",
+    "segment tree merging",
+    "offline queries",
+    "three-dimensional dominance",
+    "compressed Fenwick tree"
+  ],
+  "author": "codex:gpt-6.1-sol+probe",
+  "checker": "tokens",
+  "time_limit_s": 4.24,
+  "statement": "# Buffered Relays\n\nYou are given a string `S`. Each query consists of three integers `l`, `r`, and `b`. Consider `T = S[l..r]`; the integer `b` is this query's required overlap.\n\nFor every distinct nonempty string `W` that occurs in `T`, list all its occurrence start positions in increasing order:\n\n`p1 < p2 < ... < pk`.\n\nOccurrences are allowed to overlap. A **buffered relay** consists of three consecutive occurrences `pi, p(i+1), p(i+2)` satisfying all three rules:\n\n- The first and middle occurrences share at least `b` character positions.\n- The middle and last occurrences share at least `b` character positions.\n- The first and last occurrences share no character positions.\n\nEquivalently, with `m = |W|`, the required inequalities are\n\n```\nm - (p(i+1) - pi) >= b\nm - (p(i+2) - p(i+1)) >= b\np(i+2) - pi >= m\n```\n\nThe answer is the total number of buffered relays, summed over every distinct `W` occurring in `T`. Different consecutive triples of the same `W` count separately. A string with fewer than three occurrences contributes zero. Only occurrences entirely contained in `T` are listed. The two gaps in a triple need not be equal.\n\nPositions in both the input and this definition are 1-based. All queries concern the original string independently.\n\n## Input\n\nThe first line contains integers `n` and `q`.\n\nThe second line contains `S`, a string of length `n` consisting of lowercase English letters.\n\nEach of the next `q` lines contains integers `l`, `r`, and `b`, describing one query.\n\n## Output\n\nPrint one integer for each query: its total number of buffered relays.\n\n## Constraints\n\n- `1 <= n <= 24000`\n- `1 <= q <= 24000`\n- `1 <= l <= r <= n`\n- `1 <= b <= n`\n- Time limit: 3 seconds in CPython.\n- Memory limit: 512 MiB.\n\n## Examples\n\n### Example 1\n\nInput\n```\n1 1\nz\n1 1 1\n```\n\nOutput\n```\n0\n```\n\n### Example 2\n\nInput\n```\n5 4\naaaaa\n1 5 1\n2 5 1\n1 5 2\n1 3 1\n```\n\nOutput\n```\n2\n1\n0\n0\n```\n\nFor the first query, `aa` has starts `1, 2, 3, 4`. Its triples `(1, 2, 3)` and `(2, 3, 4)` both qualify. The three occurrences of `aaa` do not qualify because the first and last share a character position.\n\n### Example 3\n\nInput\n```\n8 3\nabababab\n1 8 1\n1 8 2\n2 8 1\n```\n\nOutput\n```\n3\n1\n1\n```\n\nFor the first query, `aba`, `bab`, and `abab` each contribute one buffered relay. For the second query, only `abab` contributes: its consecutive overlaps have two characters each. Its first and last occurrences are disjoint even though their intervals touch at a boundary.\n",
+  "examples": [
+    {
+      "input": "1 1\nz\n1 1 1\n",
+      "output": "0\n"
+    },
+    {
+      "input": "5 4\naaaaa\n1 5 1\n2 5 1\n1 5 2\n1 3 1\n",
+      "output": "2\n1\n0\n0\n"
+    },
+    {
+      "input": "8 3\nabababab\n1 8 1\n1 8 2\n2 8 1\n",
+      "output": "3\n1\n1\n"
+    }
+  ]
+}

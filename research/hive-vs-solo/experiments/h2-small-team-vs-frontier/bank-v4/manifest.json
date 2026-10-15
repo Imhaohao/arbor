@@ -1,0 +1,55 @@
+{
+  "tasks": [
+    {
+      "id": "e7-t01",
+      "oracle_sha256": "e3c32fbc2d5a6ca64e2223f98594557d5e1f3fa02320522133e8811f91f4163c",
+      "time_limit_s": 4.28
+    },
+    {
+      "id": "f1-t01",
+      "oracle_sha256": "cf6f28bfd69b9b9464383ac94d1d1edcf9e76140c205517ea53ac13e0095c5fd",
+      "time_limit_s": 3.24
+    },
+    {
+      "id": "f7-t01",
+      "oracle_sha256": "0eebccba0bb4fc5bf06fdb25e447d8d5035199ba74e7e99959bfc7ac0d0a4e75",
+      "time_limit_s": 4.24
+    },
+    {
+      "id": "f7-t02",
+      "oracle_sha256": "153d7d7706797d825ac7b2e748ae9fafd8b6f0109d998669aff17b7a495e5ed2",
+      "time_limit_s": 3.25
+    },
+    {
+      "id": "f8-t02",
+      "oracle_sha256": "ab8735d5d4deb97231141f902fcc1a03d0dd716b898f9a75734bf3dc2b8ef9f5",
+      "time_limit_s": 2.48
+    },
+    {
+      "id": "g2-t01",
+      "oracle_sha256": "d6cbfcb6d614700c8b13bfe9e4a092310496f0fbf4bf5ace25a2f7747b204160",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "g3-t01",
+      "oracle_sha256": "d60e06f27247d72de8ebaa148cf0896e46fb80a92ff7a13facb74f932b1cff68",
+      "time_limit_s": 3.46
+    },
+    {
+      "id": "g3-t03",
+      "oracle_sha256": "2e0402def018f7ba46c8e6f29982d375c034593585b93ef84c04a84a6ce65f32",
+      "time_limit_s": 3.5
+    },
+    {
+      "id": "g4-t04",
+      "oracle_sha256": "1cffff7277dc0ea2f22d8e37eedcb5742e486bb4c1b2fc57481f0d4ac6cfe757",
+      "time_limit_s": 2.0
+    },
+    {
+      "id": "g6-t04",
+      "oracle_sha256": "6a9602becf2dd21dd58397be92db6ce204ffd4d17d9398c2a19461f41fb56dea",
+      "time_limit_s": 2.0
+    }
+  ],
+  "rejected": []
+}

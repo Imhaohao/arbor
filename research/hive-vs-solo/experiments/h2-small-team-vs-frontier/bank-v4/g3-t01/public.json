@@ -1,0 +1,29 @@
+{
+  "id": "g3-t01",
+  "title": "Hollow Border Stride",
+  "topic": [
+    "suffix-automaton",
+    "heavy-light-decomposition",
+    "lazy-segment-tree",
+    "offline-queries",
+    "strings"
+  ],
+  "author": "cursor:gemini-4-argon-high+probe",
+  "checker": "tokens",
+  "time_limit_s": 3.46,
+  "statement": "# Hollow Border Stride\n\nFor a string $U$ of length $k \\ge 2$, a string $B$ is called a **hollow border** of $U$ if all three of the following hold:\n\n1. $1 \\le |B| \\le \\lfloor k / 2 \\rfloor$ (so the prefix and suffix of length $|B|$ in $U$ do not overlap).\n2. $B$ is both a prefix and a suffix of $U$, that is, $U[1..|B|] = U[k - |B| + 1 .. k] = B$.\n3. $B$ has no internal occurrence in $U$: there is no index $i \\in \\{2, 3, \\dots, k - |B|\\}$ such that $U[i .. i + |B| - 1] = B$.\n\nThe **stride** of a hollow border $B$ of $U$ is $k - |B|$, the distance between the starting positions of its two occurrences in $U$.\n\nFor any string $W$ of length $m \\ge 1$, its **echo score** $E(W)$ is the sum of $k - |B|$ over all prefixes $U = W[1..k]$ ($2 \\le k \\le m$) and all hollow borders $B$ of $U$. (If $m = 1$ or no prefix of $W$ has a hollow border, $E(W) = 0$.)\n\nYou are given a string $S$ of length $n$ (1-indexed) and $q$ queries. Each query provides two integers $L$ and $R$ ($1 \\le L \\le R \\le n$) and asks for the maximum echo score among all non-empty suffixes of the substring $S[L..R]$:\n\n$$\\max_{L \\le x \\le R} E(S[x..R]).$$\n\n## Input\n\nThe first line contains two integers $n$ and $q$ ($1 \\le n, q \\le 50\\,000$) \u2014 the length of $S$ and the number of queries.\n\nThe second line contains a string $S$ of length $n$ consisting of lowercase English letters (`a`\u2013`z`).\n\nEach of the next $q$ lines contains two integers $L$ and $R$ ($1 \\le L \\le R \\le n$) describing a query.\n\n## Output\n\nPrint $q$ lines. On the $i$-th line, print a single integer \u2014 the value of $\\max_{L \\le x \\le R} E(S[x..R])$ for the $i$-th query.\n\n## Constraints\n\n- $1 \\le n \\le 50\\,000$\n- $1 \\le q \\le 50\\,000$\n- $S$ consists of lowercase English letters (`a`\u2013`z`).\n- $1 \\le L \\le R \\le n$\n\n## Examples\n\n### Example 1\n\nInput\n```\n6 3\nabacab\n1 6\n2 6\n1 4\n```\n\nOutput\n```\n6\n4\n2\n```\n\n### Example 2\n\nInput\n```\n9 3\nabcabxabc\n1 9\n4 9\n1 5\n```\n\nOutput\n```\n12\n6\n6\n```\n\n### Example 3\n\nInput\n```\n4 3\nzaba\n1 4\n2 4\n1 2\n```\n\nOutput\n```\n2\n2\n0\n```\n",
+  "examples": [
+    {
+      "input": "6 3\nabacab\n1 6\n2 6\n1 4\n",
+      "output": "6\n4\n2\n"
+    },
+    {
+      "input": "9 3\nabcabxabc\n1 9\n4 9\n1 5\n",
+      "output": "12\n6\n6\n"
+    },
+    {
+      "input": "4 3\nzaba\n1 4\n2 4\n1 2\n",
+      "output": "2\n2\n0\n"
+    }
+  ]
+}

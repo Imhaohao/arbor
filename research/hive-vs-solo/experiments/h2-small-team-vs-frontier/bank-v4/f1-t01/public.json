@@ -1,0 +1,28 @@
+{
+  "id": "f1-t01",
+  "title": "Directional Collision Avoidance",
+  "topic": [
+    "dynamic-programming",
+    "combinatorics",
+    "inclusion-exclusion",
+    "dp-optimization"
+  ],
+  "author": "cursor:gemini-4-argon-high+probe",
+  "checker": "tokens",
+  "time_limit_s": 3.24,
+  "statement": "# Directional Collision Avoidance\n\nYou are given an integer $n$ and an array of $n$ positive integers $a_1, a_2, \\dots, a_n$.\n\nConsider an integer sequence $x = (x_1, x_2, \\dots, x_n)$ such that $1 \\le x_i \\le a_i$ for each $1 \\le i \\le n$.\n\nWe say that $x$ is **routable** if there exists a direction assignment $d = (d_1, d_2, \\dots, d_n) \\in \\{-1, +1\\}^n$ such that for every position $w \\in \\{1, 2, \\dots, n\\}$, all indices in the set\n\n$$S_w(d) = \\{w\\} \\cup \\{u \\in \\{1, 2, \\dots, n\\} : u + d_u = w\\}$$\n\nhave pairwise distinct values in $x$ (that is, $x_i \\ne x_j$ for all distinct $i, j \\in S_w(d)$). Note that $d_1 = -1$ and $d_n = +1$ are allowed; arrows pointing to $0$ or $n + 1$ leave the array and impose no constraint at $0$ or $n + 1$.\n\nFind the number of routable sequences $x = (x_1, x_2, \\dots, x_n)$ modulo $998244353$.\n\n## Input\n\nThe first line contains a single integer $n$.\n\nThe second line contains $n$ space-separated integers $a_1, a_2, \\dots, a_n$.\n\n## Output\n\nPrint a single integer \u2014 the number of routable sequences $x$ modulo $998244353$.\n\n## Constraints\n\n- $1 \\le n \\le 2500$\n- $1 \\le a_i < 998244353$ for all $1 \\le i \\le n$\n\n## Examples\n\n### Example 1\n\nInput:\n```\n3\n2 2 2\n```\n\nOutput:\n```\n6\n```\n\n### Example 2\n\nInput:\n```\n4\n2 3 2 3\n```\n\nOutput:\n```\n28\n```\n\n### Example 3\n\nInput:\n```\n5\n2 3 1 2 1\n```\n\nOutput:\n```\n5\n```\n",
+  "examples": [
+    {
+      "input": "3\n2 2 2\n",
+      "output": "6\n"
+    },
+    {
+      "input": "4\n2 3 2 3\n",
+      "output": "28\n"
+    },
+    {
+      "input": "5\n2 3 1 2 1\n",
+      "output": "5\n"
+    }
+  ]
+}
