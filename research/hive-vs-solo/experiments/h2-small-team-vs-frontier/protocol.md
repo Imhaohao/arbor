@@ -341,7 +341,7 @@ are adapted to print a uniquely determined value (`2249F` prints the path
 length; `2262F` prints the minimum number of moves). Adapted tasks use
 author ids `x<problem>` and enter the same Argon screen.
 
-### v5 amendment, 2026-10-15 07:42 PDT (no v5 test task has run)
+### v5 amendment, 2026-10-15 07:41 PDT (no v5 test task has run)
 
 All 30 Codeforces adaptations are screened and 5 survived. The loop
 authors have produced 1 survivor. At that rate v5 stays far below 25
