@@ -341,6 +341,29 @@ are adapted to print a uniquely determined value (`2249F` prints the path
 length; `2262F` prints the minimum number of moves). Adapted tasks use
 author ids `x<problem>` and enter the same Argon screen.
 
+### v5 amendment, 2026-10-15 07:42 PDT (no v5 test task has run)
+
+All 30 Codeforces adaptations are screened and 5 survived. The loop
+authors have produced 1 survivor. At that rate v5 stays far below 25
+tasks, so the pool is widened once more. The rule below was fixed before
+any new problem was fetched or screened:
+
+- **AtCoder:** every problem from ARC, AGC and ABC contests that started on
+  or after 2026-07-15 and finished by 2026-10-15, with an estimated
+  difficulty of 2000 or more on kenkoooo's AtCoder Problems. AtCoder's
+  scale runs lower than Codeforces ratings; 2000 is roughly Codeforces
+  2300. That gives 42 problems.
+- **Codeforces:** problems from the same window rated 2100-2299 as of
+  2026-10-15 07:40 PDT. Of 8, `2255C` (interactive) and `2264E1` (easy
+  version of the pooled `2264E2`) are excluded, leaving 6.
+- The list is `v5-extension-selected.json` (committed at 07:41).
+  Adaptation, exclusion rules, author ids (`x<problem>`), the Argon Medium
+  screen, the size rule, the deadline and the decision rule are unchanged.
+  The contamination split by contest date covers these problems too.
+- The screen stays with a model in no arm. Keeping tasks that an arm model
+  fails (for example Sonnet, the router's usual pick) would select on the
+  router's own choice, so it is not allowed.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the
