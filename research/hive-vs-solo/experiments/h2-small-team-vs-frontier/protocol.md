@@ -264,6 +264,21 @@ two is the more independent check. The tester/repairer assignment is one of
 the knobs dev may change, and this change is made before any v4 test task
 runs.
 
+### Deviation, 2026-10-14 20:40 PDT: call limit raised from 8 to 20 minutes
+
+The first v4 test run was stopped after 5 of 10 tasks. On every one, every
+solve call from every arm (Haiku, Sonnet, Grok, Gemini, Opus, Astra) hit
+the 8-minute call limit and returned no program. Gemini, for example,
+produced 4,400 output tokens in 469 s and was cut at 481 s. The 8-minute
+limit was set for bank v1, whose tasks every model solved in a few
+minutes. The Argon-screened tasks make every model think longer, so under
+that limit all 10 tasks would end as all-arm ties, which says nothing about
+H2a-c. The outcome that prompted the change (all arms timing out) carries
+no information about which arm is better. The limit is raised to 20
+minutes for every arm, tester, repairer and the conductor, and the same 10
+tasks are run again from scratch. The aborted run's records are kept in
+`runs-v4/aborted-8min/`. Nothing else changes.
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the

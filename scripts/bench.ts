@@ -45,7 +45,7 @@ export const FRONTIER = ["claude:claude-opus-5-5", "codex:gpt-6-astra"];
 const CONDUCTOR = "antigravity:gemini-3.8-flash-high";
 const DEFAULT_DEV_TASKS = 12;
 const SPLIT_SEED = 20261009;
-const CALL_TIMEOUT_MS = 8 * 60 * 1000;
+const CALL_TIMEOUT_MS = 20 * 60 * 1000;
 
 interface Flags {
   command: string;
