@@ -8,7 +8,7 @@ Your current directory is your workspace. It contains:
 - examples/: sample inputs and outputs for the sample grader
 
 Rules:
-- Write your final solution to ./solution.cpp (workspace root). It must implement the functions declared in the task header and must NOT contain a main function; the official grader provides main.
+- Write your final solution to ./solution.cpp (workspace root). It must implement the functions declared in the task header and must NOT contain a main function; the official grader provides main. Include the header exactly as #include "{name}.h" with no directory part; the official grader compiles your file with the header on its include path.
 - Scoring is per subtask: each subtask's points are earned only if every test in it passes, within the time and memory limits in the statement. Partial solutions that solve some subtasks earn partial credit.
 - There is no submission system and no feedback on hidden tests. You may compile, run the samples, and write your own tests and stress tests as much as you like.
 - The official grader may differ from the sample grader; do not rely on sample-grader-specific behaviour.

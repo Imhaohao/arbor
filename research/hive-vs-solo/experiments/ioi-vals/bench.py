@@ -53,7 +53,7 @@ def cmd_solo(args: list[str]) -> None:
     parser.add_argument("--effort", default="high")
     parser.add_argument("--parallel", type=int, default=3)
     parser.add_argument("tasks", nargs="*")
-    options = parser.parse_args(args)
+    options = parser.parse_intermixed_args(args)
     grading.build_image()
     tasks = load_tasks(options.tasks or None)
     with ThreadPoolExecutor(max_workers=options.parallel) as pool:
