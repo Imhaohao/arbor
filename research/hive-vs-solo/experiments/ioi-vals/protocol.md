@@ -198,3 +198,14 @@ v4b message: 95.50. Chosen `sonnet+r1`: cal1 Sonnet, repaired in round 1 against
 
 - **Where the team's points come from:** selection among three Sonnet attempts by statement-derived evidence (tree, worldmap and partition from s2 or s3), plus repairs that the breakers and the checker made safe (triples, migrations, ballmachine, classroom and message). team-v4 is 1.01 above the best-of-three oracle (98.74), so the repairs add points beyond what perfect selection among the three attempts could reach.
 - **Every arm and its failures are recorded above, including the voided v4 message result.**
+
+## Replication: frozen team-v4 on fresh candidates (run v5)
+
+Why: team-v4's 99.75 is in-sample. Its last two design changes came from hidden-test verdicts on these problems, and its candidates (cal1, s2, s3) are the attempts it was tuned around. This run freezes the pipeline and gives it attempts it has never seen. The problems are still the same 18, so this tests replication on new candidates, not generalization to new problems. A held-out problem set (for example IOI 2023) needs a new download and the user's approval, and is left for later.
+
+Design (fixed before any of these runs; the pre-registration time is this entry's commit time):
+1. Three new independent `solo-sonnet` runs, `s4`, `s5`, `s6`, on all 18 problems with the unchanged SOLO prompt and the hardened harness (offline package managers, no installer-dir writes, signals confined). Each is reported as a solo result.
+2. `python3 bench.py team v5 --candidates s4 --candidates s5 --candidates s6` on all 18 problems, with team-v4 code frozen at this commit. No Haiku candidate: there is none in these runs, and Haiku was never chosen in v3 or v4.
+3. Success criterion: **team-v5 overall (Vals formula) above 95.06 counts as a replication of "beats Opus 5.5"**; at or below 95.06, it does not, and the headline becomes "not replicated". Both are reported with team-v4.
+4. Same integrity rules: transcript audit plus a scan of every command for installs or downloads. A problem whose chosen program came from a call that installed or downloaded software is void and re-run once, as before.
+5. No code, prompt or harness change until v5 is graded. If infrastructure fails (Docker, usage limits), the affected problem resumes or re-runs with the same code, and that is logged.
