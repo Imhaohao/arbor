@@ -4,6 +4,8 @@
     python3 bench.py validate [task ...]
     python3 bench.py solo <run> <model> [--effort high] [--parallel 3] [task ...]
     python3 bench.py team <run> --candidates <run> [--parallel 2] [task ...]
+    python3 bench.py audit <run>
+    python3 bench.py report <run> [--team-run <run>]
 """
 
 import argparse
@@ -16,6 +18,7 @@ from pathlib import Path
 import agent
 import grading
 import prompts
+import report
 import team
 from tasks import DATA_ROOT, Task, load_tasks, model_solution, prepare
 
@@ -117,7 +120,34 @@ def cmd_team(args: list[str]) -> None:
             print(f"{task_id:20} {total:6.2f}  chosen={chosen}", flush=True)
 
 
-COMMANDS = {"prepare": cmd_prepare, "validate": cmd_validate, "solo": cmd_solo, "team": cmd_team}
+def cmd_audit(args: list[str]) -> None:
+    flagged = report.audit(RUNS / args[0])
+    print(json.dumps(flagged, indent=2) if flagged else "no flags")
+
+
+def cmd_report(args: list[str]) -> None:
+    parser = argparse.ArgumentParser(prog="bench.py report")
+    parser.add_argument("run")
+    parser.add_argument("--team-run")
+    options = parser.parse_args(args)
+    tasks = load_tasks()
+    arms = {path.name: path for path in sorted((RUNS / options.run).iterdir()) if path.name.startswith("solo-")}
+    if options.team_run:
+        arms["team"] = RUNS / options.team_run / "team"
+    scores = {name: report.arm_scores(path, tasks) for name, path in arms.items()}
+    print(f"{'task':20}" + "".join(f"{name:>14}" for name in scores))
+    for task in tasks:
+        print(f"{task.id:20}" + "".join(f"{scores[name].get(task.id, float('nan')):14.2f}" for name in scores))
+    for name, arm in scores.items():
+        print(f"{name:14} {json.dumps(report.vals_overall(arm, tasks))}")
+    print("Vals reference:", json.dumps(report.VALS_REFERENCE), "Sonnet by year:", json.dumps(report.VALS_SONNET_BY_YEAR))
+    if "team" in scores and "solo-sonnet" in scores:
+        shared = [task.id for task in tasks if task.id in scores["team"] and task.id in scores["solo-sonnet"]]
+        test = report.wilcoxon_exact([scores["team"][t] for t in shared], [scores["solo-sonnet"][t] for t in shared])
+        print(f"team vs solo-sonnet on {len(shared)} problems: {json.dumps(test)}")
+
+
+COMMANDS = {"prepare": cmd_prepare, "validate": cmd_validate, "solo": cmd_solo, "team": cmd_team, "audit": cmd_audit, "report": cmd_report}
 
 if __name__ == "__main__":
     COMMANDS[sys.argv[1]](sys.argv[2:])
