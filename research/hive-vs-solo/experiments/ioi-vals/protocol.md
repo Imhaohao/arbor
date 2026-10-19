@@ -137,7 +137,7 @@ One Sonnet attempt per problem varies by about 9 overall points between runs. s2
 - Compute: 58 agent calls, 29,603 agent-seconds, notional API-equivalent cost $32.32 (subscription, not billed per call), on top of the three Sonnet solo runs ($19.01 + $32.94 + $35.04) and cal1 Haiku.
 - Infrastructure: Docker Desktop's VM died once (about 05:44) and was restarted within a minute; no stress or grading call failed (every in-flight problem was inside an agent call). Around that time sphinx's breaker2 ran `pkill h`, which matches any of the user's processes with an "h" in the name and is a likely cause. Audit: 3 flags, all benign or explained (that pkill, which was refused for system processes, and two C++ variables named `nc`); see audit-v3.json.
 
-## Amendment: arm `team-v4` (pre-registered 2026-10-19 08:47 PDT, commit 18e59ba, before any team-v4 attempt; run v4 started 08:48)
+## Amendment: arm `team-v4` (pre-registered 2026-10-19 08:48:55 PDT, commit 18e59ba, before any team-v4 attempt; run v4 started after that commit)
 
 This is the fourth pipeline iteration on the same 18 problems, and this change exists because of a hidden-test diagnosis (message in v3). A team-v4 score is therefore an in-sample number: it shows what the pipeline can reach once this failure mode has been seen, not a held-out estimate. It is reported with that label, next to every earlier arm.
 
