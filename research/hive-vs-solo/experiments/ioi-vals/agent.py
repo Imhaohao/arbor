@@ -2,8 +2,9 @@
 
 The agent sees only a copy of the public bundle (statement, header, stub,
 sample grader, compile/run scripts, examples). macOS sandbox-exec blocks reads
-of every judge package and of other attempts, and signals to processes outside
-the sandbox; WebFetch/WebSearch are disabled.
+of every judge package and of other attempts, signals to processes outside the
+sandbox, and writes where package installers put software; package managers
+run offline; WebFetch/WebSearch are disabled.
 The answer is whatever the agent leaves in solution.cpp at the workspace root.
 """
 
@@ -20,6 +21,11 @@ from pathlib import Path
 from tasks import ARCHIVE, CMS2024, DATA_ROOT, IOI2024, REGISTRY
 
 HIDDEN = [ARCHIVE, IOI2024, CMS2024, DATA_ROOT / "ioi-agent", REGISTRY, DATA_ROOT / "runs"]
+# Package installs reach the internet and change the user's machine: no writes where installers put software,
+# and package managers run offline.
+NO_INSTALL_DIRS = [Path("/opt/miniconda3"), Path("/opt/homebrew"), Path("/usr/local"), Path.home() / "Library" / "Python", Path.home() / ".local"]
+OFFLINE_ENV = {"PIP_NO_INDEX": "1", "PIP_INDEX_URL": "http://127.0.0.1:9/", "UV_OFFLINE": "1", "npm_config_offline": "true",
+               "HOMEBREW_NO_AUTO_UPDATE": "1", "CONDA_OFFLINE": "true"}
 ATTEMPT_SECONDS = 90 * 60
 USAGE_LIMIT_PATTERN = re.compile(r"(usage|rate) limit|limit reached|resets? (at|in)|overloaded", re.IGNORECASE)
 USAGE_LIMIT_WAIT_SECONDS = 20 * 60
@@ -46,7 +52,8 @@ def sandbox_profile(attempt_dir: Path) -> str:
     # Later rules win in SBPL, so the attempt's own folder (workspace and g++ shim) is re-allowed inside runs/.
     # Signals stay inside the sandbox: an agent's `pkill h` once reached the user's own processes.
     return (f'(version 1)(allow default)(deny file-read* {denies})(allow file-read* (subpath "{attempt_dir}"))'
-            '(deny signal)(allow signal (target same-sandbox))')
+            '(deny signal)(allow signal (target same-sandbox))'
+            f'(deny file-write* {" ".join(f'(subpath "{path}")' for path in NO_INSTALL_DIRS)})')
 
 
 def make_workspace(public_dir: Path, attempt_dir: Path, extra: dict[str, str] | None = None) -> Path:
@@ -99,7 +106,7 @@ def final_event(transcript: Path) -> dict:
 
 def run_once(workspace: Path, attempt_dir: Path, prompt: str, model: str, effort: str) -> tuple[dict, str]:
     transcript = attempt_dir / "transcript.jsonl"
-    env = {**os.environ, "PATH": f"{attempt_dir / 'bin'}:{os.environ['PATH']}"}
+    env = {**os.environ, **OFFLINE_ENV, "PATH": f"{attempt_dir / 'bin'}:{os.environ['PATH']}"}
     command = ["sandbox-exec", "-p", sandbox_profile(attempt_dir), *claude_command(prompt, model, effort)]
     with transcript.open("w") as out, (attempt_dir / "stderr.txt").open("w") as err:
         proc = subprocess.Popen(command, cwd=workspace, stdout=out, stderr=err, env=env, start_new_session=True)

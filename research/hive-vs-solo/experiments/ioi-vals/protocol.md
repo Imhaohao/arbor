@@ -147,3 +147,19 @@ team-v4 = team-v3 plus:
 2. Agent sandbox: signals are confined to the agent's own sandbox (`(deny signal)(allow signal (target same-sandbox))`), so no agent can kill the user's processes again. This changes nothing an agent needs for solving.
 
 Everything else, including the candidates (cal1, s2, s3 Sonnet, then cal1 Haiku), is exactly team-v3. Run `v4`: `python3 bench.py team v4 --candidates cal1 --candidates s2 --candidates s3` on all 18 problems. Reported next to it: the mean single Sonnet attempt (92.20), and the best-of-three hidden-test oracle, which picks each problem's best Sonnet attempt with hidden knowledge and is an upper bound on selection alone (2024 98.54, 2025 100, 2026 97.67, overall 98.74). "Beats Opus 5.5" is claimed only if team-v4's overall is above 95.06, and always with the caveats: in-sample after four iterations, one run, a different harness from Vals, and more compute than one solo attempt.
+
+### Results: team-v4 on all 18 problems (run v4, 08:48 to 11:41 PDT), and a protocol violation found in it
+
+Raw result: 17 problems at 100 and message at 95.50, so 2024 99.25, 2025 100, 2026 100, overall 99.75. message re-graded independently gives 95.50 (85.5 of 90 in subtask 2: 9 official tests used 67 packets).
+
+Violation (found by the transcript audit at 11:45, before any re-run): message's round-2 repairer ran `pip install python-sat`, downloading a SAT solver from PyPI into the user's global Python at 09:52, and used it for offline searches while repairing. That breaks the no-internet rule. The chosen program, `sonnet+r2`, came out of that call, so **the v4 message result is void**. A scan of every Bash command in every run (cal1, v2a, s2, s3, v3, v4) found exactly one other install: v2a's migrations repairer ran `pip install lizard` (a code-complexity linter, prompted by the global CLAUDE.md's complexity rule) at 01:51. v2a is superseded. Afterwards only s3's classroom attempt ran lizard; it downloaded nothing, measured complexity and was not chosen by any team. Other pysat mentions (v4 message repair1, s2 and s3 message) only probed for the module and found it missing. Both packages were uninstalled at 11:50.
+
+Harness fix (agent.py): package managers run offline (`PIP_NO_INDEX`, a dead `PIP_INDEX_URL`, `UV_OFFLINE`, npm offline, no Homebrew update), and the sandbox denies writes to /opt/miniconda3, /opt/homebrew, /usr/local, ~/Library/Python and ~/.local. Tested: `pip install` fails and site-packages refuses writes, while the workspace stays writable and headless claude still runs.
+
+### Rule and re-run (pre-registered 2026-10-19 11:55 PDT, before the re-run)
+
+Rule: a problem whose chosen program came from an agent call that downloaded or installed software is void and is re-run once from scratch with the same arm and the fixed harness. The re-run's score replaces the void one, whatever it is, and both are reported. Only message in v4 is affected.
+
+Re-run: run `v4b`, team-v4 code unchanged except the harness fix: `python3 bench.py team v4b --candidates cal1 --candidates s2 --candidates s3 2024-message`. The team-v4 overall uses v4 for the other 17 problems and v4b for message.
+
+Sensitivity, stated now: message = 0 gives 94.44 overall (below Opus 5.5's 95.06), and message = 91.22 (cal1 Sonnet, the unrepaired top-ranked candidate) gives 99.51. So whether team-v4 beats Opus 5.5 depends on message scoring at least about 79 of 100.

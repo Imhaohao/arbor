@@ -1,0 +1,11 @@
+{
+  "team/2024-message/repair2": [
+    "network-looking command: pip install"
+  ],
+  "team/2025-migrations/repair1": [
+    "sandbox denied a read"
+  ],
+  "team/2025-obstacles/tester": [
+    "network-looking command: nc "
+  ]
+}
