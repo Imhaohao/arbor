@@ -1,0 +1,11 @@
+{
+  "team/2024-sphinx/breaker2": [
+    "sandbox denied a read"
+  ],
+  "team/2025-obstacles/tester": [
+    "network-looking command: nc "
+  ],
+  "team/2025-worldmap/tester": [
+    "network-looking command: nc "
+  ]
+}

@@ -122,3 +122,28 @@ Run `v3`, started only after s2 and s3 finish all 18 problems: `python3 bench.py
 | Mean of the three | | | | 92.20 |
 
 One Sonnet attempt per problem varies by about 9 overall points between runs. s2 alone lands above Vals' Opus 5.5 (95.06), and cal1 and s3 land below it. Single-run comparisons with Vals' single numbers are therefore weak in both directions. The solo baseline for the team is the three-run mean, 92.20, not the best run. Where s2 or s3 lost points: message (83.31, 87.17), migrations (97.45), classroom (86.00, 83.75), tree 17 (s3), festival 48 (s3), ballmachine 66.80 (s3). Audit: s2 no flags; s3 two benign flags (a shell variable named `nc`, and a denied mkdir inside runs/), see audit-s3.json.
+
+### Results: team-v3 on all 18 problems (run v3, 2026-10-19 05:05 to 08:46 PDT)
+
+| Arm | 2024 | 2025 | 2026 | Overall (Vals formula) |
+|---|---|---|---|---|
+| team (cal1) | 98.54 | 96.11 | 87.42 | 94.02 |
+| team-v3 | 83.33 | 100.00 | 100.00 | 94.44 |
+| Vals: Claude Opus 5.5 | | | | 95.06 |
+
+- team-v3 scored 100 on 17 of 18 problems and 0 on message, so it does not beat Opus 5.5 (94.44 < 95.06). Choices: cal1 Sonnet on 9 problems; s2 Sonnet on tree, worldmap and partition (s3); repaired programs on triples (s3+r2), migrations (s3+r1+r2), ballmachine (s2+r1) and classroom (s2+r1); message `sonnet+r1`.
+- message, post-hoc diagnosis from the hidden-test verdicts: 27 of 28 official tests say "decoded message is incorrect". The repair (67 to 66 packets) is a decoder that works against the sample grader's fixed alternating Cleopatra and is fooled by the official adaptive one. The checker, the breakers' 16 attack inputs and the worst-case-load generator all ran through the sample grader, so they could not see it.
+- Paired Wilcoxon: team-v3 vs solo-sonnet (cal1) n = 6, p = 0.4375; team-v3 vs team n = 5, p = 0.625. Neither is shown.
+- Compute: 58 agent calls, 29,603 agent-seconds, notional API-equivalent cost $32.32 (subscription, not billed per call), on top of the three Sonnet solo runs ($19.01 + $32.94 + $35.04) and cal1 Haiku.
+- Infrastructure: Docker Desktop's VM died once (about 05:44) and was restarted within a minute; no stress or grading call failed (every in-flight problem was inside an agent call). Around that time sphinx's breaker2 ran `pkill h`, which matches any of the user's processes with an "h" in the name and is a likely cause. Audit: 3 flags, all benign or explained (that pkill, which was refused for system processes, and two C++ variables named `nc`); see audit-v3.json.
+
+## Amendment: arm `team-v4` (pre-registered 2026-10-19 08:58 PDT, before any team-v4 attempt)
+
+This is the fourth pipeline iteration on the same 18 problems, and this change exists because of a hidden-test diagnosis (message in v3). A team-v4 score is therefore an in-sample number: it shows what the pipeline can reach once this failure mode has been seen, not a held-out estimate. It is reported with that label, next to every earlier arm.
+
+team-v4 = team-v3 plus:
+
+1. Adversarial grader: when the official grader may act adaptively or adversarially, or runs procedures in separate executions, the tester also writes `adversary.cpp`. It has the sample grader's input and output format and plays the grader's side as hard as the statement allows. It is trusted only if the tester's brute force, linked against it, gets checker-valid verdicts on the samples and the first 10 small inputs. With a trusted adversary, every candidate also runs on every input (samples, small, large, attacks) linked against it, and its outputs go through the checker like all others. The breakers and repairers get `adversary.cpp` and a note that a solution must stay correct under it.
+2. Agent sandbox: signals are confined to the agent's own sandbox (`(deny signal)(allow signal (target same-sandbox))`), so no agent can kill the user's processes again. This changes nothing an agent needs for solving.
+
+Everything else, including the candidates (cal1, s2, s3 Sonnet, then cal1 Haiku), is exactly team-v3. Run `v4`: `python3 bench.py team v4 --candidates cal1 --candidates s2 --candidates s3` on all 18 problems. Reported next to it: the mean single Sonnet attempt (92.20), and the best-of-three hidden-test oracle, which picks each problem's best Sonnet attempt with hidden knowledge and is an upper bound on selection alone (2024 98.54, 2025 100, 2026 97.67, overall 98.74). "Beats Opus 5.5" is claimed only if team-v4's overall is above 95.06, and always with the caveats: in-sample after four iterations, one run, a different harness from Vals, and more compute than one solo attempt.

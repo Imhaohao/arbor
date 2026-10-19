@@ -2,7 +2,8 @@
 
 The agent sees only a copy of the public bundle (statement, header, stub,
 sample grader, compile/run scripts, examples). macOS sandbox-exec blocks reads
-of every judge package and of other attempts; WebFetch/WebSearch are disabled.
+of every judge package and of other attempts, and signals to processes outside
+the sandbox; WebFetch/WebSearch are disabled.
 The answer is whatever the agent leaves in solution.cpp at the workspace root.
 """
 
@@ -43,7 +44,9 @@ class Attempt:
 def sandbox_profile(attempt_dir: Path) -> str:
     denies = " ".join(f'(subpath "{path}")' if path.is_dir() else f'(literal "{path}")' for path in HIDDEN)
     # Later rules win in SBPL, so the attempt's own folder (workspace and g++ shim) is re-allowed inside runs/.
-    return f'(version 1)(allow default)(deny file-read* {denies})(allow file-read* (subpath "{attempt_dir}"))'
+    # Signals stay inside the sandbox: an agent's `pkill h` once reached the user's own processes.
+    return (f'(version 1)(allow default)(deny file-read* {denies})(allow file-read* (subpath "{attempt_dir}"))'
+            '(deny signal)(allow signal (target same-sandbox))')
 
 
 def make_workspace(public_dir: Path, attempt_dir: Path, extra: dict[str, str] | None = None) -> Path:

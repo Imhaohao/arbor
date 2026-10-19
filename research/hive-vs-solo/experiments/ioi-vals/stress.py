@@ -6,7 +6,8 @@
 gen.py, unique.txt and checker.py, and one folder per candidate containing
 solution.cpp. When the brute force cannot be trusted (non-unique or scored
 outputs), a trusted checker.py verifies and scores every candidate output,
-including on the breakers' adversarial inputs in attacks/*.in.
+including on the breakers' adversarial inputs in attacks/*.in, and, when the
+tester wrote a trusted adversary.cpp, under that adversarial grader as well.
 Everything runs through the PUBLIC sample grader; hidden tests are not here.
 Prints one JSON line with per-candidate evidence and writes failing cases to
 <bench_dir>/<candidate>/failures/.
@@ -27,6 +28,7 @@ SMALL_SEEDS = range(1, 41)
 LARGE_SEEDS = range(1, 7)
 MEMORY_BYTES = 2 * 1024**3
 MAX_FAILURES = 3
+ADVERSARY_SUFFIX = " under the tester's adversarial grader"
 
 
 def harness_source(bench: Path) -> Path:
@@ -35,8 +37,9 @@ def harness_source(bench: Path) -> Path:
     return bench / "cpp" / f"{match.group(1) if match else 'grader'}.cpp"
 
 
-def compile_with_harness(bench: Path, source: Path, output: Path) -> bool:
-    command = ["g++", "-std=gnu++20", "-O2", "-pipe", "-w", "-I", str(bench / "cpp"), "-o", str(output), str(harness_source(bench)), str(source)]
+def compile_with_harness(bench: Path, source: Path, output: Path, grader: Path | None = None) -> bool:
+    harness = grader or harness_source(bench)
+    command = ["g++", "-std=gnu++20", "-O2", "-pipe", "-w", "-I", str(bench / "cpp"), "-o", str(output), str(harness), str(source)]
     return subprocess.run(command, capture_output=True, timeout=300).returncode == 0
 
 
@@ -95,6 +98,21 @@ def checker_trusted(bench: Path, samples: list[tuple[str, str]]) -> bool:
     return all(check(bench, given, want)["valid"] and not check(bench, given, "")["valid"] for given, want in samples)
 
 
+def adversary_trusted(bench: Path, tools: dict) -> bool:
+    """The tester's adversarial grader counts only if the tester's own brute force stays checker-valid under it."""
+    if not tools["checker"] or not (bench / "adversary.cpp").exists() or not (bench / "brute.cpp").exists():
+        return False
+    binary = bench / "brute.adversary.bin"
+    if not compile_with_harness(bench, bench / "brute.cpp", binary, bench / "adversary.cpp"):
+        return False
+    inputs = [given for given, _ in tools["samples"]] + tools["small"][:10]
+    for given in inputs:
+        status, out, _ = run(binary, given, 30)
+        if status != "ok" or not check(bench, given, out)["valid"]:
+            return False
+    return bool(inputs)
+
+
 def tester_tools(bench: Path, time_limit: float) -> dict:
     """Brute-force expectations, kept only when the brute force reproduces every sample output.
     Without them, a trusted checker supplies the evidence instead."""
@@ -107,9 +125,11 @@ def tester_tools(bench: Path, time_limit: float) -> dict:
     large = generate(bench, "large", LARGE_SEEDS) if (bench / "gen.py").exists() else []
     expected = [run(brute, text, 30)[:2] for text in small] if trusted else [("untrusted", None)] * len(small)
     attacks = [path.read_text() for path in sorted((bench / "attacks").glob("*.in"))]
-    return {"unique": unique, "trusted_brute": trusted, "checker": not trusted and checker_trusted(bench, samples),
-            "samples": samples, "small": small, "large": large, "attacks": attacks,
-            "expected": [out if status == "ok" else None for status, out in expected]}
+    tools = {"unique": unique, "trusted_brute": trusted, "checker": not trusted and checker_trusted(bench, samples),
+             "samples": samples, "small": small, "large": large, "attacks": attacks,
+             "expected": [out if status == "ok" else None for status, out in expected]}
+    tools["adversary"] = adversary_trusted(bench, tools)
+    return tools
 
 
 def failure_case(folder: Path, index: int, given: str, note: str, expected: str | None = None, got: str = "") -> None:
@@ -134,7 +154,7 @@ def checked_evidence(bench: Path, runs: list[tuple[str, str, str, str]]) -> tupl
         result = check(bench, given, out) if status == "ok" else {"valid": False, "score": 0.0, "detail": status}
         scores.append(result["score"])
         valid += result["valid"]
-        if status != "ok" and kind == "small random input":
+        if status != "ok" and (kind == "small random input" or kind.endswith(ADVERSARY_SUFFIX)):
             invalid.append((given, f"{kind}: {status}", None, ""))
         elif status == "ok" and not result["valid"]:
             invalid.append((given, f"{kind}: the checker says the output is invalid ({result['detail']})", None, out))
@@ -144,6 +164,14 @@ def checked_evidence(bench: Path, runs: list[tuple[str, str, str, str]]) -> tupl
              "score_mean": round(sum(scores) / len(scores), 4) if scores else 0.0,
              "score_min": round(min(scores), 4) if scores else 0.0}
     return stats, invalid, [case for _, case in sorted(low, key=lambda item: item[0])]
+
+
+def adversary_runs(bench: Path, folder: Path, inputs: list[tuple[str, str]], time_limit: float) -> list[tuple[str, str, str, str]]:
+    """Every input again, with the candidate linked against the tester's adversarial grader."""
+    binary = folder / "candidate.adversary.bin"
+    if not compile_with_harness(bench, folder / "solution.cpp", binary, bench / "adversary.cpp"):
+        return [(kind + ADVERSARY_SUFFIX, given, "compile_error", "") for kind, given in inputs]
+    return [(kind + ADVERSARY_SUFFIX, given, *run(binary, given, time_limit)[:2]) for kind, given in inputs]
 
 
 def evidence(bench: Path, name: str, tools: dict, time_limit: float) -> dict:
@@ -180,6 +208,8 @@ def evidence(bench: Path, name: str, tools: dict, time_limit: float) -> dict:
         if status != "ok":
             failures.append((given, f"{kind}: {status} within the {time_limit}s limit", None, ""))
     stats, low = {}, []
+    if tools["adversary"]:
+        runs += adversary_runs(bench, folder, [(kind, given) for kind, given, _, _ in runs], time_limit)
     if tools["checker"]:
         stats, invalid, low = checked_evidence(bench, runs)
         failures += invalid
@@ -195,7 +225,7 @@ def evidence(bench: Path, name: str, tools: dict, time_limit: float) -> dict:
 def main() -> None:
     bench, time_limit, names = Path(sys.argv[1]), float(sys.argv[2]), sys.argv[3:]
     tools = tester_tools(bench, time_limit)
-    report = {"unique": tools["unique"], "trusted_brute": tools["trusted_brute"], "trusted_checker": tools["checker"],
+    report = {"unique": tools["unique"], "trusted_brute": tools["trusted_brute"], "trusted_checker": tools["checker"], "trusted_adversary": tools["adversary"],
               "small_inputs": len(tools["small"]), "large_inputs": len(tools["large"]), "attack_inputs": len(tools["attacks"]),
               "candidates": [evidence(bench, name, tools, time_limit) for name in names]}
     print(json.dumps(report))

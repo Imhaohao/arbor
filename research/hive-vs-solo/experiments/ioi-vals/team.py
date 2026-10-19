@@ -10,7 +10,10 @@ inputs for up to two rounds; a fix is kept only if the evidence improves.
 Problems scored by the checker instead (non-unique or scored outputs): each
 round a Sonnet breaker attacks the current best program with adversarial
 inputs that join every candidate's evidence, then the repairer works against
-them; a last attack re-tests the final choice. Repairs must also keep CPU
+them; a last attack re-tests the final choice. When the official grader may be
+adaptive or adversarial, the tester also writes an adversarial grader, trusted
+only if its own brute force stays valid under it, and every candidate is
+checked under it as well. Repairs must also keep CPU
 headroom on the heaviest inputs. Hidden tests are never consulted before the
 final grade.
 """
@@ -29,7 +32,7 @@ MEMBERS = ("sonnet", "haiku")
 CPU_HEADROOM = 0.5
 MAX_ATTACKS = 6
 MAX_ATTACK_BYTES = 64 * 1024**2
-TESTER_FILES = ("brute.cpp", "gen.py", "unique.txt", "checker.py")
+TESTER_FILES = ("brute.cpp", "gen.py", "unique.txt", "checker.py", "adversary.cpp")
 REPAIR_ROUNDS = 2
 
 
@@ -85,14 +88,15 @@ def failure_files(folder: Path) -> dict[str, str]:
     return {f"failures/{path.name}": path.read_text(errors="replace") for path in sorted(folder.glob("*")) if path.is_file()}
 
 
-def repair(task: Task, team_dir: Path, bench: Path, best: dict, round_index: int, effort: str, checker: bool) -> dict | None:
+def repair(task: Task, team_dir: Path, bench: Path, best: dict, round_index: int, effort: str, checker: bool, adversary: bool = False) -> dict | None:
     """One repair round; returns the repaired candidate's evidence, or None if no fix was produced."""
     source = bench / best["label"]
     extra = {"solution.cpp": (source / "solution.cpp").read_text(), **failure_files(source / "failures")}
     listing = "\n".join(f"- {name}" for name in extra if name.startswith("failures/"))
     if checker:
-        extra.update({name: (bench / name).read_text() for name in ("checker.py", "gen.py")})
-    prompt = prompts.REPAIR.format(name=task.name, failures=listing, checker_note=prompts.CHECKER_NOTE + "\n\n" if checker else "")
+        extra.update(shared_tools(bench, adversary))
+    note = prompts.CHECKER_NOTE + "\n\n" + adversary_note(adversary) if checker else ""
+    prompt = prompts.REPAIR.format(name=task.name, failures=listing, checker_note=note)
     attempt_dir = team_dir / f"repair{round_index}"
     agent.attempt(Path(task.public_dir), attempt_dir, prompt, "sonnet", effort, extra)
     fixed = attempt_dir / "ws" / "solution.cpp"
@@ -105,12 +109,23 @@ def repair(task: Task, team_dir: Path, bench: Path, best: dict, round_index: int
     return {**report["candidates"][0], "priority": best["priority"]}
 
 
-def attack(task: Task, team_dir: Path, bench: Path, best: dict, round_index: int, effort: str) -> int:
+def shared_tools(bench: Path, adversary: bool) -> dict[str, str]:
+    names = ("checker.py", "gen.py") + (("adversary.cpp",) if adversary else ())
+    return {name: (bench / name).read_text() for name in names}
+
+
+def adversary_note(adversary: bool) -> str:
+    return prompts.ADVERSARY_NOTE + "\n\n" if adversary else ""
+
+
+def attack(task: Task, team_dir: Path, bench: Path, best: dict, round_index: int, effort: str, adversary: bool) -> int:
     """A Sonnet breaker writes inputs aimed at the current best program; they join every candidate's evidence."""
-    extra = {name: (bench / name).read_text() for name in ("checker.py", "gen.py")}
+    extra = shared_tools(bench, adversary)
     extra["solution.cpp"] = (bench / best["label"] / "solution.cpp").read_text()
     attempt_dir = team_dir / f"breaker{round_index}"
     prompt = prompts.BREAKER.format(name=task.name, limit=time_limit(task), count=MAX_ATTACKS)
+    if adversary:
+        prompt += "\n\n" + prompts.ADVERSARY_NOTE
     agent.attempt(Path(task.public_dir), attempt_dir, prompt, "sonnet", effort, extra)
     written = sorted((attempt_dir / "ws" / "attacks").glob("*.in"))[:MAX_ATTACKS]
     kept = [path for path in written if path.stat().st_size <= MAX_ATTACK_BYTES]
@@ -131,18 +146,18 @@ def accept(candidate: dict | None, best: dict, task: Task) -> bool:
     return bool(candidate) and rank_key(candidate) < rank_key(best) and keeps_headroom(candidate, best, time_limit(task))
 
 
-def adversarial_rounds(task: Task, team_dir: Path, bench: Path, pool: list[dict], effort: str, history: list) -> dict:
+def adversarial_rounds(task: Task, team_dir: Path, bench: Path, pool: list[dict], effort: str, history: list, adversary: bool) -> dict:
     """Checker problems: attack the best, repair against the attacks, and attack the final choice once more."""
     best = min(pool, key=rank_key)
     for round_index in range(1, REPAIR_ROUNDS + 2):
-        attacks = attack(task, team_dir, bench, best, round_index, effort)
+        attacks = attack(task, team_dir, bench, best, round_index, effort, adversary)
         pool = rerank(task, bench, pool)
         best = min(pool, key=rank_key)
         entry = {"round": round_index, "attacks": attacks, "ranking": sorted(pool, key=rank_key)}
         history.append(entry)
         if round_index > REPAIR_ROUNDS or not needs_repair(best):
             continue
-        candidate = repair(task, team_dir, bench, best, round_index, effort, True)
+        candidate = repair(task, team_dir, bench, best, round_index, effort, True, adversary)
         entry["repair"] = candidate
         if accept(candidate, best, task):
             pool.append(candidate)
@@ -170,10 +185,10 @@ def run_team(task: Task, team_dir: Path, candidates: dict[str, Path], effort: st
     pool = [{**item, "priority": order.index(item["label"])} for item in report["candidates"]]
     history = [{"round": 0, "ranking": sorted(pool, key=rank_key)}]
     if report["trusted_checker"]:
-        best = adversarial_rounds(task, team_dir, bench, pool, effort, history)
+        best = adversarial_rounds(task, team_dir, bench, pool, effort, history, report["trusted_adversary"])
     else:
         best = repair_rounds(task, team_dir, bench, min(pool, key=rank_key), effort, history)
-    summary = {"tools": {key: report[key] for key in ("unique", "trusted_brute", "trusted_checker", "small_inputs", "large_inputs")},
+    summary = {"tools": {key: report[key] for key in ("unique", "trusted_brute", "trusted_checker", "trusted_adversary", "small_inputs", "large_inputs")},
                "chosen": best["label"], "history": history}
     (team_dir / "team.json").write_text(json.dumps(summary, indent=2))
     return bench / best["label"] / "solution.cpp", summary
