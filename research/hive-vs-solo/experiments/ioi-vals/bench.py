@@ -5,7 +5,7 @@
     python3 bench.py solo <run> <model> [--effort high] [--parallel 3] [task ...]
     python3 bench.py team <run> --candidates <run> [--parallel 2] [task ...]
     python3 bench.py audit <run>
-    python3 bench.py report <run> [--team-run <run>]
+    python3 bench.py report <run> [--team-run [<label>=]<run> ...]
 """
 
 import argparse
@@ -128,12 +128,13 @@ def cmd_audit(args: list[str]) -> None:
 def cmd_report(args: list[str]) -> None:
     parser = argparse.ArgumentParser(prog="bench.py report")
     parser.add_argument("run")
-    parser.add_argument("--team-run")
+    parser.add_argument("--team-run", action="append", default=[], help="team run, optionally labelled: team-v2=v2a")
     options = parser.parse_args(args)
     tasks = load_tasks()
     arms = {path.name: path for path in sorted((RUNS / options.run).iterdir()) if path.name.startswith("solo-")}
-    if options.team_run:
-        arms["team"] = RUNS / options.team_run / "team"
+    for value in options.team_run:
+        label, _, run = value.rpartition("=")
+        arms[label or "team"] = RUNS / run / "team"
     scores = {name: report.arm_scores(path, tasks) for name, path in arms.items()}
     print(f"{'task':20}" + "".join(f"{name:>14}" for name in scores))
     for task in tasks:
@@ -141,10 +142,14 @@ def cmd_report(args: list[str]) -> None:
     for name, arm in scores.items():
         print(f"{name:14} {json.dumps(report.vals_overall(arm, tasks))}")
     print("Vals reference:", json.dumps(report.VALS_REFERENCE), "Sonnet by year:", json.dumps(report.VALS_SONNET_BY_YEAR))
-    if "team" in scores and "solo-sonnet" in scores:
-        shared = [task.id for task in tasks if task.id in scores["team"] and task.id in scores["solo-sonnet"]]
-        test = report.wilcoxon_exact([scores["team"][t] for t in shared], [scores["solo-sonnet"][t] for t in shared])
-        print(f"team vs solo-sonnet on {len(shared)} problems: {json.dumps(test)}")
+    pairs = [(name, "solo-sonnet") for name in scores if name.startswith("team")]
+    pairs += [(name, "team") for name in scores if name.startswith("team-")]
+    for first, second in pairs:
+        if second not in scores:
+            continue
+        shared = [task.id for task in tasks if task.id in scores[first] and task.id in scores[second]]
+        test = report.wilcoxon_exact([scores[first][t] for t in shared], [scores[second][t] for t in shared])
+        print(f"{first} vs {second} on {len(shared)} problems: {json.dumps(test)}")
 
 
 COMMANDS = {"prepare": cmd_prepare, "validate": cmd_validate, "solo": cmd_solo, "team": cmd_team, "audit": cmd_audit, "report": cmd_report}

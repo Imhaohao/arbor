@@ -1,8 +1,10 @@
 """The H2 small-model team, adapted to IOI.
 
 Candidates are the Sonnet and Haiku solo attempts. A Sonnet tester builds a
-brute force and an input generator from the statement alone; stress.py runs
-every candidate against them through the public sample grader; the best
+brute force, an input generator and an output checker from the statement
+alone; stress.py runs every candidate against them through the public sample
+grader (the checker verifies and scores outputs when the brute force cannot
+be trusted, as for non-unique or scored outputs); the best
 evidence wins; a Sonnet repairer gets concrete failing inputs for up to two
 rounds and its fix is kept only if the evidence improves. Hidden tests are
 never consulted before the final grade.
@@ -19,7 +21,7 @@ import prompts
 from tasks import DATA_ROOT, Task
 
 MEMBER_PRIORITY = {"sonnet": 0, "haiku": 1}
-TESTER_FILES = ("brute.cpp", "gen.py", "unique.txt")
+TESTER_FILES = ("brute.cpp", "gen.py", "unique.txt", "checker.py")
 REPAIR_ROUNDS = 2
 
 
@@ -31,7 +33,8 @@ def rank_key(item: dict) -> tuple:
     if not item.get("compiled"):
         return (1, 0, 0, 0, item["priority"])
     samples_clean = item["samples_passed"] == item["samples_total"]
-    return (0, 0 if samples_clean else 1, -item["small_agree"], -item["large_ok"], item["priority"])
+    return (0, 0 if samples_clean else 1, -item["small_agree"], -item.get("checked_valid", 0),
+            -item.get("score_mean", 0.0), -item["large_ok"], item["priority"])
 
 
 def needs_repair(item: dict) -> bool:
@@ -68,13 +71,16 @@ def failure_files(folder: Path) -> dict[str, str]:
     return {f"failures/{path.name}": path.read_text(errors="replace") for path in sorted(folder.glob("*")) if path.is_file()}
 
 
-def repair(task: Task, team_dir: Path, bench: Path, best: dict, round_index: int, effort: str) -> dict | None:
+def repair(task: Task, team_dir: Path, bench: Path, best: dict, round_index: int, effort: str, checker: bool) -> dict | None:
     """One repair round; returns the repaired candidate's evidence, or None if no fix was produced."""
     source = bench / best["label"]
     extra = {"solution.cpp": (source / "solution.cpp").read_text(), **failure_files(source / "failures")}
     listing = "\n".join(f"- {name}" for name in extra if name.startswith("failures/"))
+    if checker:
+        extra.update({name: (bench / name).read_text() for name in ("checker.py", "gen.py")})
+    prompt = prompts.REPAIR.format(name=task.name, failures=listing, checker_note=prompts.CHECKER_NOTE + "\n\n" if checker else "")
     attempt_dir = team_dir / f"repair{round_index}"
-    agent.attempt(Path(task.public_dir), attempt_dir, prompts.REPAIR.format(name=task.name, failures=listing), "sonnet", effort, extra)
+    agent.attempt(Path(task.public_dir), attempt_dir, prompt, "sonnet", effort, extra)
     fixed = attempt_dir / "ws" / "solution.cpp"
     if not fixed.exists():
         return None
@@ -96,11 +102,11 @@ def run_team(task: Task, team_dir: Path, candidates: dict[str, Path], effort: st
     for round_index in range(1, REPAIR_ROUNDS + 1):
         if not needs_repair(best):
             break
-        candidate = repair(task, team_dir, bench, best, round_index, effort)
+        candidate = repair(task, team_dir, bench, best, round_index, effort, report["trusted_checker"])
         history.append({"round": round_index, "repair": candidate})
         if candidate and rank_key(candidate) < rank_key(best):
             best = candidate
-    summary = {"tools": {key: report[key] for key in ("unique", "trusted_brute", "small_inputs", "large_inputs")},
+    summary = {"tools": {key: report[key] for key in ("unique", "trusted_brute", "trusted_checker", "small_inputs", "large_inputs")},
                "chosen": best["label"], "history": history}
     (team_dir / "team.json").write_text(json.dumps(summary, indent=2))
     return bench / best["label"] / "solution.cpp", summary
