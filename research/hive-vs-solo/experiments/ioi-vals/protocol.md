@@ -77,3 +77,9 @@ Run and claims: run `v2a`, `python3 bench.py team v2a --candidates cal1` on the 
 ### Deviation found 2026-10-19 00:58 PDT (before any team-v2 result was seen)
 
 The "no CLAUDE.md" claim in Arms is false. `--setting-sources project` keeps user settings and hooks out, but headless `claude -p` still loads the user's global `~/.claude/CLAUDE.md` (style rules such as a TL;DR, a closing prompt note and subagent routing; no task content). 45 of the 55 cal1 transcripts show its markers, and the v2a testers do too. It applies equally to every arm in cal1 and v2a, so comparisons between our arms are like for like; against Vals it is one more harness difference. v2a keeps the same harness so it stays comparable with cal1.
+
+### Extra solo-sonnet samples (pre-registered 2026-10-19 01:20 PDT, before they run)
+
+Runs `s2` and `s3`: two more independent `solo-sonnet` attempts per problem on all 18 problems, with the cal1 SOLO prompt, harness, effort and cap unchanged (`python3 bench.py solo s2 sonnet`, same for `s3`). Every one of them is reported as a solo result, which also measures how much a single Sonnet attempt varies. They exist to give a later team arm more candidates. Any arm that uses them is pre-registered separately, and with ties broken toward the cal1 Sonnet attempt.
+
+Interim finding logged with this entry: in v2a, message's repair cut packets from 67 to 66 on the generated inputs, and the official grader then gave it 0. The cause was not the adaptive adversary. The new receiver tries every possible set of safe positions, and the generator's large input had 3 scenarios while the statement allows 2100 receive_message calls per test, so the official tests timed out (3.5 s against a 3 s limit). The repair gate cannot see a slowdown that its own inputs never trigger.
