@@ -111,3 +111,14 @@ team-v3 = team-v2 plus four changes. None of them reads a hidden test:
 Problems with a trusted brute force keep the team-v2 path (brute-force comparison and two repair rounds, no breaker).
 
 Run `v3`, started only after s2 and s3 finish all 18 problems: `python3 bench.py team v3 --candidates cal1 --candidates s2 --candidates s3`. Reported: per-problem team-v3 vs team, and the Vals-formula overall. team-v3 vs Opus 5.5 (95.06) is reported as a plain comparison: one run, 18 problems, and a different harness (Claude Code with the global CLAUDE.md, against OpenCode). "Beats Opus 5.5" is claimed only if the overall is above 95.06, and with these caveats beside it. The team also uses more compute than one solo attempt (three Sonnet attempts, a tester, breakers and repairers); its cost and wall time are reported next to the score.
+
+### Results: extra solo-sonnet samples (s2 01:20 to 05:05, s3 01:56 to 05:05 PDT)
+
+| Run | 2024 | 2025 | 2026 | Overall (Vals formula) |
+|---|---|---|---|---|
+| cal1 solo-sonnet | 84.70 | 96.11 | 87.42 | 89.41 |
+| s2 solo-sonnet | 97.22 | 99.58 | 97.67 | 98.16 |
+| s3 solo-sonnet | 84.03 | 91.33 | 91.76 | 89.04 |
+| Mean of the three | | | | 92.20 |
+
+One Sonnet attempt per problem varies by about 9 overall points between runs. s2 alone lands above Vals' Opus 5.5 (95.06), and cal1 and s3 land below it. Single-run comparisons with Vals' single numbers are therefore weak in both directions. The solo baseline for the team is the three-run mean, 92.20, not the best run. Where s2 or s3 lost points: message (83.31, 87.17), migrations (97.45), classroom (86.00, 83.75), tree 17 (s3), festival 48 (s3), ballmachine 66.80 (s3). Audit: s2 no flags; s3 two benign flags (a shell variable named `nc`, and a denied mkdir inside runs/), see audit-s3.json.
