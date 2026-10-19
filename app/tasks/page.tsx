@@ -6,7 +6,7 @@ export default function TasksIndexPage() {
     <PageShell
       width="narrow"
       title="Tasks"
-      subtitle="Every task posted to the marketplace, most recent first."
+      subtitle="Every task you have posted, most recent first."
     >
       <TasksIndex />
     </PageShell>

@@ -12,6 +12,7 @@ import { NextRequest } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { jsonOk, corsPreflight } from "@/lib/http";
+import { adminOnly } from "@/lib/auth-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,12 +23,12 @@ function convex() {
   return new ConvexHttpClient(url);
 }
 
-export async function GET() {
+async function handleGet() {
   const keys = await convex().query(api.a2aOutboundKeys.listMasked, {});
   return jsonOk({ keys });
 }
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   let body: { agent_id?: string; api_key?: string; header_name?: string };
   try {
     body = await req.json();
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
   return jsonOk({ ok: true, ...res });
 }
 
-export async function DELETE(req: NextRequest) {
+async function handleDelete(req: NextRequest) {
   let body: { agent_id?: string };
   try {
     body = await req.json();
@@ -66,3 +67,7 @@ export async function DELETE(req: NextRequest) {
 export function OPTIONS() {
   return corsPreflight();
 }
+
+export const GET = adminOnly(handleGet);
+export const POST = adminOnly(handlePost);
+export const DELETE = adminOnly(handleDelete);

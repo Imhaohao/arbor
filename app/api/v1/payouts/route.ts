@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { api } from "@/convex/_generated/api";
 import { currentPeriod } from "@/lib/hive/settlement-core";
 import { corsPreflight, jsonError, jsonOk } from "@/lib/http";
+import { adminOnly } from "@/lib/auth-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ function convex() {
   return new ConvexHttpClient(url);
 }
 
-export async function GET(req: NextRequest) {
+async function handleGet(req: NextRequest) {
   const url = new URL(req.url);
   const owner_id = url.searchParams.get("owner_id")?.trim();
   if (!owner_id) return jsonError("owner_id query parameter is required", 400);
@@ -33,3 +34,5 @@ export async function GET(req: NextRequest) {
 export function OPTIONS() {
   return corsPreflight();
 }
+
+export const GET = adminOnly(handleGet);

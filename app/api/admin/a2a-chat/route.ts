@@ -30,6 +30,7 @@ import {
   describeA2ATaskSnapshot,
 } from "@/lib/specialists/a2a-chat-threading";
 import type { SpecialistConfig } from "@/lib/types";
+import { adminOnly } from "@/lib/auth-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -107,7 +108,7 @@ function chatUnavailableReason(s: SpecialistConfig): string | undefined {
   return "No A2A endpoint configured.";
 }
 
-export async function GET() {
+async function handleGet() {
   const specs = await listedSpecialists();
   return jsonOk({
     specialists: specs.map((s) => ({
@@ -142,7 +143,7 @@ function textFromParts(parts: A2AMessagePart[] | undefined): string {
   return "";
 }
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   let body: {
     agent_id?: string;
     text?: string;
@@ -378,3 +379,6 @@ export async function POST(req: NextRequest) {
 export function OPTIONS() {
   return corsPreflight();
 }
+
+export const GET = adminOnly(handleGet);
+export const POST = adminOnly(handlePost);

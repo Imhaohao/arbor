@@ -3,7 +3,9 @@
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useEffect, useState } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useConvexAuth, useQuery } from "convex/react";
+import { SignInButton } from "@clerk/nextjs";
+import { clerkEnabled } from "@/lib/clerk-config";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
@@ -340,24 +342,7 @@ function IntakeStartCard({
             />
           </div>
         </div>
-        <Button
-          type="submit"
-          disabled={submitting || !prompt.trim()}
-          className="w-full"
-          size="lg"
-        >
-          {submitting ? (
-            <>
-              <CircleNotch size={16} className="animate-spin" weight="bold" />
-              Refining your request…
-            </>
-          ) : (
-            <>
-              Shape the task brief
-              <ArrowRight size={16} weight="bold" />
-            </>
-          )}
-        </Button>
+        <BriefSubmit submitting={submitting} disabled={!prompt.trim()} />
         {error && (
           <p role="alert" className="rounded-control bg-danger-50 px-3.5 py-2.5 text-sm text-danger-700">
             {error}
@@ -367,6 +352,42 @@ function IntakeStartCard({
     </Card>
   );
 }
+
+function ShapeBriefButton({ submitting, disabled }: { submitting: boolean; disabled: boolean }) {
+  return (
+    <Button type="submit" disabled={submitting || disabled} className="w-full" size="lg">
+      {submitting ? (
+        <>
+          <CircleNotch size={16} className="animate-spin" weight="bold" />
+          Refining your request…
+        </>
+      ) : (
+        <>
+          Shape the task brief
+          <ArrowRight size={16} weight="bold" />
+        </>
+      )}
+    </Button>
+  );
+}
+
+/** Signed-out visitors keep their draft and sign in before posting. */
+function SignedInShapeBriefButton(props: { submitting: boolean; disabled: boolean }) {
+  const { isAuthenticated, isLoading } = useConvexAuth();
+  if (isLoading || isAuthenticated) return <ShapeBriefButton {...props} />;
+  return (
+    <SignInButton mode="modal">
+      <Button type="button" className="w-full" size="lg">
+        Sign in to post this task
+        <ArrowRight size={16} weight="bold" />
+      </Button>
+    </SignInButton>
+  );
+}
+
+// useConvexAuth only works under Clerk's Convex provider, so the choice is
+// fixed per build rather than per render.
+const BriefSubmit = clerkEnabled() ? SignedInShapeBriefButton : ShapeBriefButton;
 
 function IntakeLoadingCard() {
   return (

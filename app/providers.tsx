@@ -2,6 +2,9 @@
 
 import { ReactNode, useMemo } from "react";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { useAuth } from "@clerk/nextjs";
+import { clerkEnabled } from "@/lib/clerk-config";
 
 export function Providers({ children }: { children: ReactNode }) {
   const client = useMemo(() => {
@@ -26,5 +29,12 @@ export function Providers({ children }: { children: ReactNode }) {
       </main>
     );
   }
-  return <ConvexProvider client={client}>{children}</ConvexProvider>;
+  if (!clerkEnabled()) {
+    return <ConvexProvider client={client}>{children}</ConvexProvider>;
+  }
+  return (
+    <ConvexProviderWithClerk client={client} useAuth={useAuth}>
+      {children}
+    </ConvexProviderWithClerk>
+  );
 }

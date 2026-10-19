@@ -6,6 +6,7 @@ import {
 } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { canView, resolveOwnerId } from "./viewer";
 import { buildOrchestrationContext } from "../lib/orchestration-context";
 import { isConversionDropPrompt } from "../lib/conversion-drop-demo";
 import {
@@ -69,7 +70,7 @@ function cleanList(values: Array<string | undefined>): string[] {
  */
 export const post = mutation({
   args: {
-    posted_by: v.string(),
+    posted_by: v.optional(v.string()),
     task_type: v.optional(v.string()),
     prompt: v.string(),
     max_budget: v.number(),
@@ -117,9 +118,10 @@ export const post = mutation({
         };
       }
     }
+    const posted_by = await resolveOwnerId(ctx, args.posted_by);
     const profile = await ctx.db
       .query("product_context_profiles")
-      .withIndex("by_owner", (q) => q.eq("owner_id", args.posted_by))
+      .withIndex("by_owner", (q) => q.eq("owner_id", posted_by))
       .order("desc")
       .first();
 
@@ -154,7 +156,7 @@ export const post = mutation({
         args.workflow_mode !== "legacy");
 
     const task_id = await ctx.db.insert("tasks", {
-      posted_by: args.posted_by,
+      posted_by: posted_by,
       task_type: args.task_type ?? "general",
       prompt: args.prompt,
       max_budget: args.max_budget,
@@ -189,7 +191,7 @@ export const post = mutation({
       task_id,
       event_type: "task_posted",
       payload: {
-        posted_by: args.posted_by,
+        posted_by,
         prompt: args.prompt,
         max_budget: args.max_budget,
       },
@@ -355,6 +357,17 @@ export const get = query({
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.task_id);
     return task;
+  },
+});
+
+/** Whether the caller owns the task (or is an admin): gates paying and disputing. */
+export const viewerCanAct = query({
+  args: { task_id: v.string() },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const id = ctx.db.normalizeId("tasks", args.task_id);
+    const task = id ? await ctx.db.get(id) : null;
+    return task ? await canView(ctx, task.posted_by) : false;
   },
 });
 

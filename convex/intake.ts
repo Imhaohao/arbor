@@ -14,6 +14,7 @@ import {
   buildFallbackFinalPrompt,
   normalizeIntakeModelResult,
 } from "../lib/intake-normalize";
+import { assertCanActOn, canView, resolveOwnerId } from "./viewer";
 
 const MAX_QUESTION_ROUNDS = 1;
 
@@ -152,7 +153,7 @@ async function generateAndRecord(
 
 export const start = action({
   args: {
-    owner_id: v.string(),
+    owner_id: v.optional(v.string()),
     prompt: v.string(),
     max_budget: v.number(),
     task_type: v.optional(v.string()),
@@ -169,7 +170,7 @@ export const start = action({
     const intake_id: Id<"task_intakes"> = await ctx.runMutation(
       internal.intake._create,
       {
-        owner_id: cleanRequired(args.owner_id, "Owner"),
+        owner_id: await resolveOwnerId(ctx, args.owner_id),
         initial_prompt,
         task_type: cleanOptional(args.task_type) ?? "general",
         max_budget: args.max_budget,
@@ -193,6 +194,7 @@ export const answer = action({
     const intake: Doc<"task_intakes"> = await ctx.runQuery(internal.intake._get, {
       intake_id: args.intake_id,
     });
+    await assertCanActOn(ctx, intake.owner_id);
     if (intake.status !== "collecting") {
       throw new Error("This intake is not waiting for clarification.");
     }
@@ -221,6 +223,10 @@ export const approveAndPost = action({
       }
   > => {
     const final_prompt = cleanRequired(args.final_prompt, "Final brief");
+    const intake: Doc<"task_intakes"> = await ctx.runQuery(internal.intake._get, {
+      intake_id: args.intake_id,
+    });
+    await assertCanActOn(ctx, intake.owner_id);
     const claim: { kind: "claimed" } | { kind: "busy" } | {
       kind: "posted";
       task_id: Id<"tasks">;
@@ -235,10 +241,6 @@ export const approveAndPost = action({
     if (claim.kind === "busy") {
       throw new Error("This intake is already being posted.");
     }
-
-    const intake: Doc<"task_intakes"> = await ctx.runQuery(internal.intake._get, {
-      intake_id: args.intake_id,
-    });
 
     const postArgs: {
       posted_by: string;
@@ -297,13 +299,17 @@ export const approveAndPost = action({
 export const get = query({
   args: { intake_id: v.id("task_intakes") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.intake_id);
+    const intake = await ctx.db.get(args.intake_id);
+    if (!intake || !(await canView(ctx, intake.owner_id))) return null;
+    return intake;
   },
 });
 
 export const messages = query({
   args: { intake_id: v.id("task_intakes") },
   handler: async (ctx, args) => {
+    const intake = await ctx.db.get(args.intake_id);
+    if (!intake || !(await canView(ctx, intake.owner_id))) return [];
     return await ctx.db
       .query("task_intake_messages")
       .withIndex("by_intake_id", (q) => q.eq("intake_id", args.intake_id))

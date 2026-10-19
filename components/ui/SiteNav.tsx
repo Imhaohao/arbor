@@ -7,13 +7,14 @@ import { List, X } from "@phosphor-icons/react";
 import { ArborMark } from "@/components/ui/ArborMark";
 import { buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { AuthControls } from "@/components/auth/AuthControls";
+import { clerkEnabled } from "@/lib/clerk-config";
 
 export const NAV_LINKS: Array<{ label: string; href: string }> = [
-  { label: "Tasks", href: "/tasks" },
+  { label: "Your tasks", href: "/tasks" },
   { label: "Specialists", href: "/agents" },
-  { label: "Replays", href: "/replay" },
+  { label: "Pricing", href: "/pricing" },
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Console", href: "/admin" },
 ];
 
 /**
@@ -64,6 +65,7 @@ export function SiteNav({ variant = "bar" }: { variant?: "overlay" | "bar" }) {
             ))}
           </ul>
           <div className="flex items-center gap-2">
+            {clerkEnabled() && <AuthControls />}
             <Link href="/#post-task" className={buttonClasses({ size: "sm", className: "hidden sm:inline-flex" })}>
               Post a task
             </Link>

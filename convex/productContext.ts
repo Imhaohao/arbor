@@ -1,9 +1,10 @@
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { authRequired, resolveOwnerId, viewerId } from "./viewer";
 
 const profileArgs = {
-  owner_id: v.string(),
+  owner_id: v.optional(v.string()),
   company_name: v.string(),
   product_url: v.optional(v.string()),
   github_repo_url: v.optional(v.string()),
@@ -24,11 +25,13 @@ function cleanList(values: string[] | undefined): string[] {
 }
 
 export const latest = query({
-  args: { owner_id: v.string() },
+  args: { owner_id: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const owner_id = (await viewerId(ctx)) ?? (authRequired() ? null : args.owner_id);
+    if (!owner_id) return null;
     return await ctx.db
       .query("product_context_profiles")
-      .withIndex("by_owner", (q) => q.eq("owner_id", args.owner_id))
+      .withIndex("by_owner", (q) => q.eq("owner_id", owner_id))
       .order("desc")
       .first();
   },
@@ -37,15 +40,16 @@ export const latest = query({
 export const save = mutation({
   args: profileArgs,
   handler: async (ctx, args) => {
+    const owner_id = await resolveOwnerId(ctx, args.owner_id);
     const now = Date.now();
     const existing = await ctx.db
       .query("product_context_profiles")
-      .withIndex("by_owner", (q) => q.eq("owner_id", args.owner_id))
+      .withIndex("by_owner", (q) => q.eq("owner_id", owner_id))
       .order("desc")
       .first();
 
     const profile = {
-      owner_id: args.owner_id,
+      owner_id,
       company_name: args.company_name.trim(),
       product_url: cleanOptional(args.product_url),
       github_repo_url: cleanOptional(args.github_repo_url),

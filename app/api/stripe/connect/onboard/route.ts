@@ -11,6 +11,7 @@ import {
   stripeConnectCountry,
   stripeProductDescription,
 } from "@/lib/stripe/config";
+import { adminOnly } from "@/lib/auth-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,7 +89,7 @@ async function createOrRefreshOnboardingLink({
   };
 }
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   try {
     if (!stripeCheckoutEnabled()) {
       return jsonError(
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+async function handleGet(req: NextRequest) {
   try {
     if (!stripeCheckoutEnabled()) {
       return jsonError(
@@ -141,3 +142,6 @@ export async function GET(req: NextRequest) {
 export function OPTIONS() {
   return corsPreflight();
 }
+
+export const POST = adminOnly(handlePost);
+export const GET = adminOnly(handleGet);

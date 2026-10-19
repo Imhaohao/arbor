@@ -1,20 +1,14 @@
 import { NextRequest } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { jsonOk, jsonError, corsPreflight } from "@/lib/http";
+import { convexForCaller } from "@/lib/auth-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
-}
-
-function convex() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is not set");
-  return new ConvexHttpClient(url);
 }
 
 export async function POST(req: NextRequest, ctx: RouteContext) {
@@ -36,7 +30,8 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
   }
 
   try {
-    const result = await convex().action(api.disputes.override, {
+    const client = await convexForCaller();
+    const result = await client.action(api.disputes.override, {
       task_id: id as Id<"tasks">,
       verdict: body.verdict,
       reason: body.reason,

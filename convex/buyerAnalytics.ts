@@ -4,13 +4,13 @@
 // intentionally never returns a week-over-week delta. Inventing one would be
 // worse than omitting it.
 //
-// Population matches taskList.ts: top-level tasks only (sub-steps created by
-// the planner are implementation detail of a parent task's plan), and golden
-// -task audit runs are excluded (Arbor's own instrumentation, not real
-// marketplace activity).
+// Population is taskList.scanVisibleTasks: the caller's own top-level tasks
+// (all of them for admins or unauthenticated deployments), newest first,
+// excluding planner sub-steps and golden-task audit runs.
 
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { scanVisibleTasks } from "./taskList";
 
 const TERMINAL_STATUSES = new Set([
   "complete",
@@ -46,21 +46,7 @@ export const overview = query({
     turnaround_sample_size: v.number(),
   }),
   handler: async (ctx) => {
-    const scanned = await ctx.db.query("tasks").take(TASK_SCAN_LIMIT);
-    const topLevel = scanned.filter((t) => !t.parent_task_id);
-
-    const goldenRuns = await Promise.all(
-      topLevel.map((t) =>
-        ctx.db
-          .query("golden_task_runs")
-          .withIndex("by_task", (q) => q.eq("task_id", t._id))
-          .unique(),
-      ),
-    );
-    const goldenTaskIds = new Set(
-      goldenRuns.filter((r) => r !== null).map((r) => r!.task_id),
-    );
-    const tasks = topLevel.filter((t) => !goldenTaskIds.has(t._id));
+    const tasks = await scanVisibleTasks(ctx, TASK_SCAN_LIMIT);
 
     const total = tasks.length;
     const completed = tasks.filter((t) => t.status === "complete").length;

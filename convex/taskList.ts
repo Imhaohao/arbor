@@ -16,6 +16,7 @@
 import { v } from "convex/values";
 import { query, type QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
+import { listingScope } from "./viewer";
 
 const taskStatusValidator = v.union(
   v.literal("open"),
@@ -97,6 +98,30 @@ const taskRowValidator = v.object({
 });
 
 /**
+ * Top-level tasks the caller may list, newest first. Under ARBOR_REQUIRE_AUTH a
+ * buyer sees only their own tasks and a signed-out caller sees none; admins
+ * and unauthenticated deployments see the whole marketplace.
+ */
+async function scanTopLevelTasks(
+  ctx: QueryCtx,
+  scanCount: number,
+): Promise<Doc<"tasks">[]> {
+  const scope = await listingScope(ctx);
+  if (scope === undefined) return [];
+  if (scope !== null) {
+    return await ctx.db
+      .query("tasks")
+      .withIndex("by_posted_by_and_parent_task_id", (q) =>
+        q.eq("posted_by", scope).eq("parent_task_id", undefined),
+      )
+      .order("desc")
+      .take(scanCount);
+  }
+  const scanned = await ctx.db.query("tasks").order("desc").take(scanCount);
+  return scanned.filter((t) => !t.parent_task_id);
+}
+
+/**
  * Shared scan: top-level (no parent_task_id), non-golden-audit tasks, newest
  * first, bounded to `scanCount` rows read.
  *
@@ -106,12 +131,11 @@ const taskRowValidator = v.object({
  * they swamp this list with arithmetic and extraction drills. Filtering is
  * UI-only and cannot leak: bidders see the auction, never this page.
  */
-async function scanVisibleTasks(
+export async function scanVisibleTasks(
   ctx: QueryCtx,
   scanCount: number,
 ): Promise<Doc<"tasks">[]> {
-  const scanned = await ctx.db.query("tasks").order("desc").take(scanCount);
-  const topLevel = scanned.filter((t) => !t.parent_task_id);
+  const topLevel = await scanTopLevelTasks(ctx, scanCount);
 
   const goldenRuns = await Promise.all(
     topLevel.map((t) =>
