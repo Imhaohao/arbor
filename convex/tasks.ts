@@ -3,8 +3,10 @@ import {
   query,
   internalMutation,
   internalQuery,
+  type MutationCtx,
 } from "./_generated/server";
-import { v } from "convex/values";
+import { v, type ObjectType } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { canView, resolveOwnerId } from "./viewer";
 import { buildOrchestrationContext } from "../lib/orchestration-context";
@@ -64,52 +66,137 @@ function cleanList(values: Array<string | undefined>): string[] {
   );
 }
 
+const postTaskArgs = {
+  posted_by: v.optional(v.string()),
+  task_type: v.optional(v.string()),
+  prompt: v.string(),
+  max_budget: v.number(),
+  output_schema: v.optional(v.any()),
+  business_context: v.optional(v.string()),
+  repo_context: v.optional(v.string()),
+  source_hints: v.optional(v.array(v.string())),
+  workflow_mode: v.optional(v.string()),
+  model_gateway: v.optional(v.string()),
+};
+
+type PostTaskArgs = ObjectType<typeof postTaskArgs>;
+type ProductContextProfile = Doc<"product_context_profiles">;
+
+function isPublicDemoSmokeRequest(args: PostTaskArgs): boolean {
+  return (
+    args.posted_by === PUBLIC_DEMO_SMOKE_POSTED_BY &&
+    args.prompt === PUBLIC_DEMO_SMOKE_PROMPT &&
+    args.max_budget === PUBLIC_DEMO_SMOKE_BUDGET &&
+    args.workflow_mode === "hive" &&
+    (args.task_type === undefined || args.task_type === "general") &&
+    args.output_schema === undefined &&
+    args.business_context === undefined &&
+    args.repo_context === undefined &&
+    (args.source_hints === undefined || args.source_hints.length === 0) &&
+    args.model_gateway === undefined
+  );
+}
+
+/**
+ * Public demo mode only accepts the fixed smoke task, and reuses the latest
+ * smoke task instead of creating a new one when it exists.
+ */
+async function existingPublicDemoSmokeTask(ctx: MutationCtx, args: PostTaskArgs) {
+  if (!isPublicDemoSmokeRequest(args)) {
+    throw new Error(
+      "Public demo task posting is restricted to the fixed preview smoke task",
+    );
+  }
+  return await ctx.db
+    .query("tasks")
+    .withIndex("by_posted_by_and_parent_task_id", (q) =>
+      q
+        .eq("posted_by", PUBLIC_DEMO_SMOKE_POSTED_BY)
+        .eq("parent_task_id", undefined),
+    )
+    .order("desc")
+    .first();
+}
+
+function joinPresentLines(lines: Array<string | undefined>): string {
+  return lines.filter((line): line is string => Boolean(line)).join("\n");
+}
+
+function profileBusinessContext(profile: ProductContextProfile | null): string | undefined {
+  if (!profile) return undefined;
+  return joinPresentLines([
+    `Company/product: ${profile.company_name}`,
+    profile.product_url ? `Product URL: ${profile.product_url}` : undefined,
+    profile.business_context,
+  ]);
+}
+
+function profileRepoContext(profile: ProductContextProfile | null): string | undefined {
+  if (!profile) return undefined;
+  return joinPresentLines([
+    profile.github_repo_url ? `GitHub repo: ${profile.github_repo_url}` : undefined,
+    profile.repo_context,
+  ]);
+}
+
+function usesHiveWorkflow(workflowMode: string | undefined): boolean {
+  return (
+    workflowMode === "hive" ||
+    (process.env.ARBOR_HIVE_DEFAULT === "true" && workflowMode !== "legacy")
+  );
+}
+
+async function logProductContextAttached(
+  ctx: MutationCtx,
+  task_id: Id<"tasks">,
+  profile: ProductContextProfile,
+  sourceHintCount: number,
+) {
+  await ctx.runMutation(internal.lifecycle.log, {
+    task_id,
+    event_type: "product_context_attached",
+    payload: {
+      profile_id: profile._id,
+      company_name: profile.company_name,
+      has_product_url: Boolean(profile.product_url),
+      has_github_repo: Boolean(profile.github_repo_url),
+      source_hint_count: sourceHintCount,
+      hyperspell_status: profile.hyperspell_status,
+    },
+  });
+}
+
+async function scheduleTaskWorkflow(
+  ctx: MutationCtx,
+  task_id: Id<"tasks">,
+  prompt: string,
+  hive: boolean,
+) {
+  // Prompts mentioning "conversion drop" route to the dedicated
+  // diagnose-then-PR investigation flow instead of the generic auction.
+  if (isConversionDropPrompt(prompt)) {
+    await ctx.scheduler.runAfter(0, internal.demos.runConversionDropDemo, { task_id });
+  } else if (hive) {
+    await ctx.scheduler.runAfter(0, internal.hivePlanner.planDag, { task_id });
+  } else {
+    // Planner: atomic → enrichment + auction on this task; compound → multi-
+    // step children (each routed through enrichment; children without a stub
+    // skip quickly to solicitBids inside enrichAndStartAuction).
+    await ctx.scheduler.runAfter(0, internal.planning.decompose, { task_id });
+  }
+}
+
 /**
  * Post a new task. Creates the row in `bidding`, schedules bid solicitation
  * immediately and the auction resolution at window close.
  */
 export const post = mutation({
-  args: {
-    posted_by: v.optional(v.string()),
-    task_type: v.optional(v.string()),
-    prompt: v.string(),
-    max_budget: v.number(),
-    output_schema: v.optional(v.any()),
-    business_context: v.optional(v.string()),
-    repo_context: v.optional(v.string()),
-    source_hints: v.optional(v.array(v.string())),
-    workflow_mode: v.optional(v.string()),
-    model_gateway: v.optional(v.string()),
-  },
+  args: postTaskArgs,
   handler: async (ctx, args) => {
     const now = Date.now();
     const closesAt = now + BID_WINDOW_SECONDS * 1000;
     if (publicDemoMode()) {
-      const safeSmokeRequest =
-        args.posted_by === PUBLIC_DEMO_SMOKE_POSTED_BY &&
-        args.prompt === PUBLIC_DEMO_SMOKE_PROMPT &&
-        args.max_budget === PUBLIC_DEMO_SMOKE_BUDGET &&
-        args.workflow_mode === "hive" &&
-        (args.task_type === undefined || args.task_type === "general") &&
-        args.output_schema === undefined &&
-        args.business_context === undefined &&
-        args.repo_context === undefined &&
-        (args.source_hints === undefined || args.source_hints.length === 0) &&
-        args.model_gateway === undefined;
-      if (!safeSmokeRequest) {
-        throw new Error(
-          "Public demo task posting is restricted to the fixed preview smoke task",
-        );
-      }
-      const existing = await ctx.db
-        .query("tasks")
-        .withIndex("by_posted_by_and_parent_task_id", (q) =>
-          q
-            .eq("posted_by", PUBLIC_DEMO_SMOKE_POSTED_BY)
-            .eq("parent_task_id", undefined),
-        )
-        .order("desc")
-        .first();
+      const existing = await existingPublicDemoSmokeTask(ctx, args);
       if (existing) {
         return {
           task_id: existing._id,
@@ -125,39 +212,21 @@ export const post = mutation({
       .order("desc")
       .first();
 
-    const profileBusiness = profile
-      ? [
-          `Company/product: ${profile.company_name}`,
-          profile.product_url ? `Product URL: ${profile.product_url}` : undefined,
-          profile.business_context,
-        ]
-          .filter((line): line is string => Boolean(line))
-          .join("\n")
-      : undefined;
-    const profileRepo = profile
-      ? [
-          profile.github_repo_url ? `GitHub repo: ${profile.github_repo_url}` : undefined,
-          profile.repo_context,
-        ]
-          .filter((line): line is string => Boolean(line))
-          .join("\n")
-      : undefined;
     const sourceHints = cleanList([
       profile?.github_repo_url,
       profile?.product_url,
       ...(profile?.source_hints ?? []),
       ...(args.source_hints ?? []),
     ]);
-    const businessContext = cleanOptional(args.business_context) ?? profileBusiness;
-    const repoContext = cleanOptional(args.repo_context) ?? profileRepo;
-    const hive =
-      args.workflow_mode === "hive" ||
-      (process.env.ARBOR_HIVE_DEFAULT === "true" &&
-        args.workflow_mode !== "legacy");
+    const businessContext =
+      cleanOptional(args.business_context) ?? profileBusinessContext(profile);
+    const repoContext = cleanOptional(args.repo_context) ?? profileRepoContext(profile);
+    const hive = usesHiveWorkflow(args.workflow_mode);
+    const taskType = args.task_type ?? "general";
 
     const task_id = await ctx.db.insert("tasks", {
       posted_by: posted_by,
-      task_type: args.task_type ?? "general",
+      task_type: taskType,
       prompt: args.prompt,
       max_budget: args.max_budget,
       output_schema: args.output_schema,
@@ -171,7 +240,7 @@ export const post = mutation({
 
     const orchestrationContext = buildOrchestrationContext({
       prompt: args.prompt,
-      taskType: args.task_type ?? "general",
+      taskType,
       businessContext,
       repoContext,
       sourceHints,
@@ -204,18 +273,7 @@ export const post = mutation({
     });
 
     if (profile) {
-      await ctx.runMutation(internal.lifecycle.log, {
-        task_id,
-        event_type: "product_context_attached",
-        payload: {
-          profile_id: profile._id,
-          company_name: profile.company_name,
-          has_product_url: Boolean(profile.product_url),
-          has_github_repo: Boolean(profile.github_repo_url),
-          source_hint_count: sourceHints.length,
-          hyperspell_status: profile.hyperspell_status,
-        },
-      });
+      await logProductContextAttached(ctx, task_id, profile, sourceHints.length);
     }
 
     await ctx.scheduler.runAfter(
@@ -224,18 +282,7 @@ export const post = mutation({
       { task_id },
     );
 
-    // Prompts mentioning "conversion drop" route to the dedicated
-    // diagnose-then-PR investigation flow instead of the generic auction.
-    if (isConversionDropPrompt(args.prompt)) {
-      await ctx.scheduler.runAfter(0, internal.demos.runConversionDropDemo, { task_id });
-    } else if (hive) {
-      await ctx.scheduler.runAfter(0, internal.hivePlanner.planDag, { task_id });
-    } else {
-      // Planner: atomic → enrichment + auction on this task; compound → multi-
-      // step children (each routed through enrichment; children without a stub
-      // skip quickly to solicitBids inside enrichAndStartAuction).
-      await ctx.scheduler.runAfter(0, internal.planning.decompose, { task_id });
-    }
+    await scheduleTaskWorkflow(ctx, task_id, args.prompt, hive);
 
     return {
       task_id,

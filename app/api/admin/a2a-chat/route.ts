@@ -18,7 +18,7 @@ import {
   specialistConfigFromPersisted,
   specialistEnabled,
 } from "@/lib/specialists/registry";
-import { getAuthForEndpoint } from "@/lib/specialists/a2a-agent-card";
+import { getAuthForEndpoint, type ResolvedAuth } from "@/lib/specialists/a2a-agent-card";
 import {
   pollUntilTerminal,
   extractText,
@@ -143,13 +143,38 @@ function textFromParts(parts: A2AMessagePart[] | undefined): string {
   return "";
 }
 
-async function handlePost(req: NextRequest) {
-  let body: {
-    agent_id?: string;
-    text?: string;
-    context_id?: string;
-    task_id?: string;
-  };
+type JsonResponse = ReturnType<typeof jsonOk>;
+
+interface ChatRequest {
+  agent_id: string;
+  text: string;
+  context_id?: string;
+  task_id?: string;
+}
+
+interface ChatTarget {
+  agent_id: string;
+  endpoint: string;
+  context_id?: string;
+  task_id?: string;
+}
+
+type LooseA2AResult = {
+  kind?: string;
+  message?: { parts?: A2AMessagePart[]; contextId?: string };
+  parts?: A2AMessagePart[];
+  contextId?: string;
+  taskId?: string;
+};
+
+const TERMINAL_TASK_STATES = new Set(["completed", "failed", "canceled", "rejected"]);
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+async function parseChatRequest(req: NextRequest): Promise<ChatRequest | JsonResponse> {
+  let body: Partial<ChatRequest>;
   try {
     body = await req.json();
   } catch {
@@ -159,68 +184,78 @@ async function handlePost(req: NextRequest) {
   if (!agent_id || !text?.trim()) {
     return jsonOk({ ok: false, error: "agent_id and text are required" }, 400);
   }
+  return { agent_id, text: text.trim(), context_id, task_id };
+}
 
-  const specs = await a2aSpecialists();
-  const cfg = specs.find((s) => s.agent_id === agent_id);
-  if (!cfg?.a2a_endpoint) {
-    return jsonOk(
-      { ok: false, error: `no A2A specialist registered with agent_id "${agent_id}"` },
-      404,
-    );
+/**
+ * Key vault hydration: if the specialist needs a key env var that isn't set
+ * in the process environment, pull the key from the Convex outbound-key
+ * vault (console paste / auto-acquired) so chat works without redeploys.
+ */
+async function hydrateKeyFromVault(cfg: SpecialistConfig): Promise<void> {
+  const envVar = cfg.a2a_api_key_env;
+  if (cfg.a2a_auth_mode === "none" || !envVar || process.env[envVar]) return;
+  try {
+    const vaultKey = (await convex().query(api.a2aOutboundKeys.getForAgent, {
+      agent_id: cfg.agent_id,
+    })) as { api_key: string } | null;
+    if (vaultKey?.api_key) process.env[envVar] = vaultKey.api_key;
+  } catch {
+    // Vault unreachable — fall through to normal resolution, which will
+    // decline with a clear "env var not set" message.
   }
-  const endpoint = cfg.a2a_endpoint;
+}
 
-  // Key vault hydration: if the specialist needs a key env var that isn't set
-  // in the process environment, pull the key from the Convex outbound-key
-  // vault (console paste / auto-acquired) so chat works without redeploys.
-  if (
-    cfg.a2a_auth_mode !== "none" &&
-    cfg.a2a_api_key_env &&
-    !process.env[cfg.a2a_api_key_env]
-  ) {
-    try {
-      const vaultKey = (await convex().query(api.a2aOutboundKeys.getForAgent, {
-        agent_id: cfg.agent_id,
-      })) as { api_key: string } | null;
-      if (vaultKey?.api_key) {
-        process.env[cfg.a2a_api_key_env] = vaultKey.api_key;
-      }
-    } catch {
-      // Vault unreachable — fall through to normal resolution, which will
-      // decline with a clear "env var not set" message.
-    }
-  }
-
-  // Resolve auth from the agent card (fail closed on unsupported schemes).
-  const auth = await getAuthForEndpoint(endpoint, cfg);
-  if (auth.kind === "decline") {
-    return jsonOk(
-      {
-        ok: false,
-        agent_id,
-        endpoint,
-        error: `auth: ${auth.reason}`,
-        // Tells the console UI to render the paste-a-key input for this agent.
-        needs_key: /env var .* not set|not configured/.test(auth.reason),
-      },
-      502,
-    );
-  }
+function authHeaders(auth: Exclude<ResolvedAuth, { kind: "decline" }>): Record<string, string> {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (auth.kind === "bearer") headers.authorization = `Bearer ${auth.token}`;
   if (auth.kind === "api-key") headers[auth.headerName] = auth.token;
+  return headers;
+}
 
+function authDeclinedResponse(target: ChatTarget, reason: string): JsonResponse {
+  return jsonOk(
+    {
+      ok: false,
+      agent_id: target.agent_id,
+      endpoint: target.endpoint,
+      error: `auth: ${reason}`,
+      // Tells the console UI to render the paste-a-key input for this agent.
+      needs_key: /env var .* not set|not configured/.test(reason),
+    },
+    502,
+  );
+}
+
+function sendFailedResponse(target: ChatTarget, err: unknown): JsonResponse {
+  const timedOut = err instanceof Error && err.name === "AbortError";
+  return jsonOk(
+    {
+      ok: false,
+      agent_id: target.agent_id,
+      endpoint: target.endpoint,
+      error: timedOut
+        ? `agent did not respond within ${SEND_TIMEOUT_MS / 1000}s (timed out)`
+        : `send failed: ${errorMessage(err)}`,
+    },
+    504,
+  );
+}
+
+async function sendA2AMessage(
+  target: ChatTarget,
+  headers: Record<string, string>,
+  text: string,
+): Promise<RawJsonRpc | JsonResponse> {
   const rpcId = `admin-chat-${Date.now()}`;
-  const message = buildThreadedA2AMessage(text.trim(), crypto.randomUUID(), {
-    contextId: context_id,
-    taskId: task_id,
+  const message = buildThreadedA2AMessage(text, crypto.randomUUID(), {
+    contextId: target.context_id,
+    taskId: target.task_id,
   });
-
-  let raw: RawJsonRpc;
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
-    const res = await fetch(endpoint, {
+    const res = await fetch(target.endpoint, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -235,145 +270,196 @@ async function handlePost(req: NextRequest) {
     if (!res.ok) {
       const errText = await res.text().catch(() => "(no body)");
       return jsonOk(
-        { ok: false, agent_id, endpoint, error: `HTTP ${res.status}: ${errText.slice(0, 300)}` },
+        {
+          ok: false,
+          agent_id: target.agent_id,
+          endpoint: target.endpoint,
+          error: `HTTP ${res.status}: ${errText.slice(0, 300)}`,
+        },
         502,
       );
     }
-    raw = (await res.json()) as RawJsonRpc;
+    return (await res.json()) as RawJsonRpc;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const timedOut = err instanceof Error && err.name === "AbortError";
+    return sendFailedResponse(target, err);
+  }
+}
+
+function messageReplyResponse(target: ChatTarget, result: LooseA2AResult, raw: RawJsonRpc): JsonResponse {
+  return jsonOk({
+    ok: true,
+    agent_id: target.agent_id,
+    endpoint: target.endpoint,
+    kind: "message",
+    reply_text: textFromParts(result.parts) || "(no text parts in reply)",
+    context_id: result.contextId ?? target.context_id,
+    task_id: result.taskId ?? target.task_id,
+    raw,
+  });
+}
+
+/**
+ * Task detection is lenient: many live servers omit `kind:"task"` and just
+ * return the task object (`{id,status,artifacts}`), or wrap it as
+ * `result.task`. Normalize all of these to one task object.
+ */
+function taskFromResult(result: RawJsonRpc["result"]): A2ATask | undefined {
+  const candidate = (result as { task?: unknown } | undefined)?.task ?? result;
+  if (!candidate) return undefined;
+  const hasTaskState = !!(candidate as { status?: { state?: string } }).status?.state;
+  return result?.kind === "task" || hasTaskState ? (candidate as unknown as A2ATask) : undefined;
+}
+
+function taskIdOf(task: A2ATask, fallback: string | undefined): string | undefined {
+  const { id, taskId } = task as unknown as { id?: unknown; taskId?: unknown };
+  if (typeof id === "string") return id;
+  if (typeof taskId === "string") return taskId;
+  return fallback;
+}
+
+/** Only polls when non-terminal AND the server gave us a task id to poll. */
+async function pollUnlessTerminal(
+  endpoint: string,
+  task: A2ATask,
+  taskId: string | undefined,
+  headers: Record<string, string>,
+): Promise<{ task: A2ATask; pollError?: string }> {
+  const state = task.status?.state as string | undefined;
+  if (TERMINAL_TASK_STATES.has(state ?? "") || !taskId) return { task };
+  try {
+    return { task: await pollUntilTerminal(endpoint, taskId, headers) };
+  } catch (err) {
+    // Poll failed (server doesn't support tasks/get, or task errored) — fall
+    // back to whatever text the initial response already carried rather than
+    // failing the turn. `input_required`/`working` snapshots still have text.
+    return { task, pollError: errorMessage(err) };
+  }
+}
+
+async function taskReplyResponse(
+  target: ChatTarget,
+  initialTask: A2ATask,
+  headers: Record<string, string>,
+  raw: RawJsonRpc,
+): Promise<JsonResponse> {
+  const candidateTaskId = taskIdOf(initialTask, target.task_id);
+  const { task, pollError } = await pollUnlessTerminal(
+    target.endpoint,
+    initialTask,
+    candidateTaskId,
+    headers,
+  );
+  const finalState = task.status?.state as string | undefined;
+  const { pending, replyText } = describeA2ATaskSnapshot(
+    finalState,
+    extractText(task),
+    JSON.stringify(task.status),
+  );
+  return jsonOk({
+    ok: true,
+    agent_id: target.agent_id,
+    endpoint: target.endpoint,
+    kind: "task",
+    state: finalState,
+    pending,
+    task_id: task.id || candidateTaskId,
+    reply_text: replyText,
+    context_id: (task as unknown as { contextId?: string }).contextId ?? target.context_id,
+    ...(pollError ? { poll_error: pollError } : {}),
+    raw: { ...raw, result: task },
+  });
+}
+
+/**
+ * Lenient fallback: some live A2A servers don't tag the result with
+ * `kind`. They return the reply wrapped as `result.message` (e.g. protobuf
+ * ROLE_AGENT style), or put `parts` directly on the result. Extract text
+ * from whichever shape we find rather than failing the whole turn.
+ */
+function looseReplyResponse(
+  target: ChatTarget,
+  result: LooseA2AResult | undefined,
+  raw: RawJsonRpc,
+): JsonResponse {
+  const wrappedMsg = result?.message;
+  const looseText = textFromParts(wrappedMsg?.parts ?? result?.parts);
+  if (!looseText) {
     return jsonOk(
       {
         ok: false,
-        agent_id,
-        endpoint,
-        error: timedOut
-          ? `agent did not respond within ${SEND_TIMEOUT_MS / 1000}s (timed out)`
-          : `send failed: ${msg}`,
+        agent_id: target.agent_id,
+        endpoint: target.endpoint,
+        error: "reply was neither a message nor a task",
+        raw,
       },
-      504,
+      502,
     );
   }
+  return jsonOk({
+    ok: true,
+    agent_id: target.agent_id,
+    endpoint: target.endpoint,
+    kind: "message",
+    reply_text: looseText,
+    context_id: wrappedMsg?.contextId ?? result?.contextId ?? target.context_id,
+    task_id: result?.taskId ?? target.task_id,
+    raw,
+  });
+}
 
+async function replyResponse(
+  target: ChatTarget,
+  headers: Record<string, string>,
+  raw: RawJsonRpc,
+): Promise<JsonResponse> {
   if (raw.error) {
     return jsonOk(
       {
         ok: false,
-        agent_id,
-        endpoint,
+        agent_id: target.agent_id,
+        endpoint: target.endpoint,
         error: `JSON-RPC error ${raw.error.code ?? ""}: ${raw.error.message ?? "unknown"}`,
         raw,
       },
       502,
     );
   }
-
-  const result = raw.result;
-
+  const result = raw.result as LooseA2AResult | undefined;
   // Reply may be a plain message (A2A allows message OR task results).
-  if (result?.kind === "message") {
-    const parts = (result as { parts?: A2AMessagePart[] }).parts;
-    return jsonOk({
-      ok: true,
-      agent_id,
-      endpoint,
-      kind: "message",
-      reply_text: textFromParts(parts) || "(no text parts in reply)",
-      context_id: (result as { contextId?: string }).contextId ?? context_id,
-      task_id: (result as { taskId?: string }).taskId ?? task_id,
-      raw,
-    });
-  }
+  if (result?.kind === "message") return messageReplyResponse(target, result, raw);
+  const task = taskFromResult(raw.result);
+  if (task) return taskReplyResponse(target, task, headers, raw);
+  return looseReplyResponse(target, result, raw);
+}
 
-  // Task detection is lenient: many live servers omit `kind:"task"` and just
-  // return the task object (`{id,status,artifacts}`), or wrap it as
-  // `result.task`. Normalize all of these to one task object.
-  const taskCandidate = (result as { task?: unknown })?.task ?? result;
-  const isTaskShape =
-    result?.kind === "task" ||
-    !!(taskCandidate as { status?: { state?: string } })?.status?.state;
+async function handlePost(req: NextRequest) {
+  const request = await parseChatRequest(req);
+  if (request instanceof Response) return request;
 
-  if (isTaskShape && taskCandidate) {
-    let task = taskCandidate as unknown as A2ATask;
-    const candidateTaskId =
-      typeof (taskCandidate as { id?: unknown }).id === "string"
-        ? (taskCandidate as { id: string }).id
-        : typeof (taskCandidate as { taskId?: unknown }).taskId === "string"
-          ? (taskCandidate as { taskId: string }).taskId
-          : task_id;
-    const state = task.status?.state as string | undefined;
-    const terminal =
-      state === "completed" ||
-      state === "failed" ||
-      state === "canceled" ||
-      state === "rejected";
-    let pollError: string | undefined;
-    try {
-      // Only poll when non-terminal AND the server gave us a task id to poll.
-      if (!terminal && candidateTaskId) {
-        task = await pollUntilTerminal(endpoint, candidateTaskId, headers);
-      }
-    } catch (err) {
-      // Poll failed (server doesn't support tasks/get, or task errored) — fall
-      // back to whatever text the initial response already carried rather than
-      // failing the turn. `input_required`/`working` snapshots still have text.
-      pollError = err instanceof Error ? err.message : String(err);
-    }
-    const finalState = task.status?.state as string | undefined;
-    const extracted = extractText(task);
-    const { pending, replyText } = describeA2ATaskSnapshot(
-      finalState,
-      extracted,
-      JSON.stringify(task.status),
+  const specs = await a2aSpecialists();
+  const cfg = specs.find((s) => s.agent_id === request.agent_id);
+  if (!cfg?.a2a_endpoint) {
+    return jsonOk(
+      { ok: false, error: `no A2A specialist registered with agent_id "${request.agent_id}"` },
+      404,
     );
-    return jsonOk({
-      ok: true,
-      agent_id,
-      endpoint,
-      kind: "task",
-      state: finalState,
-      pending,
-      task_id: task.id || candidateTaskId,
-      reply_text: replyText,
-      context_id:
-        (task as unknown as { contextId?: string }).contextId ?? context_id,
-      ...(pollError ? { poll_error: pollError } : {}),
-      raw: { ...raw, result: task },
-    });
   }
+  const target: ChatTarget = {
+    agent_id: request.agent_id,
+    endpoint: cfg.a2a_endpoint,
+    context_id: request.context_id,
+    task_id: request.task_id,
+  };
 
-  // Lenient fallback: some live A2A servers don't tag the result with
-  // `kind`. They return the reply wrapped as `result.message` (e.g. protobuf
-  // ROLE_AGENT style), or put `parts` directly on the result. Extract text
-  // from whichever shape we find rather than failing the whole turn.
-  const wrappedMsg = (result as { message?: { parts?: A2AMessagePart[]; contextId?: string } })
-    ?.message;
-  const looseParts =
-    wrappedMsg?.parts ?? (result as { parts?: A2AMessagePart[] })?.parts;
-  const looseText = textFromParts(looseParts);
-  if (looseText) {
-    return jsonOk({
-      ok: true,
-      agent_id,
-      endpoint,
-      kind: "message",
-      reply_text: looseText,
-      context_id:
-        wrappedMsg?.contextId ??
-        (result as { contextId?: string })?.contextId ??
-        context_id,
-      task_id:
-        (result as { taskId?: string })?.taskId ??
-        task_id,
-      raw,
-    });
-  }
+  await hydrateKeyFromVault(cfg);
+  // Resolve auth from the agent card (fail closed on unsupported schemes).
+  const auth = await getAuthForEndpoint(target.endpoint, cfg);
+  if (auth.kind === "decline") return authDeclinedResponse(target, auth.reason);
+  const headers = authHeaders(auth);
 
-  return jsonOk(
-    { ok: false, agent_id, endpoint, error: "reply was neither a message nor a task", raw },
-    502,
-  );
+  const raw = await sendA2AMessage(target, headers, request.text);
+  if (raw instanceof Response) return raw;
+  return replyResponse(target, headers, raw);
 }
 
 export function OPTIONS() {

@@ -20,18 +20,23 @@ import { makeMockSpecialist } from "../lib/specialists/base";
 import { MCP_CATALOG } from "../lib/specialists/catalog";
 import type {
   AgentId,
+  ArborWorkspaceToolName,
   BidPayload,
   ExecutionArtifact,
   JudgeVerdict,
   ProbeResult,
   SpecialistConfig,
   SpecialistOutput,
+  SpecialistDecision,
+  SpecialistExecuteContext,
   SpecialistProvenance,
+  SpecialistRunner,
   ToolCallAuditInput,
   ToolCallAuditOutcome,
   ToolCallRecorder,
 } from "../lib/types";
 import { callOpenAIJSON, type ModelGateway } from "../lib/openai";
+import type { LlmCallRecord, UsageTotals } from "../lib/llm-usage";
 import { stripProvenanceBanner } from "../lib/delivery-text";
 import {
   NEUTRAL_INCENTIVE_STATS,
@@ -375,515 +380,722 @@ async function assessPlanPlausibility(
 
 // ─── Phase 2: bid solicitation ───────────────────────────────────────────
 
+type PublicTier = ReturnType<typeof toPublicTier>;
+
+type BidOutcome =
+  | { ok: true; decision: SpecialistDecision }
+  | { ok: false; error: string };
+
+/** Per-task inputs shared by every specialist solicited in one auction. */
+interface SolicitationContext {
+  ctx: ActionCtx;
+  task: Doc<"tasks">;
+  promptForAgents: string;
+  taskClass: string | undefined;
+  acceptFloor: number | undefined;
+}
+
+/** One specialist's solicitation after its probe row has been written. */
+interface ProbedSolicitation {
+  spec: SpecialistConfig;
+  startedAt: number;
+  reputation: number;
+  incentiveStats: AgentIncentiveStats;
+  public_tier: PublicTier;
+  liveCapable: boolean;
+  probe: ProbeResult;
+  probe_id: Id<"bid_probes">;
+}
+
+const FULL_WEIGHT_PUBLIC_TIERS = new Set<PublicTier>([
+  "native-a2a",
+  "a2a-bridge",
+  "model-backed",
+]);
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function unconfiguredKeyMessage(missingKeyEnv: string | undefined): string | undefined {
+  return missingKeyEnv ? `unconfigured: ${missingKeyEnv} not set` : undefined;
+}
+
+async function bidPromptForAgents(ctx: ActionCtx, task: Doc<"tasks">): Promise<string> {
+  const taskContext = await ctx.runQuery(internal.taskContexts._latestForTask, {
+    task_id: task._id,
+  });
+  // The buyer's max_budget is deliberately NOT advertised to bidders.
+  // Advertising it anchored every price to the ceiling (house last-resort
+  // agents literally bid 0.92x the parsed ceiling), so the "budget" became
+  // the price. Bidders are asked for their true delivery cost instead;
+  // affordability is enforced server-side by the bid validity filter and
+  // the specialists' own cost-vs-price decline logic falls back to
+  // cost_baseline when no ceiling is present in the prompt.
+  return [
+    task.prompt,
+    "Price your bid at the lowest amount you can credibly deliver this " +
+      "task for. No budget ceiling is disclosed; bids the buyer cannot " +
+      "afford are rejected without being seen.",
+    taskContext ? `---\n\n${taskContext.prompt_addendum}` : undefined,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join("\n\n");
+}
+
+/**
+ * Capability cluster for task-conditional incentive stats: hive child
+ * tasks reuse their node's class, plain tasks are classified by prototype
+ * embedding. Fail-soft — undefined degrades every consumer to global
+ * stats, exactly the pre-cluster behavior.
+ */
+async function resolveAndLogTaskClass(
+  ctx: ActionCtx,
+  task: Doc<"tasks">,
+): Promise<string | undefined> {
+  const taskClass = await resolveTaskClass(ctx, task).catch(() => undefined);
+  if (taskClass) {
+    await ctx.runMutation(internal.lifecycle.log, {
+      task_id: task._id,
+      event_type: "task_class_resolved",
+      payload: { task_class: taskClass },
+    });
+  }
+  return taskClass;
+}
+
+async function loadDiscoveredSpecialists(
+  ctx: ActionCtx,
+  task: Doc<"tasks">,
+): Promise<SpecialistConfig[]> {
+  const discovered = (await ctx.runQuery(
+    api.discoveredSpecialists.list,
+    {},
+  )) as Array<Doc<"discovered_specialists">>;
+  const configs = discovered
+    .map((row) => specialistConfigFromPersisted(row))
+    .filter((config) => specialistEnabled(config, task.model_gateway));
+  for (const config of configs) {
+    registerDiscoveredSpecialist(config);
+  }
+  return configs;
+}
+
+/**
+ * Hydrate outbound A2A keys from the Convex vault: any specialist whose
+ * key env var is unset gets it populated from a2a_outbound_keys so keyed
+ * agents can bid without env-var redeploys (console-pasted or
+ * auto-acquired keys take effect on the next auction).
+ */
+async function hydrateOutboundA2AKeys(ctx: ActionCtx, configs: SpecialistConfig[]) {
+  try {
+    const vaultRows = await ctx.runQuery(internal.a2aOutboundKeys._getAll, {});
+    const byAgent = new Map(vaultRows.map((k) => [k.agent_id, k.api_key]));
+    for (const cfg of configs) {
+      const envVar = cfg.a2a_api_key_env;
+      if (cfg.a2a_auth_mode === "none" || !envVar || process.env[envVar]) continue;
+      const key = byAgent.get(cfg.agent_id);
+      if (key) process.env[envVar] = key;
+    }
+  } catch {
+    // Vault read failure -> keyed agents without env vars decline cleanly.
+  }
+}
+
+/**
+ * Auto-enrol every catalog entry (Stripe, Linear, Vercel, etc.) as a
+ * bidder unless it's already covered by a sponsor or discovered config.
+ */
+function enrolCatalogSpecialists(
+  staticSpecialists: SpecialistConfig[],
+  discoveredConfigs: SpecialistConfig[],
+): SpecialistConfig[] {
+  const taken = new Set([
+    ...staticSpecialists.map((s) => s.agent_id),
+    ...discoveredConfigs.map((d) => d.agent_id),
+  ]);
+  return MCP_CATALOG.filter((c) => !taken.has(c.agent_id)).map((c) => {
+    const cfg = specialistConfigFromCatalog(c);
+    registerDiscoveredSpecialist(cfg);
+    return cfg;
+  });
+}
+
+/**
+ * Open auction: every registered specialist gets a chance to bid. Each
+ * runner's bid prompt tells it to decline when the task is out of scope,
+ * and the Vickrey score (reputation / bid_price) handles the rest.
+ *
+ * Public demo is an isolated deterministic lane. Do not enumerate or
+ * register persisted/catalog specialists and never read the outbound A2A
+ * key vault there: its roster must remain exactly arbor-public-demo.
+ */
+async function auctionRoster(
+  ctx: ActionCtx,
+  task: Doc<"tasks">,
+  staticSpecialists: SpecialistConfig[],
+  isPublicDemo: boolean,
+): Promise<SpecialistConfig[]> {
+  if (isPublicDemo) return staticSpecialists;
+  const discoveredConfigs = await loadDiscoveredSpecialists(ctx, task);
+  await hydrateOutboundA2AKeys(ctx, discoveredConfigs);
+  const catalogConfigs = enrolCatalogSpecialists(staticSpecialists, discoveredConfigs);
+  return dedupeRoster([...staticSpecialists, ...discoveredConfigs, ...catalogConfigs]);
+}
+
+/**
+ * Make sure every bidder has an agents row so reputation reads use the
+ * live score and settlement's _applyReputationDelta never hits a missing
+ * row (registry-only specialists like arbor-worker-a2a used to crash
+ * settle and strand tasks in "judging").
+ */
+async function ensureAgentRows(ctx: ActionCtx, roster: SpecialistConfig[]) {
+  await Promise.allSettled(
+    roster.map((c) =>
+      ctx.runMutation(internal.agents._ensureAgent, {
+        agent_id: c.agent_id,
+        display_name: c.display_name,
+        sponsor: c.sponsor,
+        capabilities: c.capabilities,
+        system_prompt: c.system_prompt,
+        cost_per_task_estimate: c.cost_baseline,
+        starting_reputation: c.starting_reputation,
+      }),
+    ),
+  );
+}
+
+/**
+ * `openRoster` tracks the open-auction paths (no shortlist, or a shortlist
+ * that matched nothing). Only those are eligible for the fan-out cap.
+ */
+async function selectInvitedSpecialists(
+  ctx: ActionCtx,
+  task: Doc<"tasks">,
+  staticSpecialists: SpecialistConfig[],
+  roster: SpecialistConfig[],
+  isPublicDemo: boolean,
+): Promise<{ specialists: SpecialistConfig[]; openRoster: boolean }> {
+  if (!isPublicDemo && task.task_type === "reacher-live-launch") {
+    // Sponsor-demo invariant: reacher-live-launch always solicits only
+    // reacher-social, regardless of any per-task shortlist.
+    return {
+      specialists: staticSpecialists.filter((spec) => spec.agent_id === "reacher-social"),
+      openRoster: false,
+    };
+  }
+  const invitedIds =
+    Array.isArray(task.invited_agent_ids) && task.invited_agent_ids.length > 0
+      ? new Set(task.invited_agent_ids)
+      : null;
+  if (!invitedIds) return { specialists: roster, openRoster: true };
+
+  const matched = roster.filter((spec) => invitedIds.has(spec.agent_id));
+  if (matched.length === 0) {
+    // Over-restrictive shortlist (no roster member matches): degrade to
+    // the open auction rather than guaranteeing an auction_failed.
+    await ctx.runMutation(internal.lifecycle.log, {
+      task_id: task._id,
+      event_type: "auction_shortlist_empty",
+      payload: {
+        invited_agent_ids: task.invited_agent_ids,
+        matched: [],
+      },
+    });
+    return { specialists: roster, openRoster: true };
+  }
+  await ctx.runMutation(internal.lifecycle.log, {
+    task_id: task._id,
+    event_type: "auction_shortlisted",
+    payload: {
+      invited_agent_ids: task.invited_agent_ids,
+      matched: matched.map((s) => s.agent_id),
+    },
+  });
+  return { specialists: matched, openRoster: false };
+}
+
+/**
+ * Open auctions only. An explicit shortlist is already small and was
+ * chosen deliberately by the router or the buyer, so capping it would
+ * silently discard that intent.
+ */
+async function applySolicitCap(
+  ctx: ActionCtx,
+  task_id: Id<"tasks">,
+  invited: { specialists: SpecialistConfig[]; openRoster: boolean },
+): Promise<SpecialistConfig[]> {
+  const solicitCap = maxSolicitedAgents();
+  const rosterSize = invited.specialists.length;
+  if (!invited.openRoster || solicitCap === undefined || rosterSize <= solicitCap) {
+    return invited.specialists;
+  }
+  const capped = capOpenRoster(invited.specialists, solicitCap, {
+    floorAgentIds: ARBOR_FLOOR_AGENT_IDS,
+    env: process.env,
+  });
+  // Logged rather than silently truncated: an auction that probed 40 of
+  // 1,155 agents is a materially different claim from an open auction,
+  // and the replay//admin surfaces should be able to say so.
+  await ctx.runMutation(internal.lifecycle.log, {
+    task_id,
+    event_type: "auction_roster_capped",
+    payload: {
+      cap: solicitCap,
+      roster_size: rosterSize,
+      solicited: capped.length,
+      dropped: rosterSize - capped.length,
+    },
+  });
+  return capped;
+}
+
+/**
+ * Cluster accept-rate floor (env-gated, off by default): an agent
+ * with a proven bad record on this exact class of task is not worth
+ * soliciting. Arbor-owned floor bidders are exempt — the floor must
+ * never be able to empty an auction.
+ */
+async function declinedByClusterFloor(
+  auction: SolicitationContext,
+  spec: SpecialistConfig,
+  incentiveStats: AgentIncentiveStats,
+): Promise<boolean> {
+  const { acceptFloor, taskClass } = auction;
+  if (
+    acceptFloor === undefined ||
+    ARBOR_FLOOR_AGENT_IDS.has(spec.agent_id) ||
+    !belowClusterAcceptFloor(incentiveStats, acceptFloor)
+  ) {
+    return false;
+  }
+  await auction.ctx.runMutation(internal.lifecycle.log, {
+    task_id: auction.task._id,
+    event_type: "bid_declined",
+    payload: {
+      agent_id: spec.agent_id,
+      reason: `cluster_accept_floor: ${Math.round(incentiveStats.accept_rate * 100)}% accept rate over ${incentiveStats.settled_tasks} settled ${taskClass} tasks is below the ${Math.round(acceptFloor * 100)}% floor`,
+      task_class: taskClass,
+    },
+  });
+  return true;
+}
+
+/**
+ * A listed MCP specialist whose declared API key env var is absent
+ * can never run live — its probe would fail with "env not set".
+ * Route it to the demo lane instead of pretending the endpoint is
+ * broken. A2A key envs are NOT checked here: they are optional
+ * (bearer only when the agent card demands it), and the card-auth
+ * resolver already fails closed when auth is genuinely required.
+ */
+function missingSpecialistKeyEnv(spec: SpecialistConfig): string | undefined {
+  if (spec.mcp_api_key_env && !process.env[spec.mcp_api_key_env]) {
+    return spec.mcp_api_key_env;
+  }
+  if (spec.openrouter_api_key_env && !process.env[spec.openrouter_api_key_env]) {
+    return spec.openrouter_api_key_env;
+  }
+  return undefined;
+}
+
+async function declineDemoLaneSpecialist(
+  auction: SolicitationContext,
+  spec: SpecialistConfig,
+  public_tier: PublicTier,
+  missingKeyEnv: string | undefined,
+) {
+  const probe_id = await auction.ctx.runMutation(internal.bidProbes._insert, {
+    task_id: auction.task._id,
+    agent_id: spec.agent_id,
+    public_tier,
+    probe_status: "demo_lane",
+    duration_ms: 0,
+    error_message: unconfiguredKeyMessage(missingKeyEnv),
+    created_at: Date.now(),
+  });
+  await auction.ctx.runMutation(internal.lifecycle.log, {
+    task_id: auction.task._id,
+    event_type: "bid_declined",
+    payload: {
+      agent_id: spec.agent_id,
+      reason: "demo_lane — no live probe",
+      public_tier,
+      probe_id,
+    },
+  });
+}
+
+/**
+ * Probe and bid run concurrently. The serial probe→bid chain
+ * (8s + 12s worst case) could not fit tunneled A2A agents inside a
+ * 30s window; in parallel the slower leg dominates. A bid whose
+ * probe fails is discarded — liveness still gates the auction.
+ */
+async function probeAndBid(
+  spec: SpecialistConfig,
+  runner: SpecialistRunner,
+  liveCapable: boolean,
+  missingKeyEnv: string | undefined,
+  prompt: string,
+  taskType: string,
+): Promise<[ProbeResult, BidOutcome]> {
+  const probeStart = Date.now();
+  const probePromise: Promise<ProbeResult> = liveCapable
+    ? runner.probe!(taskType).catch((err) => ({
+        status: "fail" as const,
+        duration_ms: Date.now() - probeStart,
+        error_message: errorMessage(err),
+      }))
+    : Promise.resolve({
+        status: "demo_lane" as const,
+        duration_ms: 0,
+        error_message: unconfiguredKeyMessage(missingKeyEnv),
+      });
+
+  // Demo-lane bids always come from the persona runner with an explicit
+  // mock tier, so provenance labels and bid plans never overstate what
+  // the specialist can actually reach.
+  const bidRunner = liveCapable
+    ? runner
+    : makeMockSpecialist({ ...spec, tier: "mock" });
+  const runBid = (): Promise<BidOutcome> =>
+    bidRunner
+      .bid(prompt, taskType)
+      .then((decision) => ({ ok: true as const, decision }))
+      .catch((err) => ({ ok: false as const, error: errorMessage(err) }));
+
+  // A full readiness smoke may verify a keyless A2A endpoint and persist
+  // a2a_auth_mode:"none". Some public A2A servers cannot serve a probe
+  // and bid concurrently on the same session. Serialize those two
+  // read-only requests; unverified/keyed transports keep the faster
+  // parallel path needed to fit the bid window.
+  if (spec.tier === "a2a" && spec.a2a_auth_mode === "none") {
+    return [await probePromise, await runBid()];
+  }
+  return await Promise.all([probePromise, runBid()]);
+}
+
+function bidOrDeclineReason(
+  probe: ProbeResult,
+  outcome: BidOutcome,
+): { bid: BidPayload } | { declineReason: string } {
+  const probeReason =
+    probe.status === "fail"
+      ? `probe_failed: ${probe.error_message ?? "unknown"}; `
+      : "";
+  if (!outcome.ok) return { declineReason: `${probeReason}error: ${outcome.error}` };
+  if ("decline" in outcome.decision) {
+    return { declineReason: `${probeReason}${outcome.decision.reason}` };
+  }
+  return { bid: outcome.decision satisfies BidPayload };
+}
+
+async function declineSolicitation(
+  auction: SolicitationContext,
+  solicitation: ProbedSolicitation,
+  reason: string,
+) {
+  await auction.ctx.runMutation(internal.lifecycle.log, {
+    task_id: auction.task._id,
+    event_type: "bid_declined",
+    payload: {
+      agent_id: solicitation.spec.agent_id,
+      reason,
+      public_tier: solicitation.public_tier,
+      probe_id: solicitation.probe_id,
+    },
+  });
+}
+
+/**
+ * Plan screen: a bid must carry a plausible, task-specific plan.
+ * Arbor-owned last-resort floors are exempt — their plan is generic by
+ * design, and the screen must never be able to empty the auction by
+ * rejecting the guaranteed bidder. Floors stay last-resort on score, so
+ * exemption never lets them outrank a live specialist.
+ */
+async function screenBidPlan(
+  task: Doc<"tasks">,
+  spec: SpecialistConfig,
+  bid: BidPayload,
+): Promise<{ plausible: boolean; reason: string }> {
+  if (ARBOR_FLOOR_AGENT_IDS.has(spec.agent_id)) {
+    return { plausible: true, reason: "arbor-owned floor (screen-exempt)" };
+  }
+  return await assessPlanPlausibility(
+    task.prompt,
+    bid.capability_claim,
+    task.model_gateway as ModelGateway | undefined,
+  );
+}
+
+/**
+ * Probe-passed live tiers carry full weight; demo-lane personas get a
+ * near-zero weight — visible in the auction, ranked among themselves,
+ * but never above any live bidder.
+ */
+function bidTierWeight(solicitation: ProbedSolicitation): number {
+  const { probe, liveCapable, public_tier } = solicitation;
+  const liveBidConfirmed =
+    probe.status === "pass" || (probe.status === "fail" && liveCapable);
+  if (liveBidConfirmed && FULL_WEIGHT_PUBLIC_TIERS.has(public_tier)) return 1.0;
+  return probe.status === "demo_lane" ? 0.05 : 0;
+}
+
+/**
+ * Two ranking forms. The Vickrey ratio is the incumbent and stays the
+ * default. The beta form is the same preference expressed additively,
+ * with an explicit cost sensitivity — the ratio hard-codes one exchange
+ * rate between quality and money, so the market has exactly one
+ * operating point and cannot be tuned to an SLO. See lib/hive/pareto-core.ts.
+ *
+ * They are NOT on a common scale (the ratio is unbounded above, the
+ * utility lives in roughly [-beta, 1]), so this switches between them
+ * wholesale rather than blending. Every bid in one auction is scored by
+ * the same rule, which is all the sort needs.
+ */
+function bidScore(input: {
+  reputation: number;
+  p_accept: number;
+  tierWeight: number;
+  semanticWeight: number;
+  price: number;
+  budget: number;
+}): number {
+  if (paretoBidEnabled()) {
+    return paretoBidScore({
+      reputation: input.reputation,
+      p_accept: input.p_accept,
+      tier_weight: input.tierWeight,
+      semantic_weight: input.semanticWeight,
+      price: input.price,
+      budget: input.budget,
+    });
+  }
+  return (
+    ((input.reputation * input.p_accept) / Math.max(0.01, input.price)) *
+    input.tierWeight *
+    input.semanticWeight
+  );
+}
+
+function taskClassHistoryCount(
+  incentiveStats: AgentIncentiveStats,
+  taskClass: string | undefined,
+): number | undefined {
+  if (incentiveStats.scope === "cluster") return incentiveStats.settled_tasks;
+  return taskClass !== undefined ? 0 : undefined;
+}
+
+async function insertScoredBid(
+  auction: SolicitationContext,
+  solicitation: ProbedSolicitation,
+  bid: BidPayload,
+) {
+  const { ctx, task, taskClass } = auction;
+  const { spec, incentiveStats, public_tier, probe_id } = solicitation;
+  // Risk-adjusted Vickrey score: reputation x calibrated P(accept) per
+  // dollar. The self-reported confidence only moves rank as far as the
+  // agent's measured calibration allows (see lib/bid-calibration.ts),
+  // so a low-ability agent cannot buy rank with a confident claim —
+  // the market opts it out even when it refuses to opt itself out.
+  const confidence = clampConfidence(bid.confidence);
+  const p_accept = blendedAcceptProbability(confidence, incentiveStats);
+  const semanticWeight = invitedSemanticWeight(
+    spec.agent_id,
+    task.invited_agent_ids,
+    ARBOR_FLOOR_AGENT_IDS,
+  );
+  const score = bidScore({
+    reputation: solicitation.reputation,
+    p_accept,
+    tierWeight: bidTierWeight(solicitation),
+    semanticWeight,
+    price: bid.bid_price,
+    budget: task.max_budget,
+  });
+  const bid_id = await ctx.runMutation(internal.bids._insert, {
+    task_id: task._id,
+    agent_id: spec.agent_id,
+    bid_price: bid.bid_price,
+    capability_claim: bid.capability_claim,
+    estimated_seconds: bid.estimated_seconds,
+    score,
+    confidence,
+    p_accept,
+    plan_source: bid.plan_source,
+    task_class: taskClass,
+    task_class_history_count: taskClassHistoryCount(incentiveStats, taskClass),
+  });
+  await ctx.runMutation(internal.bidProbes._setBidId, {
+    probe_id,
+    bid_id,
+  });
+  await ctx.runMutation(internal.lifecycle.log, {
+    task_id: task._id,
+    event_type: "bid_received",
+    payload: {
+      bid_id,
+      agent_id: spec.agent_id,
+      sponsor: spec.sponsor,
+      // bid_price kept out of payload to preserve sealed-bid property
+      // until the resolver writes the auction_resolved event.
+      capability_claim: bid.capability_claim,
+      estimated_seconds: bid.estimated_seconds,
+      confidence,
+      p_accept,
+      semantic_weight: semanticWeight,
+      plan_source: bid.plan_source,
+      bid_latency_ms: Date.now() - solicitation.startedAt,
+      public_tier,
+      probe_id,
+    },
+  });
+}
+
+async function recordBidOutcome(
+  auction: SolicitationContext,
+  solicitation: ProbedSolicitation,
+  outcome: BidOutcome,
+) {
+  const accepted = bidOrDeclineReason(solicitation.probe, outcome);
+  if ("declineReason" in accepted) {
+    await declineSolicitation(auction, solicitation, accepted.declineReason);
+    return;
+  }
+  const { bid } = accepted;
+
+  if (solicitation.probe.status === "fail") {
+    await auction.ctx.runMutation(internal.lifecycle.log, {
+      task_id: auction.task._id,
+      event_type: "bid_probe_failed_but_bid_received",
+      payload: {
+        agent_id: solicitation.spec.agent_id,
+        probe_error: solicitation.probe.error_message ?? "unknown",
+        public_tier: solicitation.public_tier,
+        probe_id: solicitation.probe_id,
+      },
+    });
+  }
+
+  const screen = await screenBidPlan(auction.task, solicitation.spec, bid);
+  if (!screen.plausible) {
+    await declineSolicitation(auction, solicitation, `implausible_plan: ${screen.reason}`);
+    return;
+  }
+  await insertScoredBid(auction, solicitation, bid);
+}
+
+async function solicitSpecialist(
+  auction: SolicitationContext,
+  spec: SpecialistConfig,
+): Promise<void> {
+  const { ctx, task } = auction;
+  const startedAt = Date.now();
+  const agent = await ctx.runQuery(internal.agents._getByAgentId, {
+    agent_id: spec.agent_id,
+  });
+  const reputation = agent?.reputation_score ?? spec.starting_reputation;
+
+  // Incentive-compatible opt-out: every solicitation publishes the
+  // payoff arithmetic (Brier-scored confidence, confidence-scaled
+  // slash, free declines) plus the agent's own track record, so
+  // declining is the rational move exactly when ability is low.
+  // Task-conditional: stats are scoped to this task's capability
+  // cluster when the agent has same-class history, so an OCR agent's
+  // accept rate cannot vouch for its legal-drafting bids.
+  // Fail-soft to the neutral prior — stats must never empty an auction.
+  const incentiveStats: AgentIncentiveStats = await ctx
+    .runQuery(internal.reputationDimensions._incentiveStatsForAgent, {
+      agent_id: spec.agent_id,
+      task_class: auction.taskClass,
+    })
+    .catch(() => NEUTRAL_INCENTIVE_STATS);
+
+  if (await declinedByClusterFloor(auction, spec, incentiveStats)) return;
+  const promptWithIncentives = `${auction.promptForAgents}\n\n${bidIncentiveBlock(incentiveStats)}`;
+
+  const missingKeyEnv = missingSpecialistKeyEnv(spec);
+  const runner = getRunner(spec.agent_id as AgentId);
+  const liveCapable = Boolean(runner.probe) && !missingKeyEnv;
+
+  // Demo-lane policy: only Arbor's own listed specialists (the static
+  // roster shown on /agents) may bid via the labeled persona lane.
+  // Discovered/catalog third parties never get plans authored for them.
+  const demoEligible = !spec.discovered && spec.tier !== "openrouter";
+  const public_tier = liveCapable
+    ? toPublicTier(spec.tier)
+    : toPublicTier("mock");
+
+  if (!liveCapable && !demoEligible) {
+    await declineDemoLaneSpecialist(auction, spec, public_tier, missingKeyEnv);
+    return;
+  }
+
+  const [probe, bidOutcome] = await probeAndBid(
+    spec,
+    runner,
+    liveCapable,
+    missingKeyEnv,
+    promptWithIncentives,
+    task.task_type,
+  );
+
+  const probe_id = await ctx.runMutation(internal.bidProbes._insert, {
+    task_id: task._id,
+    agent_id: spec.agent_id,
+    public_tier,
+    probe_status: probe.status,
+    duration_ms: probe.duration_ms,
+    response_excerpt: probe.response_excerpt,
+    error_message: probe.error_message,
+    created_at: Date.now(),
+  });
+
+  await recordBidOutcome(
+    auction,
+    { spec, startedAt, reputation, incentiveStats, public_tier, liveCapable, probe, probe_id },
+    bidOutcome,
+  );
+}
+
 export const solicitBids = internalAction({
   args: { task_id: v.id("tasks") },
   handler: async (ctx, args) => {
     const task = await ctx.runQuery(internal.tasks._get, {
       task_id: args.task_id,
     });
-
-    const taskContext = await ctx.runQuery(internal.taskContexts._latestForTask, {
-      task_id: args.task_id,
-    });
-    // The buyer's max_budget is deliberately NOT advertised to bidders.
-    // Advertising it anchored every price to the ceiling (house last-resort
-    // agents literally bid 0.92x the parsed ceiling), so the "budget" became
-    // the price. Bidders are asked for their true delivery cost instead;
-    // affordability is enforced server-side by the bid validity filter and
-    // the specialists' own cost-vs-price decline logic falls back to
-    // cost_baseline when no ceiling is present in the prompt.
-    const promptForAgents = [
-      task.prompt,
-      "Price your bid at the lowest amount you can credibly deliver this " +
-        "task for. No budget ceiling is disclosed; bids the buyer cannot " +
-        "afford are rejected without being seen.",
-      taskContext ? `---\n\n${taskContext.prompt_addendum}` : undefined,
-    ]
-      .filter((part): part is string => Boolean(part))
-      .join("\n\n");
-
-    // Capability cluster for task-conditional incentive stats: hive child
-    // tasks reuse their node's class, plain tasks are classified by prototype
-    // embedding. Fail-soft — undefined degrades every consumer to global
-    // stats, exactly the pre-cluster behavior.
-    const taskClass = await resolveTaskClass(ctx, task).catch(
-      () => undefined,
-    );
-    if (taskClass) {
-      await ctx.runMutation(internal.lifecycle.log, {
-        task_id: args.task_id,
-        event_type: "task_class_resolved",
-        payload: { task_class: taskClass },
-      });
-    }
-    const acceptFloor = clusterAcceptFloor();
+    const promptForAgents = await bidPromptForAgents(ctx, task);
+    const taskClass = await resolveAndLogTaskClass(ctx, task);
+    const auction: SolicitationContext = {
+      ctx,
+      task,
+      promptForAgents,
+      taskClass,
+      acceptFloor: clusterAcceptFloor(),
+    };
 
     const isPublicDemo = publicDemoMode();
     const staticSpecialists = getSpecialists(task.model_gateway);
-    let discoveredConfigs: SpecialistConfig[] = [];
-    let catalogConfigs: SpecialistConfig[] = [];
-
-    // Public demo is an isolated deterministic lane. Do not enumerate or
-    // register persisted/catalog specialists and never read the outbound A2A
-    // key vault there: its roster must remain exactly arbor-public-demo.
-    if (!isPublicDemo) {
-      const discovered = (await ctx.runQuery(
-        api.discoveredSpecialists.list,
-        {},
-      )) as Array<Doc<"discovered_specialists">>;
-      discoveredConfigs = discovered
-        .map((row) => specialistConfigFromPersisted(row))
-        .filter((config) => specialistEnabled(config, task.model_gateway));
-      for (const config of discoveredConfigs) {
-        registerDiscoveredSpecialist(config);
-      }
-
-      // Hydrate outbound A2A keys from the Convex vault: any specialist whose
-      // key env var is unset gets it populated from a2a_outbound_keys so keyed
-      // agents can bid without env-var redeploys (console-pasted or
-      // auto-acquired keys take effect on the next auction).
-      try {
-        const vaultRows = await ctx.runQuery(internal.a2aOutboundKeys._getAll, {});
-        const byAgent = new Map(vaultRows.map((k) => [k.agent_id, k.api_key]));
-        for (const cfg of discoveredConfigs) {
-          if (
-            cfg.a2a_auth_mode !== "none" &&
-            cfg.a2a_api_key_env &&
-            !process.env[cfg.a2a_api_key_env]
-          ) {
-            const key = byAgent.get(cfg.agent_id);
-            if (key) process.env[cfg.a2a_api_key_env] = key;
-          }
-        }
-      } catch {
-        // Vault read failure -> keyed agents without env vars decline cleanly.
-      }
-
-      // Auto-enrol every catalog entry (Stripe, Linear, Vercel, etc.) as a
-      // bidder unless it's already covered by a sponsor or discovered config.
-      const taken = new Set([
-        ...staticSpecialists.map((s) => s.agent_id),
-        ...discoveredConfigs.map((d) => d.agent_id),
-      ]);
-      catalogConfigs = MCP_CATALOG.filter((c) => !taken.has(c.agent_id)).map(
-        (c) => {
-          const cfg = specialistConfigFromCatalog(c);
-          registerDiscoveredSpecialist(cfg);
-          return cfg;
-        },
-      );
-    }
-
-    // Open auction: every registered specialist gets a chance to bid. Each
-    // runner's bid prompt tells it to decline when the task is out of scope,
-    // and the Vickrey score (reputation / bid_price) handles the rest.
-    const roster = isPublicDemo
-      ? staticSpecialists
-      : dedupeRoster([
-          ...staticSpecialists,
-          ...discoveredConfigs,
-          ...catalogConfigs,
-        ]);
-
-    // Make sure every bidder has an agents row so reputation reads use the
-    // live score and settlement's _applyReputationDelta never hits a missing
-    // row (registry-only specialists like arbor-worker-a2a used to crash
-    // settle and strand tasks in "judging").
-    await Promise.allSettled(
-      roster.map((c) =>
-        ctx.runMutation(internal.agents._ensureAgent, {
-          agent_id: c.agent_id,
-          display_name: c.display_name,
-          sponsor: c.sponsor,
-          capabilities: c.capabilities,
-          system_prompt: c.system_prompt,
-          cost_per_task_estimate: c.cost_baseline,
-          starting_reputation: c.starting_reputation,
-        }),
-      ),
+    const roster = await auctionRoster(ctx, task, staticSpecialists, isPublicDemo);
+    await ensureAgentRows(ctx, roster);
+    const shortlist = await selectInvitedSpecialists(
+      ctx,
+      task,
+      staticSpecialists,
+      roster,
+      isPublicDemo,
     );
-    const invitedIds =
-      Array.isArray(task.invited_agent_ids) && task.invited_agent_ids.length > 0
-        ? new Set(task.invited_agent_ids)
-        : null;
-    let invitedSpecialists: SpecialistConfig[];
-    // Tracks the open-auction paths (no shortlist, or a shortlist that
-    // matched nothing). Only those are eligible for the fan-out cap.
-    let openRoster = false;
-    if (!isPublicDemo && task.task_type === "reacher-live-launch") {
-      // Sponsor-demo invariant: reacher-live-launch always solicits only
-      // reacher-social, regardless of any per-task shortlist.
-      invitedSpecialists = staticSpecialists.filter(
-        (spec) => spec.agent_id === "reacher-social",
-      );
-    } else if (invitedIds) {
-      invitedSpecialists = roster.filter((spec) => invitedIds.has(spec.agent_id));
-      if (invitedSpecialists.length === 0) {
-        // Over-restrictive shortlist (no roster member matches): degrade to
-        // the open auction rather than guaranteeing an auction_failed.
-        invitedSpecialists = roster;
-        openRoster = true;
-        await ctx.runMutation(internal.lifecycle.log, {
-          task_id: args.task_id,
-          event_type: "auction_shortlist_empty",
-          payload: {
-            invited_agent_ids: task.invited_agent_ids,
-            matched: [],
-          },
-        });
-      } else {
-        await ctx.runMutation(internal.lifecycle.log, {
-          task_id: args.task_id,
-          event_type: "auction_shortlisted",
-          payload: {
-            invited_agent_ids: task.invited_agent_ids,
-            matched: invitedSpecialists.map((s) => s.agent_id),
-          },
-        });
-      }
-    } else {
-      invitedSpecialists = roster;
-      openRoster = true;
-    }
-
-    // Open auctions only. An explicit shortlist is already small and was
-    // chosen deliberately by the router or the buyer, so capping it would
-    // silently discard that intent.
-    const solicitCap = maxSolicitedAgents();
-    if (
-      openRoster &&
-      solicitCap !== undefined &&
-      invitedSpecialists.length > solicitCap
-    ) {
-      const rosterSize = invitedSpecialists.length;
-      invitedSpecialists = capOpenRoster(invitedSpecialists, solicitCap, {
-        floorAgentIds: ARBOR_FLOOR_AGENT_IDS,
-        env: process.env,
-      });
-      // Logged rather than silently truncated: an auction that probed 40 of
-      // 1,155 agents is a materially different claim from an open auction,
-      // and the replay//admin surfaces should be able to say so.
-      await ctx.runMutation(internal.lifecycle.log, {
-        task_id: args.task_id,
-        event_type: "auction_roster_capped",
-        payload: {
-          cap: solicitCap,
-          roster_size: rosterSize,
-          solicited: invitedSpecialists.length,
-          dropped: rosterSize - invitedSpecialists.length,
-        },
-      });
-    }
-
-    const solicitSpecialist = async (spec: SpecialistConfig): Promise<void> => {
-        const solicitStart = Date.now();
-        const agent = await ctx.runQuery(internal.agents._getByAgentId, {
-          agent_id: spec.agent_id,
-        });
-        const reputation = agent?.reputation_score ?? spec.starting_reputation;
-
-        // Incentive-compatible opt-out: every solicitation publishes the
-        // payoff arithmetic (Brier-scored confidence, confidence-scaled
-        // slash, free declines) plus the agent's own track record, so
-        // declining is the rational move exactly when ability is low.
-        // Task-conditional: stats are scoped to this task's capability
-        // cluster when the agent has same-class history, so an OCR agent's
-        // accept rate cannot vouch for its legal-drafting bids.
-        // Fail-soft to the neutral prior — stats must never empty an auction.
-        const incentiveStats: AgentIncentiveStats = await ctx
-          .runQuery(internal.reputationDimensions._incentiveStatsForAgent, {
-            agent_id: spec.agent_id,
-            task_class: taskClass,
-          })
-          .catch(() => NEUTRAL_INCENTIVE_STATS);
-
-        // Cluster accept-rate floor (env-gated, off by default): an agent
-        // with a proven bad record on this exact class of task is not worth
-        // soliciting. Arbor-owned floor bidders are exempt — the floor must
-        // never be able to empty an auction.
-        if (
-          acceptFloor !== undefined &&
-          !ARBOR_FLOOR_AGENT_IDS.has(spec.agent_id) &&
-          belowClusterAcceptFloor(incentiveStats, acceptFloor)
-        ) {
-          await ctx.runMutation(internal.lifecycle.log, {
-            task_id: args.task_id,
-            event_type: "bid_declined",
-            payload: {
-              agent_id: spec.agent_id,
-              reason: `cluster_accept_floor: ${Math.round(incentiveStats.accept_rate * 100)}% accept rate over ${incentiveStats.settled_tasks} settled ${taskClass} tasks is below the ${Math.round(acceptFloor * 100)}% floor`,
-              task_class: taskClass,
-            },
-          });
-          return;
-        }
-        const promptWithIncentives = `${promptForAgents}\n\n${bidIncentiveBlock(incentiveStats)}`;
-
-        // A listed MCP specialist whose declared API key env var is absent
-        // can never run live — its probe would fail with "env not set".
-        // Route it to the demo lane instead of pretending the endpoint is
-        // broken. A2A key envs are NOT checked here: they are optional
-        // (bearer only when the agent card demands it), and the card-auth
-        // resolver already fails closed when auth is genuinely required.
-        const missingKeyEnv =
-          spec.mcp_api_key_env && !process.env[spec.mcp_api_key_env]
-            ? spec.mcp_api_key_env
-            : spec.openrouter_api_key_env &&
-                !process.env[spec.openrouter_api_key_env]
-              ? spec.openrouter_api_key_env
-            : undefined;
-
-        const runner = getRunner(spec.agent_id as AgentId);
-        const liveCapable = Boolean(runner.probe) && !missingKeyEnv;
-
-        // Demo-lane policy: only Arbor's own listed specialists (the static
-        // roster shown on /agents) may bid via the labeled persona lane.
-        // Discovered/catalog third parties never get plans authored for them.
-        const demoEligible = !spec.discovered && spec.tier !== "openrouter";
-        const public_tier = liveCapable
-          ? toPublicTier(spec.tier)
-          : toPublicTier("mock");
-
-        if (!liveCapable && !demoEligible) {
-          const probe_id = await ctx.runMutation(internal.bidProbes._insert, {
-            task_id: args.task_id,
-            agent_id: spec.agent_id,
-            public_tier,
-            probe_status: "demo_lane",
-            duration_ms: 0,
-            error_message: missingKeyEnv
-              ? `unconfigured: ${missingKeyEnv} not set`
-              : undefined,
-            created_at: Date.now(),
-          });
-          await ctx.runMutation(internal.lifecycle.log, {
-            task_id: args.task_id,
-            event_type: "bid_declined",
-            payload: {
-              agent_id: spec.agent_id,
-              reason: "demo_lane — no live probe",
-              public_tier,
-              probe_id,
-            },
-          });
-          return;
-        }
-
-        // ─── Probe and bid run concurrently. The serial probe→bid chain
-        // (8s + 12s worst case) could not fit tunneled A2A agents inside a
-        // 30s window; in parallel the slower leg dominates. A bid whose
-        // probe fails is discarded — liveness still gates the auction.
-        const probeStart = Date.now();
-        const probePromise: Promise<ProbeResult> = liveCapable
-          ? runner.probe!(task.task_type).catch((err) => ({
-              status: "fail" as const,
-              duration_ms: Date.now() - probeStart,
-              error_message: err instanceof Error ? err.message : String(err),
-            }))
-          : Promise.resolve({
-              status: "demo_lane" as const,
-              duration_ms: 0,
-              error_message: missingKeyEnv
-                ? `unconfigured: ${missingKeyEnv} not set`
-                : undefined,
-            });
-
-        // Demo-lane bids always come from the persona runner with an explicit
-        // mock tier, so provenance labels and bid plans never overstate what
-        // the specialist can actually reach.
-        const bidRunner = liveCapable
-          ? runner
-          : makeMockSpecialist({ ...spec, tier: "mock" });
-        const runBid = () => bidRunner
-          .bid(promptWithIncentives, task.task_type)
-          .then((decision) => ({ ok: true as const, decision }))
-          .catch((err) => ({
-            ok: false as const,
-            error: err instanceof Error ? err.message : String(err),
-          }));
-
-        // A full readiness smoke may verify a keyless A2A endpoint and persist
-        // a2a_auth_mode:"none". Some public A2A servers cannot serve a probe
-        // and bid concurrently on the same session. Serialize those two
-        // read-only requests; unverified/keyed transports keep the faster
-        // parallel path needed to fit the bid window.
-        const [probe, bidOutcome] =
-          spec.tier === "a2a" && spec.a2a_auth_mode === "none"
-            ? [await probePromise, await runBid()]
-            : await Promise.all([probePromise, runBid()]);
-
-        const probe_id = await ctx.runMutation(internal.bidProbes._insert, {
-          task_id: args.task_id,
-          agent_id: spec.agent_id,
-          public_tier,
-          probe_status: probe.status,
-          duration_ms: probe.duration_ms,
-          response_excerpt: probe.response_excerpt,
-          error_message: probe.error_message,
-          created_at: Date.now(),
-        });
-
-        const declineWith = async (reason: string) => {
-          await ctx.runMutation(internal.lifecycle.log, {
-            task_id: args.task_id,
-            event_type: "bid_declined",
-            payload: {
-              agent_id: spec.agent_id,
-              reason,
-              public_tier,
-              probe_id,
-            },
-          });
-        };
-
-        if (!bidOutcome.ok) {
-          const probeReason =
-            probe.status === "fail"
-              ? `probe_failed: ${probe.error_message ?? "unknown"}; `
-              : "";
-          await declineWith(`${probeReason}error: ${bidOutcome.error}`);
-          return;
-        }
-        if ("decline" in bidOutcome.decision) {
-          const probeReason =
-            probe.status === "fail"
-              ? `probe_failed: ${probe.error_message ?? "unknown"}; `
-              : "";
-          await declineWith(`${probeReason}${bidOutcome.decision.reason}`);
-          return;
-        }
-        const bid = bidOutcome.decision satisfies BidPayload;
-
-        if (probe.status === "fail") {
-          await ctx.runMutation(internal.lifecycle.log, {
-            task_id: args.task_id,
-            event_type: "bid_probe_failed_but_bid_received",
-            payload: {
-              agent_id: spec.agent_id,
-              probe_error: probe.error_message ?? "unknown",
-              public_tier,
-              probe_id,
-            },
-          });
-        }
-
-        // ─── Plan screen: a bid must carry a plausible, task-specific plan.
-        // Arbor-owned last-resort floors are exempt — their plan is generic by
-        // design, and the screen must never be able to empty the auction by
-        // rejecting the guaranteed bidder. Floors stay last-resort on score, so
-        // exemption never lets them outrank a live specialist.
-        const screen = ARBOR_FLOOR_AGENT_IDS.has(spec.agent_id)
-          ? { plausible: true, reason: "arbor-owned floor (screen-exempt)" }
-          : await assessPlanPlausibility(
-              task.prompt,
-              bid.capability_claim,
-              task.model_gateway as ModelGateway | undefined,
-            );
-        if (!screen.plausible) {
-          await declineWith(`implausible_plan: ${screen.reason}`);
-          return;
-        }
-
-        // Probe-passed live tiers carry full weight; demo-lane personas get a
-        // near-zero weight — visible in the auction, ranked among themselves,
-        // but never above any live bidder.
-        const liveBidConfirmed =
-          probe.status === "pass" || (probe.status === "fail" && liveCapable);
-        const tierWeight =
-          liveBidConfirmed &&
-          (public_tier === "native-a2a" ||
-            public_tier === "a2a-bridge" ||
-            public_tier === "model-backed")
-            ? 1.0
-            : probe.status === "demo_lane"
-              ? 0.05
-              : 0;
-        // Risk-adjusted Vickrey score: reputation x calibrated P(accept) per
-        // dollar. The self-reported confidence only moves rank as far as the
-        // agent's measured calibration allows (see lib/bid-calibration.ts),
-        // so a low-ability agent cannot buy rank with a confident claim —
-        // the market opts it out even when it refuses to opt itself out.
-        const confidence = clampConfidence(bid.confidence);
-        const p_accept = blendedAcceptProbability(confidence, incentiveStats);
-        const semanticWeight = invitedSemanticWeight(
-          spec.agent_id,
-          task.invited_agent_ids,
-          ARBOR_FLOOR_AGENT_IDS,
-        );
-        // Two ranking forms. The Vickrey ratio is the incumbent and stays the
-        // default. The beta form is the same preference expressed additively,
-        // with an explicit cost sensitivity — the ratio hard-codes one exchange
-        // rate between quality and money, so the market has exactly one
-        // operating point and cannot be tuned to an SLO. See lib/hive/pareto-core.ts.
-        //
-        // They are NOT on a common scale (the ratio is unbounded above, the
-        // utility lives in roughly [-beta, 1]), so this switches between them
-        // wholesale rather than blending. Every bid in one auction is scored by
-        // the same rule, which is all the sort needs.
-        const score = paretoBidEnabled()
-          ? paretoBidScore({
-              reputation,
-              p_accept,
-              tier_weight: tierWeight,
-              semantic_weight: semanticWeight,
-              price: bid.bid_price,
-              budget: task.max_budget,
-            })
-          : ((reputation * p_accept) / Math.max(0.01, bid.bid_price)) *
-            tierWeight *
-            semanticWeight;
-        const bid_id = await ctx.runMutation(internal.bids._insert, {
-          task_id: args.task_id,
-          agent_id: spec.agent_id,
-          bid_price: bid.bid_price,
-          capability_claim: bid.capability_claim,
-          estimated_seconds: bid.estimated_seconds,
-          score,
-          confidence,
-          p_accept,
-          plan_source: bid.plan_source,
-          task_class: taskClass,
-          task_class_history_count:
-            incentiveStats.scope === "cluster"
-              ? incentiveStats.settled_tasks
-              : taskClass !== undefined
-                ? 0
-                : undefined,
-        });
-        await ctx.runMutation(internal.bidProbes._setBidId, {
-          probe_id,
-          bid_id,
-        });
-        await ctx.runMutation(internal.lifecycle.log, {
-          task_id: args.task_id,
-          event_type: "bid_received",
-          payload: {
-            bid_id,
-            agent_id: spec.agent_id,
-            sponsor: spec.sponsor,
-            // bid_price kept out of payload to preserve sealed-bid property
-            // until the resolver writes the auction_resolved event.
-            capability_claim: bid.capability_claim,
-            estimated_seconds: bid.estimated_seconds,
-            confidence,
-            p_accept,
-            semantic_weight: semanticWeight,
-            plan_source: bid.plan_source,
-            bid_latency_ms: Date.now() - solicitStart,
-            public_tier,
-            probe_id,
-          },
-        });
-    };
+    const invitedSpecialists = await applySolicitCap(ctx, args.task_id, shortlist);
 
     // Guarantee that the router's strongest semantic match gets an isolated
     // chance to bid before the remaining shortlist fans out. This prevents a
     // burst of unrelated endpoint probes from starving the intended worker.
+    const solicit = (spec: SpecialistConfig) => solicitSpecialist(auction, spec);
     if (invitedSpecialists.length > 0) {
-      await solicitSpecialist(invitedSpecialists[0]);
-      await Promise.allSettled(
-        invitedSpecialists.slice(1).map(solicitSpecialist),
-      );
+      await solicit(invitedSpecialists[0]);
+      await Promise.allSettled(invitedSpecialists.slice(1).map(solicit));
     }
 
     await backfillMinimumBidResponses(
@@ -1081,12 +1293,340 @@ export const resolve = internalAction({
 
 // ─── Phase 4: execution ──────────────────────────────────────────────────
 
+const MAX_EXECUTION_ATTEMPTS = 3;
+
+type ArborWorkspace = NonNullable<SpecialistExecuteContext["arborWorkspace"]>;
+type MediaWorkspaceTool = Exclude<
+  ArborWorkspaceToolName,
+  "blackboard_read" | "blackboard_append"
+>;
+
+const MEDIA_WORKSPACE_OPERATIONS = {
+  media_request_upload: "request_upload",
+  media_import_url: "import_url",
+  media_finalize_upload: "finalize_upload",
+  media_resolve: "resolve",
+} as const satisfies Record<MediaWorkspaceTool, string>;
+
+async function executionPrompt(ctx: ActionCtx, task: Doc<"tasks">): Promise<string> {
+  const taskContext = await ctx.runQuery(internal.taskContexts._latestForTask, {
+    task_id: task._id,
+  });
+  return taskContext
+    ? `${task.prompt}\n\n---\n\n${taskContext.prompt_addendum}`
+    : task.prompt;
+}
+
+async function registerWinnerRunner(ctx: ActionCtx, agent_id: string) {
+  if (publicDemoMode()) return;
+  const discoveredEntry = await ctx.runQuery(
+    internal.discoveredSpecialists._getByAgentId,
+    { agent_id },
+  );
+  if (discoveredEntry) {
+    registerDiscoveredSpecialist(specialistConfigFromPersisted(discoveredEntry));
+    return;
+  }
+  // Catalog agents are auto-enrolled as bidders by solicitBids but are
+  // never persisted to discovered_specialists — their registration is
+  // module-scope state that lives and dies with the Convex isolate.
+  // solicitBids and this action are separate invocations, so when
+  // execution landed on a cold isolate a catalog agent that had just
+  // legitimately won threw "No specialist runner registered".
+  // Intermittent by nature: a warm isolate still had the registration.
+  // Observed 2026-08-06 with openzeppelin-contracts.
+  const catalogEntry = MCP_CATALOG.find((c) => c.agent_id === agent_id);
+  if (catalogEntry) {
+    registerDiscoveredSpecialist(specialistConfigFromCatalog(catalogEntry));
+  }
+}
+
+/** Trusted media/blackboard bridge, supplied only for an awarded Hive node. */
+function arborWorkspaceFor(
+  ctx: ActionCtx,
+  task: Doc<"tasks">,
+  agent_id: string,
+): ArborWorkspace | undefined {
+  if (!task.hive_dag_id || !task.hive_node_id) return undefined;
+  return {
+    dag_id: String(task.hive_dag_id),
+    node_id: task.hive_node_id,
+    call: async (tool, payload): Promise<unknown> => {
+      if (tool === "blackboard_read" || tool === "blackboard_append") {
+        return await ctx.runAction(internal.agentBlackboard.invokeTrusted, {
+          task_id: task._id,
+          agent_id,
+          operation: tool === "blackboard_read" ? "read" : "append",
+          payload,
+        });
+      }
+      return await ctx.runAction(internal.mediaActions.invokeTrusted, {
+        task_id: task._id,
+        agent_id,
+        operation: MEDIA_WORKSPACE_OPERATIONS[tool],
+        payload,
+      });
+    },
+  };
+}
+
+/**
+ * Receipt rule: a task is only fulfilled when the winner produced
+ * a real external session id, at least one observed event, and a
+ * captured artifact. Anything less means we cannot prove the agent
+ * actually did the work — fail the task honestly rather than mark
+ * it complete on the strength of returned text alone.
+ *
+ * The guarantee is unchanged — a task is fulfilled only when we can
+ * PROVE the winner did the work — but the proof differs by transport,
+ * exactly as finalizeProvenance already models with proof_level.
+ *
+ * Session-based transports (A2A) issue an external session/task id, so
+ * demand it. MCP has no session concept: Streamable-HTTP servers are
+ * commonly stateless and never issue Mcp-Session-Id — Nia is one.
+ * Demanding one there failed EVERY mcp-forwarding specialist
+ * permanently, no matter how much real work it did: on the 2026-08-06
+ * run nia-context made 138 live tool calls (nia_research x71, index
+ * x26, search x22) with 124 recorded artifacts and lost all 4 of its
+ * auctions on "missing external_session_id" alone. That is ~1,000
+ * catalog + discovered agents that could win but never complete.
+ *
+ * For MCP the proof is the audited tool-call record itself: persisted
+ * agent_tool_calls rows with ok=true against the real remote endpoint.
+ * That is strictly stronger evidence than an echoed header string, and
+ * fallback text still cannot settle here — the specialist_fallback
+ * check throws before this point whenever the remote leg didn't
+ * actually run.
+ *
+ * Throws on a shortfall so execute's catch block refunds escrow, sets
+ * task status to failed, and writes execution_failed with the
+ * structured reason.
+ */
+async function verifyExecutionReceipt(
+  ctx: ActionCtx,
+  task_id: Id<"tasks">,
+  agent_id: string,
+  provenance: SpecialistProvenance,
+  text: string,
+) {
+  const receipt = await ctx.runQuery(
+    internal.agentToolCalls._fulfilmentSummaryForTask,
+    { task_id, agent_id },
+  );
+  const external_session_id =
+    receipt.external_session_id ?? provenance.external_session_id;
+  const artifact_present =
+    receipt.artifact_present ||
+    !!provenance.pr_url ||
+    (text?.trim().length ?? 0) > 0;
+  const events_observed_total = receipt.events_observed_total;
+
+  const missing = receiptShortfall({
+    transport: provenance.transport,
+    successful_tool_call_count: provenance.successful_tool_call_count,
+    external_session_id,
+    events_observed_total,
+    artifact_present,
+  });
+  if (missing.length > 0) {
+    throw new Error(`partial_receipt: missing ${missing.join(", ")}`);
+  }
+  return { external_session_id, artifact_present, events_observed_total };
+}
+
+async function recordExecutionUsage(
+  ctx: ActionCtx,
+  task_id: Id<"tasks">,
+  totals: UsageTotals,
+  calls: LlmCallRecord[],
+) {
+  if (totals.calls === 0) return;
+  await ctx.runMutation(internal.tasks._recordExecutionUsage, {
+    task_id,
+    cost_usd: totals.cost_usd ?? 0,
+    input_tokens: totals.input_tokens ?? 0,
+    output_tokens: totals.output_tokens ?? 0,
+    models: [...new Set(calls.map((c) => c.model))],
+  });
+}
+
+async function recordExecutionResult(
+  ctx: ActionCtx,
+  task_id: Id<"tasks">,
+  agent_id: string,
+  normalized: { text: string; artifact?: ExecutionArtifact },
+  provenance: SpecialistProvenance,
+  receipt: Awaited<ReturnType<typeof verifyExecutionReceipt>>,
+) {
+  await ctx.runMutation(internal.tasks._setResult, {
+    task_id,
+    result: {
+      text: normalized.text,
+      agent_id,
+      artifact: normalized.artifact,
+      provenance,
+    },
+  });
+  await ctx.runMutation(internal.lifecycle.log, {
+    task_id,
+    event_type: "execution_complete",
+    payload: {
+      agent_id,
+      length: normalized.text.length,
+      successful_tool_call_count: provenance.successful_tool_call_count ?? 0,
+      proof_level: provenance.proof_level ?? "none",
+      external_session_id: receipt.external_session_id,
+      events_observed: receipt.events_observed_total,
+      artifact_present: receipt.artifact_present,
+      pr_url: provenance.pr_url,
+      pr_number: provenance.pr_number,
+    },
+  });
+}
+
+/**
+ * Same internal-buyer exemption as the resolve path: a golden audit
+ * task has no human buyer, so a failover must not park it on a
+ * checkout nobody will ever complete. Returns true when the failover
+ * now waits on buyer payment.
+ */
+async function requireFailoverPayment(
+  ctx: ActionCtx,
+  task_id: Id<"tasks">,
+  seller_id: string,
+  amount: number,
+): Promise<boolean> {
+  const failoverGoldenRun = await ctx.runQuery(
+    internal.goldenTasks._runForTask,
+    { task_id },
+  );
+  if (!stripeCheckoutMode() || failoverGoldenRun) return false;
+  const currency = stripeCurrency();
+  await ctx.runMutation(internal.escrow._markPaymentRequired, {
+    task_id,
+    processor: "stripe",
+    currency,
+  });
+  await ctx.runMutation(internal.tasks._setPaymentStatus, {
+    task_id,
+    payment_status: "requires_payment",
+    status: "requires_payment",
+  });
+  await ctx.runMutation(internal.lifecycle.log, {
+    task_id,
+    event_type: "stripe_payment_required",
+    payload: {
+      seller_id,
+      amount,
+      currency,
+      mode: "checkout_manual_capture",
+      reason: "execution_failover",
+    },
+  });
+  return true;
+}
+
+/**
+ * Failover: re-award to the next-best bidder instead of failing
+ * the task outright. The A2A/MCP runners are fail-closed by design
+ * ("the auctioneer should pick another bidder"), so honor that here.
+ * Bounded to MAX_EXECUTION_ATTEMPTS total winners per task. Returns
+ * true when another bidder took over.
+ */
+async function failoverToNextBidder(
+  ctx: ActionCtx,
+  task: Doc<"tasks">,
+  fromAgentId: string,
+  attempted: string[],
+): Promise<boolean> {
+  if (attempted.length >= MAX_EXECUTION_ATTEMPTS) return false;
+  const allBids = (await ctx.runQuery(internal.bids._allForTask, {
+    task_id: task._id,
+  })) as Array<Doc<"bids">>;
+  const remaining = allBids
+    .filter(
+      (b) => b.bid_price <= task.max_budget && !attempted.includes(b.agent_id),
+    )
+    .sort((a, b) => b.score - a.score);
+  if (remaining.length === 0) return false;
+
+  const next = remaining[0];
+  const price_paid =
+    remaining.length >= 2 ? remaining[1].bid_price : next.bid_price;
+  await ctx.runMutation(internal.escrow._lock, {
+    task_id: task._id,
+    buyer_id: task.posted_by || BUYER_ID,
+    seller_id: next.agent_id,
+    locked_amount: price_paid,
+  });
+  await ctx.runMutation(internal.tasks._setWinner, {
+    task_id: task._id,
+    winning_bid_id: next._id,
+    price_paid,
+  });
+  await ctx.runMutation(internal.lifecycle.log, {
+    task_id: task._id,
+    event_type: "execution_failover",
+    payload: {
+      from_agent_id: fromAgentId,
+      to_agent_id: next.agent_id,
+      attempt: attempted.length + 1,
+      price_paid,
+    },
+  });
+  if (await requireFailoverPayment(ctx, task._id, next.agent_id, price_paid)) {
+    return true;
+  }
+  await ctx.scheduler.runAfter(0, internal.auctions.execute, {
+    task_id: task._id,
+    attempted_agent_ids: attempted,
+  });
+  return true;
+}
+
+async function handleExecutionFailure(
+  ctx: ActionCtx,
+  task: Doc<"tasks">,
+  agent_id: string,
+  previouslyAttempted: string[] | undefined,
+  err: unknown,
+) {
+  const reason = errorMessage(err);
+  await cancelStripePaymentForTask(ctx, task._id, `execution_failed:${reason}`);
+  await ctx.runMutation(internal.escrow._settle, {
+    task_id: task._id,
+    status: "refunded",
+  });
+  await ctx.runMutation(internal.lifecycle.log, {
+    task_id: task._id,
+    event_type: "execution_failed",
+    payload: { agent_id, reason },
+  });
+
+  const attempted = [...(previouslyAttempted ?? []), agent_id];
+  if (await failoverToNextBidder(ctx, task, agent_id, attempted)) return;
+
+  await ctx.runMutation(internal.tasks._setStatus, {
+    task_id: task._id,
+    status: "failed",
+  });
+  // Hive direct assignments have no runner-up bid. Wake settlement now so
+  // the bounded open retry can recover immediately; non-hive tasks are a
+  // cheap no-op in onNodeSettled. The router's delayed sweep remains as a
+  // liveness backstop and onNodeSettled is idempotent.
+  await ctx.scheduler.runAfter(
+    0,
+    internal.hiveOrchestrator.onNodeSettled,
+    { task_id: task._id },
+  );
+}
+
 export const execute = internalAction({
   args: {
     task_id: v.id("tasks"),
     // Agents that already failed execution on this task. Bounded failover:
     // when the winner fails, the auctioneer re-awards to the next-best bid
-    // instead of failing the whole task (see catch block below).
+    // instead of failing the whole task (see handleExecutionFailure).
     attempted_agent_ids: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
@@ -1096,12 +1636,7 @@ export const execute = internalAction({
     if (!task.winning_bid_id) {
       throw new Error("execute called without a winning bid");
     }
-    const taskContext = await ctx.runQuery(internal.taskContexts._latestForTask, {
-      task_id: args.task_id,
-    });
-    const promptForExecution = taskContext
-      ? `${task.prompt}\n\n---\n\n${taskContext.prompt_addendum}`
-      : task.prompt;
+    const promptForExecution = await executionPrompt(ctx, task);
     const winner = await ctx.runQuery(internal.bids._get, {
       bid_id: task.winning_bid_id,
     });
@@ -1117,75 +1652,10 @@ export const execute = internalAction({
     });
 
     try {
-      if (!publicDemoMode()) {
-        const discoveredEntry = await ctx.runQuery(
-          internal.discoveredSpecialists._getByAgentId,
-          { agent_id: winner.agent_id },
-        );
-        if (discoveredEntry) {
-          registerDiscoveredSpecialist(
-            specialistConfigFromPersisted(discoveredEntry),
-          );
-        } else {
-          // Catalog agents are auto-enrolled as bidders by solicitBids but are
-          // never persisted to discovered_specialists — their registration is
-          // module-scope state that lives and dies with the Convex isolate.
-          // solicitBids and this action are separate invocations, so when
-          // execution landed on a cold isolate a catalog agent that had just
-          // legitimately won threw "No specialist runner registered".
-          // Intermittent by nature: a warm isolate still had the registration.
-          // Observed 2026-08-06 with openzeppelin-contracts.
-          const catalogEntry = MCP_CATALOG.find(
-            (c) => c.agent_id === winner.agent_id,
-          );
-          if (catalogEntry) {
-            registerDiscoveredSpecialist(
-              specialistConfigFromCatalog(catalogEntry),
-            );
-          }
-        }
-      }
+      await registerWinnerRunner(ctx, winner.agent_id);
       const runner = getRunner(winner.agent_id as AgentId);
       const toolRecorder = makeToolCallRecorder(ctx, args.task_id, winner.agent_id);
-      const arborWorkspace =
-        task.hive_dag_id && task.hive_node_id
-          ? {
-              dag_id: String(task.hive_dag_id),
-              node_id: task.hive_node_id,
-              call: async (
-                tool:
-                  | "media_request_upload"
-                  | "media_import_url"
-                  | "media_finalize_upload"
-                  | "media_resolve"
-                  | "blackboard_read"
-                  | "blackboard_append",
-                payload: Record<string, unknown>,
-              ): Promise<unknown> => {
-                if (tool === "blackboard_read" || tool === "blackboard_append") {
-                  return await ctx.runAction(internal.agentBlackboard.invokeTrusted, {
-                    task_id: args.task_id,
-                    agent_id: winner.agent_id,
-                    operation: tool === "blackboard_read" ? "read" : "append",
-                    payload,
-                  });
-                }
-                return await ctx.runAction(internal.mediaActions.invokeTrusted, {
-                  task_id: args.task_id,
-                  agent_id: winner.agent_id,
-                  operation:
-                    tool === "media_request_upload"
-                      ? "request_upload"
-                      : tool === "media_import_url"
-                        ? "import_url"
-                      : tool === "media_finalize_upload"
-                        ? "finalize_upload"
-                        : "resolve",
-                  payload,
-                });
-              },
-            }
-          : undefined;
+      const arborWorkspace = arborWorkspaceFor(ctx, task, winner.agent_id);
       // 180s cap on execute. MCP-forwarding specialists run multi-round
       // tool-calling loops (6 rounds × ~30s each worst case for Reacher /
       // Nia), so 60s would force a timeout before they finish. Plain
@@ -1224,214 +1694,34 @@ export const execute = internalAction({
         throw new Error(`specialist_fallback: ${provenance.fallback_reason}`);
       }
 
-      // ─── Receipt rule: a task is only fulfilled when the winner produced
-      // a real external session id, at least one observed event, and a
-      // captured artifact. Anything less means we cannot prove the agent
-      // actually did the work — fail the task honestly rather than mark
-      // it complete on the strength of returned text alone.
-      const receipt = await ctx.runQuery(
-        internal.agentToolCalls._fulfilmentSummaryForTask,
-        { task_id: args.task_id, agent_id: winner.agent_id },
+      const receipt = await verifyExecutionReceipt(
+        ctx,
+        args.task_id,
+        winner.agent_id,
+        provenance,
+        normalized.text,
       );
-      const external_session_id =
-        receipt.external_session_id ?? provenance.external_session_id;
-      const artifact_present =
-        receipt.artifact_present ||
-        !!provenance.pr_url ||
-        (normalized.text?.trim().length ?? 0) > 0;
-      const events_observed_total = receipt.events_observed_total;
-
-      // The guarantee is unchanged — a task is fulfilled only when we can
-      // PROVE the winner did the work — but the proof differs by transport,
-      // exactly as finalizeProvenance already models with proof_level.
-      //
-      // Session-based transports (A2A) issue an external session/task id, so
-      // demand it. MCP has no session concept: Streamable-HTTP servers are
-      // commonly stateless and never issue Mcp-Session-Id — Nia is one.
-      // Demanding one there failed EVERY mcp-forwarding specialist
-      // permanently, no matter how much real work it did: on the 2026-08-06
-      // run nia-context made 138 live tool calls (nia_research x71, index
-      // x26, search x22) with 124 recorded artifacts and lost all 4 of its
-      // auctions on "missing external_session_id" alone. That is ~1,000
-      // catalog + discovered agents that could win but never complete.
-      //
-      // For MCP the proof is the audited tool-call record itself: persisted
-      // agent_tool_calls rows with ok=true against the real remote endpoint.
-      // That is strictly stronger evidence than an echoed header string, and
-      // fallback text still cannot settle here — the specialist_fallback
-      // check above throws before this point whenever the remote leg didn't
-      // actually run.
-      const missing = receiptShortfall({
-        transport: provenance.transport,
-        successful_tool_call_count: provenance.successful_tool_call_count,
-        external_session_id,
-        events_observed_total,
-        artifact_present,
-      });
-
-      if (missing.length > 0) {
-        // Throw to fall into the catch block below, which refunds escrow,
-        // sets task status to failed, and writes execution_failed with the
-        // structured reason.
-        throw new Error(`partial_receipt: missing ${missing.join(", ")}`);
-      }
-
-      if (executionUsage.calls > 0) {
-        await ctx.runMutation(internal.tasks._recordExecutionUsage, {
-          task_id: args.task_id,
-          cost_usd: executionUsage.cost_usd ?? 0,
-          input_tokens: executionUsage.input_tokens ?? 0,
-          output_tokens: executionUsage.output_tokens ?? 0,
-          models: [...new Set(executionCalls.map((c) => c.model))],
-        });
-      }
-
-      await ctx.runMutation(internal.tasks._setResult, {
-        task_id: args.task_id,
-        result: {
-          text: normalized.text,
-          agent_id: winner.agent_id,
-          artifact: normalized.artifact,
-          provenance,
-        },
-      });
-      await ctx.runMutation(internal.lifecycle.log, {
-        task_id: args.task_id,
-        event_type: "execution_complete",
-        payload: {
-          agent_id: winner.agent_id,
-          length: normalized.text.length,
-          successful_tool_call_count:
-            provenance.successful_tool_call_count ?? 0,
-          proof_level: provenance.proof_level ?? "none",
-          external_session_id,
-          events_observed: events_observed_total,
-          artifact_present,
-          pr_url: provenance.pr_url,
-          pr_number: provenance.pr_number,
-        },
-      });
+      await recordExecutionUsage(ctx, args.task_id, executionUsage, executionCalls);
+      await recordExecutionResult(
+        ctx,
+        args.task_id,
+        winner.agent_id,
+        normalized,
+        provenance,
+        receipt,
+      );
 
       // Phase 5 — judge.
       await ctx.scheduler.runAfter(0, internal.auctions.judge, {
         task_id: args.task_id,
       });
     } catch (err) {
-      await cancelStripePaymentForTask(
+      await handleExecutionFailure(
         ctx,
-        args.task_id,
-        `execution_failed:${err instanceof Error ? err.message : String(err)}`,
-      );
-      await ctx.runMutation(internal.escrow._settle, {
-        task_id: args.task_id,
-        status: "refunded",
-      });
-      await ctx.runMutation(internal.lifecycle.log, {
-        task_id: args.task_id,
-        event_type: "execution_failed",
-        payload: {
-          agent_id: winner.agent_id,
-          reason: err instanceof Error ? err.message : String(err),
-        },
-      });
-
-      // ─── Failover: re-award to the next-best bidder instead of failing
-      // the task outright. The A2A/MCP runners are fail-closed by design
-      // ("the auctioneer should pick another bidder"), so honor that here.
-      // Bounded to MAX_EXECUTION_ATTEMPTS total winners per task.
-      const MAX_EXECUTION_ATTEMPTS = 3;
-      const attempted = [
-        ...(args.attempted_agent_ids ?? []),
+        task,
         winner.agent_id,
-      ];
-      if (attempted.length < MAX_EXECUTION_ATTEMPTS) {
-        const allBids = (await ctx.runQuery(internal.bids._allForTask, {
-          task_id: args.task_id,
-        })) as Array<Doc<"bids">>;
-        const remaining = allBids
-          .filter(
-            (b) =>
-              b.bid_price <= task.max_budget &&
-              !attempted.includes(b.agent_id),
-          )
-          .sort((a, b) => b.score - a.score);
-        if (remaining.length > 0) {
-          const next = remaining[0];
-          const price_paid =
-            remaining.length >= 2 ? remaining[1].bid_price : next.bid_price;
-          await ctx.runMutation(internal.escrow._lock, {
-            task_id: args.task_id,
-            buyer_id: task.posted_by || BUYER_ID,
-            seller_id: next.agent_id,
-            locked_amount: price_paid,
-          });
-          await ctx.runMutation(internal.tasks._setWinner, {
-            task_id: args.task_id,
-            winning_bid_id: next._id,
-            price_paid,
-          });
-          await ctx.runMutation(internal.lifecycle.log, {
-            task_id: args.task_id,
-            event_type: "execution_failover",
-            payload: {
-              from_agent_id: winner.agent_id,
-              to_agent_id: next.agent_id,
-              attempt: attempted.length + 1,
-              price_paid,
-            },
-          });
-          // Same internal-buyer exemption as the resolve path: a golden audit
-          // task has no human buyer, so a failover must not park it on a
-          // checkout nobody will ever complete.
-          const failoverGoldenRun = await ctx.runQuery(
-            internal.goldenTasks._runForTask,
-            { task_id: args.task_id },
-          );
-          if (stripeCheckoutMode() && !failoverGoldenRun) {
-            const currency = stripeCurrency();
-            await ctx.runMutation(internal.escrow._markPaymentRequired, {
-              task_id: args.task_id,
-              processor: "stripe",
-              currency,
-            });
-            await ctx.runMutation(internal.tasks._setPaymentStatus, {
-              task_id: args.task_id,
-              payment_status: "requires_payment",
-              status: "requires_payment",
-            });
-            await ctx.runMutation(internal.lifecycle.log, {
-              task_id: args.task_id,
-              event_type: "stripe_payment_required",
-              payload: {
-                seller_id: next.agent_id,
-                amount: price_paid,
-                currency,
-                mode: "checkout_manual_capture",
-                reason: "execution_failover",
-              },
-            });
-            return;
-          }
-          await ctx.scheduler.runAfter(0, internal.auctions.execute, {
-            task_id: args.task_id,
-            attempted_agent_ids: attempted,
-          });
-          return;
-        }
-      }
-
-      await ctx.runMutation(internal.tasks._setStatus, {
-        task_id: args.task_id,
-        status: "failed",
-      });
-      // Hive direct assignments have no runner-up bid. Wake settlement now so
-      // the bounded open retry can recover immediately; non-hive tasks are a
-      // cheap no-op in onNodeSettled. The router's delayed sweep remains as a
-      // liveness backstop and onNodeSettled is idempotent.
-      await ctx.scheduler.runAfter(
-        0,
-        internal.hiveOrchestrator.onNodeSettled,
-        { task_id: args.task_id },
+        args.attempted_agent_ids,
+        err,
       );
     }
   },
