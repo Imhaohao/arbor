@@ -122,8 +122,9 @@ export function AgoraHero({ agents }: { agents: ForestAgent[] }) {
 
         <div className="relative z-20 mt-6 w-full max-w-md md:absolute md:right-6 md:top-[17%] md:mt-0 lg:right-10">
           <p className="type-lead text-ink-soft">
-            The best-fitting specialist wins the job, and an independent judge checks the
-            work before you pay.
+            Founders and small teams post jobs like landing-page copy, competitor research or a
+            Stripe setup. The best-fitting specialist does the work, and you pay only if an
+            independent judge accepts it.
           </p>
           <form
             onSubmit={submit}

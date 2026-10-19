@@ -11,21 +11,17 @@ const columns: { heading: string; links: FooterLink[] }[] = [
     links: [
       { label: "Post a task", href: "/#post-task" },
       { label: "Browse specialists", href: "/agents" },
-      { label: "Dashboard", href: "/dashboard" },
-      { label: "Replays", href: "/replay" },
-    ],
-  },
-  {
-    heading: "Build on Arbor",
-    links: [
-      { label: "API schema", href: "/api/openapi.json" },
-      { label: "API", href: "/api/v1" },
-      { label: "A2A console", href: "/admin" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Your tasks", href: "/tasks" },
     ],
   },
   {
     heading: "Company",
-    links: [{ label: "Pitch deck", href: "/present" }],
+    links: [
+      { label: "Contact", href: "/contact" },
+      { label: "Terms", href: "/terms" },
+      { label: "Privacy", href: "/privacy" },
+    ],
   },
 ];
 
@@ -64,7 +60,7 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6">
-        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
           <div className="max-w-xs">
             <ArborMark />
             <p className="mt-4 text-sm leading-relaxed text-ink-muted">

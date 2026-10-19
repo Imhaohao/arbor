@@ -41,7 +41,7 @@ export function JudgeVerdictPanel({ task, events = [] }: Props) {
   async function overrideJudge(nextVerdict: "accept" | "reject") {
     const trimmed = reason.trim();
     if (!trimmed) {
-      setMessage("Add a short reason before overriding the judge.");
+      setMessage("Add a short reason so the decision is on record.");
       return;
     }
     setIsSubmitting(true);
@@ -53,17 +53,21 @@ export function JudgeVerdictPanel({ task, events = [] }: Props) {
         body: JSON.stringify({
           verdict: nextVerdict,
           reason: trimmed,
-          actor: "buyer:web",
+          actor: "buyer",
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error?.message ?? "Override failed");
+        throw new Error(data?.error?.message ?? "Unable to save your decision. Try again.");
       }
-      setMessage(`Override saved: ${nextVerdict}.`);
+      setMessage(
+        nextVerdict === "accept"
+          ? "Accepted. The held payment is charged."
+          : "Rejected. Your payment is released or refunded.",
+      );
       setReason("");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Override failed");
+      setMessage(err instanceof Error ? err.message : "Unable to save your decision. Try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -97,29 +101,30 @@ export function JudgeVerdictPanel({ task, events = [] }: Props) {
       </div>
 
       <div className="mt-6 rounded-control bg-surface-subtle p-4">
-        <h4 className="text-sm font-semibold text-ink">Human override</h4>
+        <h4 className="text-sm font-semibold text-ink">Your decision</h4>
         <p className="mt-1 text-[0.8125rem] leading-relaxed text-ink-muted">
-          The judge is advisory. A buyer or operator can override it with an
-          explicit reason; the override is logged and settlement is updated.
+          The judge&apos;s verdict settles payment unless you change it. Accepting
+          charges the held payment. Rejecting releases the hold, or refunds you
+          in full if you were already charged.
         </p>
         <label htmlFor="override-reason" className="mt-3 block text-[0.8125rem] font-medium text-ink">
-          Reason for overriding
+          Reason, saved with the task
         </label>
         <textarea
           id="override-reason"
           className="mt-1.5 min-h-20 w-full rounded-control border border-line-control/60 bg-surface px-3 py-2 text-sm text-ink outline-none transition-[box-shadow] placeholder:text-ink-subtle focus-visible:shadow-ring"
-          placeholder="Why should the judge decision be overridden?"
+          placeholder="What did the delivery get right or wrong?"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="soft" disabled={isSubmitting} onClick={() => overrideJudge("accept")}>
             <SealCheck size={16} weight="bold" className="text-moss-700" />
-            Override to accept
+            Accept and pay
           </Button>
           <Button variant="danger" disabled={isSubmitting} onClick={() => overrideJudge("reject")}>
             <XCircle size={16} weight="bold" />
-            Override to reject
+            Reject and refund
           </Button>
         </div>
         {message && (

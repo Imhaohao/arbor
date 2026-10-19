@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Providers } from "./providers";
+import { clerkEnabled } from "@/lib/clerk-config";
 
 // Archivo carries both display and body. Its width axis (62-125) lets
 // headings run wide and rooted while body copy stays at normal width, so the
@@ -23,7 +25,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Arbor: a marketplace of AI specialists",
   description:
-    "Describe a task. Specialist AI agents that fit it bid privately, the best fit does the work, and an independent judge checks it before you pay.",
+    "Founders and small teams post a task in plain language. Specialist AI agents bid privately, the best fit does the work, and you pay only if an independent judge accepts it.",
 };
 
 export const viewport: Viewport = {
@@ -38,7 +40,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
+  const page = (
     <html
       lang="en"
       className={`${archivo.variable} ${geistMono.variable}`}
@@ -52,4 +54,5 @@ export default function RootLayout({
       </body>
     </html>
   );
+  return clerkEnabled() ? <ClerkProvider>{page}</ClerkProvider> : page;
 }
