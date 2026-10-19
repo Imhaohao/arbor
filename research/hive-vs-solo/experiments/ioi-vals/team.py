@@ -1,13 +1,18 @@
 """The H2 small-model team, adapted to IOI.
 
-Candidates are the Sonnet and Haiku solo attempts. A Sonnet tester builds a
-brute force, an input generator and an output checker from the statement
-alone; stress.py runs every candidate against them through the public sample
-grader (the checker verifies and scores outputs when the brute force cannot
-be trusted, as for non-unique or scored outputs); the best
-evidence wins; a Sonnet repairer gets concrete failing inputs for up to two
-rounds and its fix is kept only if the evidence improves. Hidden tests are
-never consulted before the final grade.
+Candidates are solo attempts (every Sonnet attempt, then Haiku). A Sonnet
+tester builds a brute force, an input generator and an output checker from
+the statement alone; stress.py runs every candidate against them through the
+public sample grader and the best evidence wins.
+
+Problems with a trusted brute force: a Sonnet repairer gets concrete failing
+inputs for up to two rounds; a fix is kept only if the evidence improves.
+Problems scored by the checker instead (non-unique or scored outputs): each
+round a Sonnet breaker attacks the current best program with adversarial
+inputs that join every candidate's evidence, then the repairer works against
+them; a last attack re-tests the final choice. Repairs must also keep CPU
+headroom on the heaviest inputs. Hidden tests are never consulted before the
+final grade.
 """
 
 import json
@@ -20,7 +25,10 @@ import grading
 import prompts
 from tasks import DATA_ROOT, Task
 
-MEMBER_PRIORITY = {"sonnet": 0, "haiku": 1}
+MEMBERS = ("sonnet", "haiku")
+CPU_HEADROOM = 0.5
+MAX_ATTACKS = 6
+MAX_ATTACK_BYTES = 64 * 1024**2
 TESTER_FILES = ("brute.cpp", "gen.py", "unique.txt", "checker.py")
 REPAIR_ROUNDS = 2
 
@@ -35,6 +43,12 @@ def rank_key(item: dict) -> tuple:
     samples_clean = item["samples_passed"] == item["samples_total"]
     return (0, 0 if samples_clean else 1, -item["small_agree"], -item.get("checked_valid", 0),
             -item.get("score_mean", 0.0), -item["large_ok"], item["priority"])
+
+
+def keeps_headroom(candidate: dict, replaced: dict, limit: float) -> bool:
+    """A repair may not become slow on the largest inputs: it stays under half the limit or no slower than before."""
+    cpu = candidate.get("large_cpu_max", 0.0)
+    return cpu <= CPU_HEADROOM * limit or cpu <= replaced.get("large_cpu_max", 0.0)
 
 
 def needs_repair(item: dict) -> bool:
@@ -91,28 +105,87 @@ def repair(task: Task, team_dir: Path, bench: Path, best: dict, round_index: int
     return {**report["candidates"][0], "priority": best["priority"]}
 
 
+def attack(task: Task, team_dir: Path, bench: Path, best: dict, round_index: int, effort: str) -> int:
+    """A Sonnet breaker writes inputs aimed at the current best program; they join every candidate's evidence."""
+    extra = {name: (bench / name).read_text() for name in ("checker.py", "gen.py")}
+    extra["solution.cpp"] = (bench / best["label"] / "solution.cpp").read_text()
+    attempt_dir = team_dir / f"breaker{round_index}"
+    prompt = prompts.BREAKER.format(name=task.name, limit=time_limit(task), count=MAX_ATTACKS)
+    agent.attempt(Path(task.public_dir), attempt_dir, prompt, "sonnet", effort, extra)
+    written = sorted((attempt_dir / "ws" / "attacks").glob("*.in"))[:MAX_ATTACKS]
+    kept = [path for path in written if path.stat().st_size <= MAX_ATTACK_BYTES]
+    (bench / "attacks").mkdir(exist_ok=True)
+    for index, path in enumerate(kept):
+        shutil.copy(path, bench / "attacks" / f"b{round_index}-{index:02d}.in")
+    return len(kept)
+
+
+def rerank(task: Task, bench: Path, pool: list[dict]) -> list[dict]:
+    """Re-run every candidate on the current evidence, including all attacks so far."""
+    priority = {item["label"]: item["priority"] for item in pool}
+    report = stress(bench, task, list(priority))
+    return [{**item, "priority": priority[item["label"]]} for item in report["candidates"]]
+
+
+def accept(candidate: dict | None, best: dict, task: Task) -> bool:
+    return bool(candidate) and rank_key(candidate) < rank_key(best) and keeps_headroom(candidate, best, time_limit(task))
+
+
+def adversarial_rounds(task: Task, team_dir: Path, bench: Path, pool: list[dict], effort: str, history: list) -> dict:
+    """Checker problems: attack the best, repair against the attacks, and attack the final choice once more."""
+    best = min(pool, key=rank_key)
+    for round_index in range(1, REPAIR_ROUNDS + 2):
+        attacks = attack(task, team_dir, bench, best, round_index, effort)
+        pool = rerank(task, bench, pool)
+        best = min(pool, key=rank_key)
+        entry = {"round": round_index, "attacks": attacks, "ranking": sorted(pool, key=rank_key)}
+        history.append(entry)
+        if round_index > REPAIR_ROUNDS or not needs_repair(best):
+            continue
+        candidate = repair(task, team_dir, bench, best, round_index, effort, True)
+        entry["repair"] = candidate
+        if accept(candidate, best, task):
+            pool.append(candidate)
+            best = candidate
+    return best
+
+
+def repair_rounds(task: Task, team_dir: Path, bench: Path, best: dict, effort: str, history: list) -> dict:
+    for round_index in range(1, REPAIR_ROUNDS + 1):
+        if not needs_repair(best):
+            break
+        candidate = repair(task, team_dir, bench, best, round_index, effort, False)
+        history.append({"round": round_index, "repair": candidate})
+        if accept(candidate, best, task):
+            best = candidate
+    return best
+
+
 def run_team(task: Task, team_dir: Path, candidates: dict[str, Path], effort: str) -> tuple[Path, dict]:
     tester_dir = team_dir / "tester"
     agent.attempt(Path(task.public_dir), tester_dir, prompts.TESTER.format(name=task.name), "sonnet", effort)
     bench = build_bench(task, team_dir, tester_dir / "ws", candidates)
     report = stress(bench, task, list(candidates))
-    pool = [{**item, "priority": MEMBER_PRIORITY.get(item["label"], 9)} for item in report["candidates"]]
-    best = min(pool, key=rank_key)
+    order = list(candidates)
+    pool = [{**item, "priority": order.index(item["label"])} for item in report["candidates"]]
     history = [{"round": 0, "ranking": sorted(pool, key=rank_key)}]
-    for round_index in range(1, REPAIR_ROUNDS + 1):
-        if not needs_repair(best):
-            break
-        candidate = repair(task, team_dir, bench, best, round_index, effort, report["trusted_checker"])
-        history.append({"round": round_index, "repair": candidate})
-        if candidate and rank_key(candidate) < rank_key(best):
-            best = candidate
+    if report["trusted_checker"]:
+        best = adversarial_rounds(task, team_dir, bench, pool, effort, history)
+    else:
+        best = repair_rounds(task, team_dir, bench, min(pool, key=rank_key), effort, history)
     summary = {"tools": {key: report[key] for key in ("unique", "trusted_brute", "trusted_checker", "small_inputs", "large_inputs")},
                "chosen": best["label"], "history": history}
     (team_dir / "team.json").write_text(json.dumps(summary, indent=2))
     return bench / best["label"] / "solution.cpp", summary
 
 
-def member_solutions(candidate_run: str, task: Task) -> dict[str, Path]:
-    root = DATA_ROOT / "runs" / candidate_run
-    found = {member: root / f"solo-{member}" / task.id / "ws" / "solution.cpp" for member in MEMBER_PRIORITY}
-    return {member: path for member, path in found.items() if path.exists()}
+def member_solutions(candidate_runs: list[str], task: Task) -> dict[str, Path]:
+    """Finished solo attempts in priority order: every Sonnet attempt (runs in the order given) before every Haiku one.
+    The first run's attempts keep the plain member name; later runs' are suffixed with the run."""
+    found = {}
+    for member in MEMBERS:
+        for index, run in enumerate(candidate_runs):
+            path = DATA_ROOT / "runs" / run / f"solo-{member}" / task.id / "ws" / "solution.cpp"
+            if path.exists() and (path.parents[1] / "grade.json").exists():
+                found[member if index == 0 else f"{member}-{run}"] = path
+    return found

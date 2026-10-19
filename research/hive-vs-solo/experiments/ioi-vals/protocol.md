@@ -83,3 +83,31 @@ The "no CLAUDE.md" claim in Arms is false. `--setting-sources project` keeps use
 Runs `s2` and `s3`: two more independent `solo-sonnet` attempts per problem on all 18 problems, with the cal1 SOLO prompt, harness, effort and cap unchanged (`python3 bench.py solo s2 sonnet`, same for `s3`). Every one of them is reported as a solo result, which also measures how much a single Sonnet attempt varies. They exist to give a later team arm more candidates. Any arm that uses them is pre-registered separately, and with ties broken toward the cal1 Sonnet attempt.
 
 Interim finding logged with this entry: in v2a, message's repair cut packets from 67 to 66 on the generated inputs, and the official grader then gave it 0. The cause was not the adaptive adversary. The new receiver tries every possible set of safe positions, and the generator's large input had 3 scenarios while the statement allows 2100 receive_message calls per test, so the official tests timed out (3.5 s against a 3 s limit). The repair gate cannot see a slowdown that its own inputs never trigger.
+
+### Results: team-v2 on the five problems (run v2a, 2026-10-19 00:53 to 01:55 PDT)
+
+| Problem | team (cal1) | team-v2 (v2a) | Change | What happened |
+|---|---|---|---|---|
+| message | 91.22 | 0.00 | -91.22 | Repair cut packets 67 to 66 on generated inputs; its receiver times out at the official load (see above) |
+| worldmap | 93.00 | 93.00 | 0 | Checker scored Sonnet 1.0 on every generated map; no failure, no repair |
+| migrations | 83.69 | 70.00 | -13.69 | Repair reached full score on generated trees, but uses up to 34 messages on some official trees |
+| ballmachine | 47.00 | 88.00 | +41.00 | Repair took C from 200 to <= 44 on generated inputs; the official worst case still costs 12 points |
+| classroom | 77.50 | 86.00 | +8.50 | Repair took the array length C from 3 to 2 on generated inputs |
+| Sum | 392.41 | 337.00 | -55.41 | |
+
+The checker found the real gap on four of the five problems; every evidence line above matches where the hidden tests took points. Paired Wilcoxon, team-v2 vs team: n = 4, p = 0.875 (not shown either way). team-v2 is worse in total. All three regressions share one failure mode: a repair optimized against the generated inputs, and those inputs did not cover the heaviest load or the hardest shapes the statement allows. Per its pre-registration, no team-v2 overall score is claimed; team-v2 is not run on the other 13 problems, because team-v3 below replaces it.
+
+## Amendment: arm `team-v3` (pre-registered 2026-10-19 02:15 PDT, before any team-v3 attempt)
+
+The v2a regressions above were diagnosed by grading final programs, i.e. with hidden-test results. That is the same kind of information that chose the five problems, so team-v3 is a third iteration designed on this benchmark, and its score can carry selection bias. To limit that bias, team-v3 runs on all 18 problems, and every number from every arm stays in this file.
+
+team-v3 = team-v2 plus four changes. None of them reads a hidden test:
+
+1. Candidates: every finished `solo-sonnet` attempt from cal1, s2 and s3, then cal1's `solo-haiku`. Ties keep the earlier one, so a later attempt is chosen only on strictly better evidence.
+2. Generator: `large` must put every limit at its maximum at once, including the number of scenarios or calls in one test, and seeds must vary the structure. Six large seeds instead of three. The repair prompt says to keep the running time well inside the limit.
+3. Breaker, for problems scored by a trusted checker: each round, a Sonnet breaker gets the current best program, `checker.py` and `gen.py`, and writes up to 6 legal inputs meant to make it fail, run slowly or score low. Its inputs join every candidate's evidence, every candidate is re-ranked, and the repairer then works against them. There are two attack-and-repair rounds and one final attack. The final choice is the best of all candidates and accepted repairs on all evidence gathered.
+4. CPU headroom: a repair is accepted only if it also stays under half the time limit on the heaviest inputs, or is no slower than the program it replaces.
+
+Problems with a trusted brute force keep the team-v2 path (brute-force comparison and two repair rounds, no breaker).
+
+Run `v3`, started only after s2 and s3 finish all 18 problems: `python3 bench.py team v3 --candidates cal1 --candidates s2 --candidates s3`. Reported: per-problem team-v3 vs team, and the Vals-formula overall. team-v3 vs Opus 5.5 (95.06) is reported as a plain comparison: one run, 18 problems, and a different harness (Claude Code with the global CLAUDE.md, against OpenCode). "Beats Opus 5.5" is claimed only if the overall is above 95.06, and with these caveats beside it. The team also uses more compute than one solo attempt (three Sonnet attempts, a tester, breakers and repairers); its cost and wall time are reported next to the score.

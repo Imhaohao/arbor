@@ -5,7 +5,8 @@
 <bench_dir> holds the public bundle (cpp/, examples/), the tester's brute.cpp,
 gen.py, unique.txt and checker.py, and one folder per candidate containing
 solution.cpp. When the brute force cannot be trusted (non-unique or scored
-outputs), a trusted checker.py verifies and scores every candidate output.
+outputs), a trusted checker.py verifies and scores every candidate output,
+including on the breakers' adversarial inputs in attacks/*.in.
 Everything runs through the PUBLIC sample grader; hidden tests are not here.
 Prints one JSON line with per-candidate evidence and writes failing cases to
 <bench_dir>/<candidate>/failures/.
@@ -13,6 +14,7 @@ Prints one JSON line with per-candidate evidence and writes failing cases to
 
 import json
 import re
+import shutil
 import subprocess
 import tempfile
 import sys
@@ -22,7 +24,7 @@ sys.path.insert(0, "/opt")
 from judge import limiter, reap, verdict  # noqa: E402
 
 SMALL_SEEDS = range(1, 41)
-LARGE_SEEDS = range(1, 4)
+LARGE_SEEDS = range(1, 7)
 MEMORY_BYTES = 2 * 1024**3
 MAX_FAILURES = 3
 
@@ -38,16 +40,17 @@ def compile_with_harness(bench: Path, source: Path, output: Path) -> bool:
     return subprocess.run(command, capture_output=True, timeout=300).returncode == 0
 
 
-def run(binary: Path, stdin_text: str, time_limit: float) -> tuple[str, str]:
-    """Returns (status, stdout) under the sample grader, with the judge's CPU and memory limits."""
+def run(binary: Path, stdin_text: str, time_limit: float) -> tuple[str, str, float]:
+    """Returns (status, stdout, cpu seconds) under the sample grader, with the judge's CPU and memory limits."""
     with tempfile.TemporaryDirectory() as scratch:
         given, output = Path(scratch) / "in.txt", Path(scratch) / "out.txt"
         given.write_text(stdin_text)
         with given.open("rb") as stdin, output.open("wb") as stdout:
             proc = subprocess.Popen([str(binary)], stdin=stdin, stdout=stdout, stderr=subprocess.DEVNULL,
                                     preexec_fn=limiter(time_limit, MEMORY_BYTES), cwd=scratch)
-            status = verdict(reap([proc], time_limit * 3 + 5)[0], time_limit)
-        return status, output.read_text(errors="replace") if status == "ok" else ""
+            record = reap([proc], time_limit * 3 + 5)[0]
+            status = verdict(record, time_limit)
+        return status, output.read_text(errors="replace") if status == "ok" else "", record["cpu"]
 
 
 def generate(bench: Path, size: str, seeds) -> list[str]:
@@ -102,9 +105,10 @@ def tester_tools(bench: Path, time_limit: float) -> dict:
     trusted = unique and has_brute and all(same(run(brute, given, 30)[1], want) for given, want in samples)
     small = generate(bench, "small", SMALL_SEEDS) if (bench / "gen.py").exists() else []
     large = generate(bench, "large", LARGE_SEEDS) if (bench / "gen.py").exists() else []
-    expected = [run(brute, text, 30) for text in small] if trusted else [("untrusted", None)] * len(small)
+    expected = [run(brute, text, 30)[:2] for text in small] if trusted else [("untrusted", None)] * len(small)
+    attacks = [path.read_text() for path in sorted((bench / "attacks").glob("*.in"))]
     return {"unique": unique, "trusted_brute": trusted, "checker": not trusted and checker_trusted(bench, samples),
-            "samples": samples, "small": small, "large": large,
+            "samples": samples, "small": small, "large": large, "attacks": attacks,
             "expected": [out if status == "ok" else None for status, out in expected]}
 
 
@@ -147,11 +151,12 @@ def evidence(bench: Path, name: str, tools: dict, time_limit: float) -> dict:
     binary = folder / "candidate.bin"
     if not compile_with_harness(bench, folder / "solution.cpp", binary):
         return {"label": name, "compiled": False}
+    shutil.rmtree(folder / "failures", ignore_errors=True)
     failures: list[tuple] = []
     runs: list[tuple[str, str, str, str]] = []
     sample_ok = 0
     for given, want in tools["samples"]:
-        status, out = run(binary, given, time_limit)
+        status, out, _ = run(binary, given, time_limit)
         runs.append(("sample input", given, status, out))
         passed = status == "ok" and (same(out, want) or not tools["unique"])
         sample_ok += passed
@@ -159,19 +164,21 @@ def evidence(bench: Path, name: str, tools: dict, time_limit: float) -> dict:
             failures.append((given, f"sample input: {status}", want if tools["unique"] else None, out))
     agree = 0
     for given, want in zip(tools["small"], tools["expected"]):
-        status, out = run(binary, given, time_limit)
+        status, out, _ = run(binary, given, time_limit)
         runs.append(("small random input", given, status, out))
         if want is not None and status == "ok" and same(out, want):
             agree += 1
         elif want is not None:
             failures.append((given, f"small random input; a trusted brute force disagrees ({status})", want, out))
-    large_ok = 0
-    for given in tools["large"]:
-        status, out = run(binary, given, time_limit)
-        runs.append(("input at maximum constraints", given, status, out))
+    large_ok, large_cpu = 0, [0.0]
+    heavy = [("input at maximum constraints", given) for given in tools["large"]] + [("adversarial input", given) for given in tools["attacks"]]
+    for kind, given in heavy:
+        status, out, cpu = run(binary, given, time_limit)
+        runs.append((kind, given, status, out))
         large_ok += status == "ok"
+        large_cpu.append(cpu)
         if status != "ok":
-            failures.append((given, f"input at maximum constraints: {status} within the {time_limit}s limit", None, ""))
+            failures.append((given, f"{kind}: {status} within the {time_limit}s limit", None, ""))
     stats, low = {}, []
     if tools["checker"]:
         stats, invalid, low = checked_evidence(bench, runs)
@@ -181,14 +188,15 @@ def evidence(bench: Path, name: str, tools: dict, time_limit: float) -> dict:
         failure_case(folder / "failures", index, *case)
     return {"label": name, "compiled": True, "samples_passed": sample_ok, "samples_total": len(tools["samples"]),
             "small_agree": agree, "small_trusted": sum(want is not None for want in tools["expected"]),
-            "large_ok": large_ok, "large_total": len(tools["large"]), "failures": len(failures) + len(low), **stats}
+            "large_ok": large_ok, "large_total": len(heavy), "large_cpu_max": round(max(large_cpu), 3),
+            "failures": len(failures) + len(low), **stats}
 
 
 def main() -> None:
     bench, time_limit, names = Path(sys.argv[1]), float(sys.argv[2]), sys.argv[3:]
     tools = tester_tools(bench, time_limit)
     report = {"unique": tools["unique"], "trusted_brute": tools["trusted_brute"], "trusted_checker": tools["checker"],
-              "small_inputs": len(tools["small"]), "large_inputs": len(tools["large"]),
+              "small_inputs": len(tools["small"]), "large_inputs": len(tools["large"]), "attack_inputs": len(tools["attacks"]),
               "candidates": [evidence(bench, name, tools, time_limit) for name in names]}
     print(json.dumps(report))
 

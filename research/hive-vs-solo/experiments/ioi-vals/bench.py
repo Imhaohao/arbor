@@ -3,7 +3,7 @@
     python3 bench.py prepare
     python3 bench.py validate [task ...]
     python3 bench.py solo <run> <model> [--effort high] [--parallel 3] [task ...]
-    python3 bench.py team <run> --candidates <run> [--parallel 2] [task ...]
+    python3 bench.py team <run> --candidates <run> [--candidates <run> ...] [--parallel 2] [task ...]
     python3 bench.py audit <run>
     python3 bench.py report <run> [--team-run [<label>=]<run> ...]
 """
@@ -89,12 +89,12 @@ def cmd_validate(args: list[str]) -> None:
             print(f"{status:8} {task_id:20} {total:6.2f} {compile_error or ''} {json.dumps(failed)[:400] if failed else ''}", flush=True)
 
 
-def team_task(run: str, candidate_run: str, effort: str, task: Task) -> tuple[str, float, str]:
+def team_task(run: str, candidate_runs: list[str], effort: str, task: Task) -> tuple[str, float, str]:
     team_dir = arm_dir(run, "team", task)
     if (team_dir / "grade.json").exists():
         done = json.loads((team_dir / "grade.json").read_text())
         return task.id, done["total"], json.loads((team_dir / "team.json").read_text())["chosen"]
-    candidates = team.member_solutions(candidate_run, task)
+    candidates = team.member_solutions(candidate_runs, task)
     if not candidates:
         return task.id, 0.0, "no candidates"
     team_dir.mkdir(parents=True, exist_ok=True)
@@ -106,7 +106,7 @@ def team_task(run: str, candidate_run: str, effort: str, task: Task) -> tuple[st
 def cmd_team(args: list[str]) -> None:
     parser = argparse.ArgumentParser(prog="bench.py team")
     parser.add_argument("run")
-    parser.add_argument("--candidates", required=True, help="run holding solo-sonnet and solo-haiku attempts")
+    parser.add_argument("--candidates", required=True, action="append", help="run holding solo attempts; repeat for more")
     parser.add_argument("--effort", default="high")
     parser.add_argument("--parallel", type=int, default=2)
     parser.add_argument("tasks", nargs="*")
