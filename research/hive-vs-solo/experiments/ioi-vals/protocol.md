@@ -163,3 +163,38 @@ Rule: a problem whose chosen program came from an agent call that downloaded or 
 Re-run: run `v4b`, team-v4 code unchanged except the harness fix: `python3 bench.py team v4b --candidates cal1 --candidates s2 --candidates s3 2024-message`. The team-v4 overall uses v4 for the other 17 problems and v4b for message.
 
 Sensitivity, stated now: message = 0 gives 94.44 overall (below Opus 5.5's 95.06), and message = 91.22 (cal1 Sonnet, the unrepaired top-ranked candidate) gives 99.51. So whether team-v4 beats Opus 5.5 depends on message scoring at least about 79 of 100.
+
+### Results: v4b (message re-run, 11:45 to 14:30 PDT) and the final team-v4 score
+
+v4b message: 95.50. Chosen `sonnet+r1`: cal1 Sonnet, repaired in round 1 against two breaker attacks and validated under the tester's adversarial grader (trusted: the brute force stayed valid under it). An independent re-grade gives 95.50. v4b's round-2 repairer tried `pip install --target ./pylib lizard`; the offline harness made it fail ("No matching distribution"), nothing was installed, and that repair was not chosen, so the rule does not void anything. Audit: audit-v4b.json.
+
+| Arm | 2024 | 2025 | 2026 | Overall (Vals formula) |
+|---|---|---|---|---|
+| solo-sonnet cal1 / s2 / s3 | 84.70 / 97.22 / 84.03 | 96.11 / 99.58 / 91.33 | 87.42 / 97.67 / 91.76 | 89.41 / 98.16 / 89.04 (mean 92.20) |
+| best-of-three oracle (hidden-test selection) | 98.54 | 100.00 | 97.67 | 98.74 |
+| team (cal1) | 98.54 | 96.11 | 87.42 | 94.02 |
+| team-v2 (5 problems only) | | | | not computed |
+| team-v3 | 83.33 | 100.00 | 100.00 | 94.44 |
+| **team-v4 (v4, message from v4b)** | **99.25** | **100.00** | **100.00** | **99.75** |
+| Vals: Claude Opus 5.5 | | | | 95.06 |
+| Vals: GPT-6.1 Sol | | | | 96.89 |
+| Vals: GPT-6 Astra, Gemini 4 Argon | | | | 100.00 |
+
+- **team-v4 scores 99.75 overall, above Vals' Claude Opus 5.5 (95.06) and GPT-6.1 Sol (96.89), and below Astra and Argon (100).** It gets 100 on 17 problems and 95.50 on message: 9 official message tests need 67 packets, where 66 earns full points.
+- **Caveats on that claim:**
+  - **In-sample:** it is the fourth pipeline iteration on these 18 problems, and the third and fourth iterations were designed after reading hidden-test verdicts (v2a's and v3's).
+  - **One run:** single Sonnet attempts vary by about 9 points between runs (89.04 to 98.16).
+  - **Harness:** Claude Code with the user's global CLAUDE.md, where Vals uses OpenCode.
+  - **Compute:** the team uses far more than one solo attempt. It took three Sonnet solo runs (notional $87) plus 61 team agent calls (36,000 agent-seconds, notional $64.52), all on the subscription.
+- **Paired exact Wilcoxon, per problem:**
+
+  | team-v4 against | Non-zero differences | p | Shown? |
+  |---|---|---|---|
+  | Mean of the three solo Sonnet runs | 7 | 0.0156 | yes |
+  | cal1 solo Sonnet | 6 | 0.0312 | yes |
+  | cal1 team | 5 | 0.0625 | no |
+  | s3 solo Sonnet | 5 | 0.0625 | no |
+  | s2 solo Sonnet (the strongest single run) | 3 | 0.25 | no |
+
+- **Where the team's points come from:** selection among three Sonnet attempts by statement-derived evidence (tree, worldmap and partition from s2 or s3), plus repairs that the breakers and the checker made safe (triples, migrations, ballmachine, classroom and message). team-v4 is 1.01 above the best-of-three oracle (98.74), so the repairs add points beyond what perfect selection among the three attempts could reach.
+- **Every arm and its failures are recorded above, including the voided v4 message result.**
