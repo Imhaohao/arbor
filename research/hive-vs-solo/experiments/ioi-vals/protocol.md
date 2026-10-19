@@ -97,7 +97,7 @@ Interim finding logged with this entry: in v2a, message's repair cut packets fro
 
 The checker found the real gap on four of the five problems; every evidence line above matches where the hidden tests took points. Paired Wilcoxon, team-v2 vs team: n = 4, p = 0.875 (not shown either way). team-v2 is worse in total. All three regressions share one failure mode: a repair optimized against the generated inputs, and those inputs did not cover the heaviest load or the hardest shapes the statement allows. Per its pre-registration, no team-v2 overall score is claimed; team-v2 is not run on the other 13 problems, because team-v3 below replaces it.
 
-## Amendment: arm `team-v3` (pre-registered 2026-10-19 02:15 PDT, before any team-v3 attempt)
+## Amendment: arm `team-v3` (pre-registered 2026-10-19 01:58 PDT, before any team-v3 attempt)
 
 The v2a regressions above were diagnosed by grading final programs, i.e. with hidden-test results. That is the same kind of information that chose the five problems, so team-v3 is a third iteration designed on this benchmark, and its score can carry selection bias. To limit that bias, team-v3 runs on all 18 problems, and every number from every arm stays in this file.
 
