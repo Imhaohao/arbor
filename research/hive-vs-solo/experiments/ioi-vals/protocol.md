@@ -73,3 +73,7 @@ Option considered and not used alone: parsing the counts the sample graders alre
 Known limits: the sample graders are not the official ones. message's sample Cleopatra alternates bits where the official grader is adaptive, and message and migrations run both communication phases in one process. The checker can only score what the sample grader shows.
 
 Run and claims: run `v2a`, `python3 bench.py team v2a --candidates cal1` on the five problems first (code at the commit after this amendment). The five were chosen after seeing cal1 hidden-test scores, so the five-problem result is descriptive only: team-v2 vs team per problem; with n <= 5 non-zero differences the exact Wilcoxon p cannot fall below 0.0625, so no significance is claimed. A team-v2 overall score (Vals formula) is reported only after the same code runs on all 18 problems.
+
+### Deviation found 2026-10-19 00:58 PDT (before any team-v2 result was seen)
+
+The "no CLAUDE.md" claim in Arms is false. `--setting-sources project` keeps user settings and hooks out, but headless `claude -p` still loads the user's global `~/.claude/CLAUDE.md` (style rules such as a TL;DR, a closing prompt note and subagent routing; no task content). 45 of the 55 cal1 transcripts show its markers, and the v2a testers do too. It applies equally to every arm in cal1 and v2a, so comparisons between our arms are like for like; against Vals it is one more harness difference. v2a keeps the same harness so it stays comparable with cal1.
