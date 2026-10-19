@@ -1,0 +1,24 @@
+task                    solo-haiku   solo-sonnet          team
+2024-nile                    17.00        100.00        100.00
+2024-message                  0.00         91.22         91.22
+2024-tree                     0.00         17.00        100.00
+2024-hieroglyphs              0.00        100.00        100.00
+2024-mosaic                  22.00        100.00        100.00
+2024-sphinx                   1.50        100.00        100.00
+2025-souvenirs                3.00        100.00        100.00
+2025-triples                 10.83        100.00        100.00
+2025-worldmap                 0.00         93.00         93.00
+2025-festival                 5.00        100.00        100.00
+2025-migrations               0.00         83.69         83.69
+2025-obstacles                0.00        100.00        100.00
+2026-ballmachine              0.00         47.00         47.00
+2026-monuments                0.00        100.00        100.00
+2026-tiling                   0.00        100.00        100.00
+2026-classroom                4.00         77.50         77.50
+2026-magiccity                1.00        100.00        100.00
+2026-partition                0.00        100.00        100.00
+solo-haiku     {"by_year": {"2024": 6.75, "2025": 3.14, "2026": 0.83}, "overall": 3.57}
+solo-sonnet    {"by_year": {"2024": 84.7, "2025": 96.11, "2026": 87.42}, "overall": 89.41}
+team           {"by_year": {"2024": 98.54, "2025": 96.11, "2026": 87.42}, "overall": 94.02}
+Vals reference: {"Gemini 4 Argon": 100.0, "GPT-6 Astra": 100.0, "GPT-6.1 Sol": 96.89, "Claude Opus 5.5": 95.06, "Claude Sonnet 5.5": 83.06} Sonnet by year: {"2024": 85.0, "2025": 88.33, "2026": 75.83}
+team vs solo-sonnet on 18 problems: {"n": 1, "w_plus": 1.0, "p": 1.0}

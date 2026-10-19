@@ -38,3 +38,21 @@ If `solo-sonnet` overall lands within 10 points of Vals' 83.06, the harness is t
 ## Claims
 
 18 problems allow descriptive results only. Team vs `solo-sonnet` is reported per problem with a paired Wilcoxon signed-rank test; p >= 0.05 is reported as "not shown". "Matches Astra" is claimed only if the team scores 100.00 overall. No prompt or pipeline change after the first team attempt; any deviation is logged here with a timestamp before rerunning.
+
+## Results (run cal1, 2026-10-18 20:55 to 23:54 PDT)
+
+| Arm | 2024 | 2025 | 2026 | Overall (Vals formula) |
+|---|---|---|---|---|
+| solo-sonnet | 84.70 | 96.11 | 87.42 | 89.41 |
+| solo-haiku | 6.75 | 3.14 | 0.83 | 3.57 |
+| team | 98.54 | 96.11 | 87.42 | 94.02 |
+| Vals: Claude Sonnet 5.5 | 85.00 | 88.33 | 75.83 | 83.06 |
+| Vals: Claude Opus 5.5 | | | | 95.06 |
+| Vals: GPT-6 Astra, Gemini 4 Argon | | | | 100.00 |
+
+- Calibration: solo-sonnet 89.41 is 6.35 above Vals' 83.06, inside the pre-registered 10-point band, so the harness counts as comparable. 2024 matches Vals almost exactly (84.70 vs 85.00); 2025 and 2026 are higher (+7.78, +11.59). One attempt per problem, so single-problem swings (ballmachine 47) dominate.
+- Team vs solo-sonnet: the team chose Sonnet's program on 17 of 18 problems. On tree, Haiku's program agreed with the brute force on 40/40 small inputs but timed out on 3/3 large ones, Sonnet's was fast but wrong on 3/40; the Sonnet repairer fixed Haiku's program from the timeout evidence (17 -> 100). Wilcoxon signed-rank: n = 1 non-zero difference, p = 1.0, so an improvement is not shown.
+- Where the team was blind: all five problems Sonnet did not finish (message, worldmap, migrations, ballmachine, classroom) have non-unique or scored outputs. The tester correctly marked them non-unique, so no brute-force comparison existed, no failure was found and no repair ran.
+- "Matches Astra": not claimed (94.02 < 100).
+- partition (Sonnet) hit the 90-minute cap; solution.cpp was already written and scored 100, which the rules count.
+- Audit: 5 flags, all benign (a run script's `ulimit -s`, `git commit` walking into the denied runs/ folder, and C++ variables named `nc`). See audit-cal1.json.

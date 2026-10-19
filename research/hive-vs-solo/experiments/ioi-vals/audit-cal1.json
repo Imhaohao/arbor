@@ -1,0 +1,17 @@
+{
+  "solo-haiku/2024-message": [
+    "sandbox denied a read"
+  ],
+  "solo-haiku/2025-worldmap": [
+    "network-looking command: nc "
+  ],
+  "solo-haiku/2026-tiling": [
+    "sandbox denied a read"
+  ],
+  "solo-sonnet/2025-triples": [
+    "sandbox denied a read"
+  ],
+  "team/2025-obstacles/tester": [
+    "network-looking command: nc "
+  ]
+}

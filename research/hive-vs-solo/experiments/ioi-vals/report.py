@@ -23,7 +23,9 @@ def tool_calls(transcript: Path):
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        for block in (event.get("message") or {}).get("content") or []:
+        message = event.get("message")
+        content = message.get("content") if isinstance(message, dict) else None
+        for block in content if isinstance(content, list) else []:
             if isinstance(block, dict) and block.get("type") in {"tool_use", "tool_result"}:
                 yield block
 
