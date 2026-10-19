@@ -4,6 +4,7 @@ import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { JudgeVerdict } from "../lib/types";
+import { publicDemoMode } from "../lib/public-demo";
 
 /**
  * Re-runs the judge with the dispute reason injected. Reputation and escrow
@@ -37,6 +38,9 @@ export const override = action({
     actor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (publicDemoMode()) {
+      throw new Error("Dispute overrides are disabled in public demo mode");
+    }
     const task = await ctx.runQuery(internal.tasks._get, {
       task_id: args.task_id,
     });

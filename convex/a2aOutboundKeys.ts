@@ -1,5 +1,12 @@
 import { internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { publicDemoMode } from "../lib/public-demo";
+
+function assertA2aKeyAccessEnabled(): void {
+  if (publicDemoMode()) {
+    throw new Error("A2A outbound key access is disabled in public demo mode");
+  }
+}
 
 /**
  * Outbound API keys for remote A2A specialists.
@@ -19,6 +26,7 @@ export const setKey = mutation({
     source: v.string(),
   },
   handler: async (ctx, args) => {
+    assertA2aKeyAccessEnabled();
     if (!args.api_key.trim()) throw new Error("api_key must be non-empty");
     const now = Date.now();
     const existing = await ctx.db
@@ -49,6 +57,7 @@ export const setKey = mutation({
 export const removeKey = mutation({
   args: { agent_id: v.string() },
   handler: async (ctx, args) => {
+    assertA2aKeyAccessEnabled();
     const existing = await ctx.db
       .query("a2a_outbound_keys")
       .withIndex("by_agent_id", (q) => q.eq("agent_id", args.agent_id))
@@ -62,6 +71,7 @@ export const removeKey = mutation({
 export const listMasked = query({
   args: {},
   handler: async (ctx) => {
+    assertA2aKeyAccessEnabled();
     const rows = await ctx.db.query("a2a_outbound_keys").collect();
     return rows.map((r) => ({
       agent_id: r.agent_id,
@@ -78,6 +88,7 @@ export const _getAll = internalQuery({
   args: {},
   returns: v.array(v.any()),
   handler: async (ctx) => {
+    assertA2aKeyAccessEnabled();
     return await ctx.db.query("a2a_outbound_keys").collect();
   },
 });
@@ -99,6 +110,7 @@ export const getForAgent = query({
     v.null(),
   ),
   handler: async (ctx, args) => {
+    assertA2aKeyAccessEnabled();
     const row = await ctx.db
       .query("a2a_outbound_keys")
       .withIndex("by_agent_id", (q) => q.eq("agent_id", args.agent_id))

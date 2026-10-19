@@ -2,10 +2,20 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { publicDemoMode } from "../lib/public-demo";
+
+function assertStripeBridgeEnabled() {
+  if (publicDemoMode()) {
+    throw new Error("Stripe bridge is disabled in public demo mode");
+  }
+  if (process.env.ARBOR_PAYMENTS_MODE !== "stripe_checkout") {
+    throw new Error("Stripe bridge requires ARBOR_PAYMENTS_MODE=stripe_checkout");
+  }
+}
 
 function assertBridgeSecret(value: string | undefined) {
   const expected = process.env.ARBOR_STRIPE_CONVEX_BRIDGE_SECRET;
-  if (expected && value !== expected) {
+  if (!expected || value !== expected) {
     throw new Error("invalid Stripe bridge secret");
   }
 }
@@ -32,6 +42,7 @@ export const upsertStripeAccount = mutation({
     requirements_currently_due: v.array(v.string()),
   },
   handler: async (ctx, args) => {
+    assertStripeBridgeEnabled();
     assertBridgeSecret(args.bridge_secret);
     const now = Date.now();
     const onboarding_status =
@@ -78,6 +89,7 @@ export const attachStripeCheckout = mutation({
     stripe_currency: v.string(),
   },
   handler: async (ctx, args): Promise<{ escrow_id: Id<"escrow"> | null }> => {
+    assertStripeBridgeEnabled();
     assertBridgeSecret(args.bridge_secret);
     const escrow_id: Id<"escrow"> | null = await ctx.runMutation(
       internal.escrow._attachStripeCheckout,
@@ -118,6 +130,7 @@ export const markStripeAuthorized = mutation({
     stripe_charge_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    assertStripeBridgeEnabled();
     assertBridgeSecret(args.bridge_secret);
     await ctx.runMutation(internal.escrow._markStripeAuthorized, {
       task_id: args.task_id,
@@ -156,6 +169,7 @@ export const markStripeCaptured = mutation({
     stripe_charge_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    assertStripeBridgeEnabled();
     assertBridgeSecret(args.bridge_secret);
     await ctx.runMutation(internal.escrow._markStripeCaptured, {
       task_id: args.task_id,
@@ -226,6 +240,7 @@ export const markStripeCanceled = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    assertStripeBridgeEnabled();
     assertBridgeSecret(args.bridge_secret);
     await ctx.runMutation(internal.escrow._markStripeCanceled, {
       task_id: args.task_id,

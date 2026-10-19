@@ -51,7 +51,8 @@ export const arborPublicDemo: SpecialistRunner = {
     const text = prompt.includes(SMOKE_SENTENCE)
       ? `${LABEL}\n\n${SMOKE_SENTENCE}`
       : `${LABEL}\n\nThis public preview only demonstrates Arbor's safe Hive lifecycle. ` +
-        "No A2A agent, external tool, model, escrow, or payment was used.";
+        "No A2A agent, external tool, model, or real-money payment was used; " +
+        "the Hive lifecycle records simulated Convex escrow only.";
     const sessionId = `public-demo:${context?.task_id ?? "local"}`;
     const recorder = context?.toolRecorder;
 

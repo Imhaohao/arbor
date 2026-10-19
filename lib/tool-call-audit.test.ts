@@ -95,6 +95,20 @@ function testFinalizeMcpProvenance() {
   );
   assert.equal(proven.live_tools_called, true);
   assert.equal(proven.proof_level, "tool_call");
+
+  const mock = finalizeProvenance(
+    {
+      tier: "not-a2a-yet",
+      transport: "mock",
+      live_tools_called: false,
+      proof_level: "none",
+      external_session_id: "public-demo:task-1",
+    },
+    ["local-receipt"],
+  );
+  assert.equal(mock.live_tools_called, false);
+  assert.equal(mock.proof_level, "none");
+  assert.equal(mock.successful_tool_call_count, 1);
 }
 
 testRedaction();

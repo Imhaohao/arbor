@@ -69,7 +69,9 @@ function dedupeRoster(configs: SpecialistConfig[]): SpecialistConfig[] {
 }
 
 function stripeCheckoutMode(): boolean {
-  return process.env.ARBOR_PAYMENTS_MODE === "stripe_checkout";
+  // The public preview must never enter a real-money settlement path, even
+  // if a deployment accidentally retains Stripe checkout configuration.
+  return !publicDemoMode() && process.env.ARBOR_PAYMENTS_MODE === "stripe_checkout";
 }
 
 function stripeCurrency(): string {
@@ -559,62 +561,72 @@ export const solicitBids = internalAction({
     }
     const acceptFloor = clusterAcceptFloor();
 
+    const isPublicDemo = publicDemoMode();
     const staticSpecialists = getSpecialists(task.model_gateway);
+    let discoveredConfigs: SpecialistConfig[] = [];
+    let catalogConfigs: SpecialistConfig[] = [];
 
-    const discovered = (await ctx.runQuery(
-      api.discoveredSpecialists.list,
-      {},
-    )) as Array<Doc<"discovered_specialists">>;
-    const discoveredConfigs: SpecialistConfig[] = discovered
-      .map((row) => specialistConfigFromPersisted(row))
-      .filter((config) => specialistEnabled(config, task.model_gateway));
-    for (const config of discoveredConfigs) {
-      registerDiscoveredSpecialist(config);
-    }
-
-    // Hydrate outbound A2A keys from the Convex vault: any specialist whose
-    // key env var is unset gets it populated from a2a_outbound_keys so keyed
-    // agents can bid without env-var redeploys (console-pasted or
-    // auto-acquired keys take effect on the next auction).
-    try {
-      const vaultRows = await ctx.runQuery(internal.a2aOutboundKeys._getAll, {});
-      const byAgent = new Map(vaultRows.map((k) => [k.agent_id, k.api_key]));
-      for (const cfg of discoveredConfigs) {
-        if (
-          cfg.a2a_auth_mode !== "none" &&
-          cfg.a2a_api_key_env &&
-          !process.env[cfg.a2a_api_key_env]
-        ) {
-          const key = byAgent.get(cfg.agent_id);
-          if (key) process.env[cfg.a2a_api_key_env] = key;
-        }
+    // Public demo is an isolated deterministic lane. Do not enumerate or
+    // register persisted/catalog specialists and never read the outbound A2A
+    // key vault there: its roster must remain exactly arbor-public-demo.
+    if (!isPublicDemo) {
+      const discovered = (await ctx.runQuery(
+        api.discoveredSpecialists.list,
+        {},
+      )) as Array<Doc<"discovered_specialists">>;
+      discoveredConfigs = discovered
+        .map((row) => specialistConfigFromPersisted(row))
+        .filter((config) => specialistEnabled(config, task.model_gateway));
+      for (const config of discoveredConfigs) {
+        registerDiscoveredSpecialist(config);
       }
-    } catch {
-      // Vault read failure -> keyed agents without env vars decline cleanly.
-    }
 
-    // Auto-enrol every catalog entry (Stripe, Linear, Vercel, etc.) as a
-    // bidder unless it's already covered by a sponsor or discovered config.
-    const taken = new Set([
-      ...staticSpecialists.map((s) => s.agent_id),
-      ...discoveredConfigs.map((d) => d.agent_id),
-    ]);
-    const catalogConfigs: SpecialistConfig[] = MCP_CATALOG.filter(
-      (c) => !taken.has(c.agent_id),
-    ).map((c) => {
-      const cfg = specialistConfigFromCatalog(c);
-      registerDiscoveredSpecialist(cfg);
-      return cfg;
-    });
+      // Hydrate outbound A2A keys from the Convex vault: any specialist whose
+      // key env var is unset gets it populated from a2a_outbound_keys so keyed
+      // agents can bid without env-var redeploys (console-pasted or
+      // auto-acquired keys take effect on the next auction).
+      try {
+        const vaultRows = await ctx.runQuery(internal.a2aOutboundKeys._getAll, {});
+        const byAgent = new Map(vaultRows.map((k) => [k.agent_id, k.api_key]));
+        for (const cfg of discoveredConfigs) {
+          if (
+            cfg.a2a_auth_mode !== "none" &&
+            cfg.a2a_api_key_env &&
+            !process.env[cfg.a2a_api_key_env]
+          ) {
+            const key = byAgent.get(cfg.agent_id);
+            if (key) process.env[cfg.a2a_api_key_env] = key;
+          }
+        }
+      } catch {
+        // Vault read failure -> keyed agents without env vars decline cleanly.
+      }
+
+      // Auto-enrol every catalog entry (Stripe, Linear, Vercel, etc.) as a
+      // bidder unless it's already covered by a sponsor or discovered config.
+      const taken = new Set([
+        ...staticSpecialists.map((s) => s.agent_id),
+        ...discoveredConfigs.map((d) => d.agent_id),
+      ]);
+      catalogConfigs = MCP_CATALOG.filter((c) => !taken.has(c.agent_id)).map(
+        (c) => {
+          const cfg = specialistConfigFromCatalog(c);
+          registerDiscoveredSpecialist(cfg);
+          return cfg;
+        },
+      );
+    }
 
     // Open auction: every registered specialist gets a chance to bid. Each
     // runner's bid prompt tells it to decline when the task is out of scope,
     // and the Vickrey score (reputation / bid_price) handles the rest.
-    const roster = dedupeRoster([
-      ...staticSpecialists,
-      ...discoveredConfigs,
-      ...catalogConfigs,
-    ]);
+    const roster = isPublicDemo
+      ? staticSpecialists
+      : dedupeRoster([
+          ...staticSpecialists,
+          ...discoveredConfigs,
+          ...catalogConfigs,
+        ]);
 
     // Make sure every bidder has an agents row so reputation reads use the
     // live score and settlement's _applyReputationDelta never hits a missing
@@ -641,7 +653,7 @@ export const solicitBids = internalAction({
     // Tracks the open-auction paths (no shortlist, or a shortlist that
     // matched nothing). Only those are eligible for the fan-out cap.
     let openRoster = false;
-    if (task.task_type === "reacher-live-launch") {
+    if (!isPublicDemo && task.task_type === "reacher-live-launch") {
       // Sponsor-demo invariant: reacher-live-launch always solicits only
       // reacher-social, regardless of any per-task shortlist.
       invitedSpecialists = staticSpecialists.filter(
@@ -1248,30 +1260,32 @@ export const execute = internalAction({
     });
 
     try {
-      const discoveredEntry = await ctx.runQuery(
-        internal.discoveredSpecialists._getByAgentId,
-        { agent_id: winner.agent_id },
-      );
-      if (discoveredEntry) {
-        registerDiscoveredSpecialist(
-          specialistConfigFromPersisted(discoveredEntry),
+      if (!publicDemoMode()) {
+        const discoveredEntry = await ctx.runQuery(
+          internal.discoveredSpecialists._getByAgentId,
+          { agent_id: winner.agent_id },
         );
-      } else {
-        // Catalog agents are auto-enrolled as bidders by solicitBids but are
-        // never persisted to discovered_specialists — their registration is
-        // module-scope state that lives and dies with the Convex isolate.
-        // solicitBids and this action are separate invocations, so when
-        // execution landed on a cold isolate a catalog agent that had just
-        // legitimately won threw "No specialist runner registered".
-        // Intermittent by nature: a warm isolate still had the registration.
-        // Observed 2026-08-06 with openzeppelin-contracts.
-        const catalogEntry = MCP_CATALOG.find(
-          (c) => c.agent_id === winner.agent_id,
-        );
-        if (catalogEntry) {
+        if (discoveredEntry) {
           registerDiscoveredSpecialist(
-            specialistConfigFromCatalog(catalogEntry),
+            specialistConfigFromPersisted(discoveredEntry),
           );
+        } else {
+          // Catalog agents are auto-enrolled as bidders by solicitBids but are
+          // never persisted to discovered_specialists — their registration is
+          // module-scope state that lives and dies with the Convex isolate.
+          // solicitBids and this action are separate invocations, so when
+          // execution landed on a cold isolate a catalog agent that had just
+          // legitimately won threw "No specialist runner registered".
+          // Intermittent by nature: a warm isolate still had the registration.
+          // Observed 2026-08-06 with openzeppelin-contracts.
+          const catalogEntry = MCP_CATALOG.find(
+            (c) => c.agent_id === winner.agent_id,
+          );
+          if (catalogEntry) {
+            registerDiscoveredSpecialist(
+              specialistConfigFromCatalog(catalogEntry),
+            );
+          }
         }
       }
       const runner = getRunner(winner.agent_id as AgentId);
@@ -1628,7 +1642,7 @@ export const judge = internalAction({
       verdict = {
         verdict: "accept",
         reasoning:
-          "Accepted deterministic public-demo response; this isolated lane makes no external, A2A, escrow, or payment calls.",
+          "Accepted deterministic public-demo response; this isolated lane makes no external A2A, tool, model, or real-money payment calls. The Hive lifecycle records simulated Convex escrow only.",
         quality_score: 1,
       };
     } else try {

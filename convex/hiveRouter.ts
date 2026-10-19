@@ -51,6 +51,7 @@ import {
   rankWithBundledDelegationHead,
 } from "../lib/hive/delegation-head";
 import { ARBOR_FLOOR_AGENT_IDS } from "../lib/specialists/registry";
+import { PUBLIC_DEMO_AGENT_ID, publicDemoMode } from "../lib/public-demo";
 
 // FlyRoute proven-bad filter (W3): with this much evidence and a success rate
 // this low, the agent is dropped from the shortlist (open auctions unaffected).
@@ -138,6 +139,7 @@ export const routeNode = internalAction({
     const rootTask = await ctx.runQuery(internal.tasks._get, {
       task_id: dag.root_task_id,
     });
+    const isPublicDemo = publicDemoMode();
 
     // 1. Dependency outputs from the scratchpad: for each upstream node, take
     //    its most recent "result" entries (best-effort; never block routing).
@@ -238,19 +240,21 @@ export const routeNode = internalAction({
       content_format?: string;
     };
     let recall: Array<{ entry: unknown; score: number }> = [];
-    try {
-      recall = await ctx.runAction(api.scratchpadActions.semanticRecall, {
-        dag_id: args.dag_id,
-        query: node.description,
-        limit: 5,
-      });
-    } catch (err) {
-      console.warn(
-        `[hive-router] scratchpadActions.semanticRecall failed: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-      recall = [];
+    if (!isPublicDemo) {
+      try {
+        recall = await ctx.runAction(api.scratchpadActions.semanticRecall, {
+          dag_id: args.dag_id,
+          query: node.description,
+          limit: 5,
+        });
+      } catch (err) {
+        console.warn(
+          `[hive-router] scratchpadActions.semanticRecall failed: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        recall = [];
+      }
     }
     const recallEntries: ContextEntry[] = recall.map((r) => {
       const e = r.entry as RecallEntry;
@@ -278,24 +282,26 @@ export const routeNode = internalAction({
     let taskClass = node.task_class;
     if (!taskClass) {
       taskClass = DEFAULT_TASK_CLASS;
-      try {
-        const classified = await callClaudeJSON<{ task_class: string }>({
-          model: CLAUDE_FAST_MODEL,
-          systemPrompt: CLASSIFY_SYSTEM_PROMPT,
-          userPrompt: node.description,
-          maxTokens: 64,
-        });
-        const candidate = classified?.task_class?.trim().toLowerCase();
-        if (candidate && VALID_TASK_CLASSES.has(candidate)) {
-          taskClass = candidate;
+      if (!isPublicDemo) {
+        try {
+          const classified = await callClaudeJSON<{ task_class: string }>({
+            model: CLAUDE_FAST_MODEL,
+            systemPrompt: CLASSIFY_SYSTEM_PROMPT,
+            userPrompt: node.description,
+            maxTokens: 64,
+          });
+          const candidate = classified?.task_class?.trim().toLowerCase();
+          if (candidate && VALID_TASK_CLASSES.has(candidate)) {
+            taskClass = candidate;
+          }
+        } catch (err) {
+          console.warn(
+            `[hive-router] task classification failed; defaulting to ` +
+              `${DEFAULT_TASK_CLASS}: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+          );
         }
-      } catch (err) {
-        console.warn(
-          `[hive-router] task classification failed; defaulting to ` +
-            `${DEFAULT_TASK_CLASS}: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-        );
       }
       await ctx.runMutation(internal.hiveData._patchNode, {
         dag_id: args.dag_id,
@@ -408,7 +414,7 @@ export const routeNode = internalAction({
       { description: node.description, success_criteria: node.success_criteria },
       hints,
     );
-    const explicitRosterMatches = args.force_open
+    const explicitRosterMatches = args.force_open || isPublicDemo
       ? []
       : explicitAgentMentions(
           query,
@@ -417,7 +423,7 @@ export const routeNode = internalAction({
     // On a force_open retry, skip the semantic shortlist entirely and run an
     // open auction (invited = undefined). Otherwise shortlist, falling back to
     // open when the candidate set is too thin (shouldFallbackOpen).
-    const candidates = args.force_open
+    const candidates = args.force_open || isPublicDemo
       ? []
       : await ctx.runAction(api.hiveRegistry.searchAgents, {
           query,
@@ -604,7 +610,9 @@ export const routeNode = internalAction({
     // force_open / fallback-open round, invited is undefined and the whole
     // roster (floors included) bids anyway. In direct mode the invited list is
     // the single assignee — an audit trail; solicitBids never runs on it.
-    const invited = isDirect
+    const invited = isPublicDemo
+      ? [PUBLIC_DEMO_AGENT_ID]
+      : isDirect
       ? [routeMode.direct_agent_id as string]
       : openFallback
         ? undefined

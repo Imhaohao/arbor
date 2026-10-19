@@ -14,6 +14,7 @@ import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
+import { publicDemoMode } from "../lib/public-demo";
 
 const STRIPE_BASE = "https://api.stripe.com/v1";
 
@@ -21,6 +22,15 @@ function assertAdminSecret(secret: string): void {
   const expected = process.env.ADMIN_DASHBOARD_SECRET;
   if (!expected || secret !== expected) {
     throw new Error("invalid admin secret");
+  }
+}
+
+function assertStripePayoutsEnabled(): void {
+  if (publicDemoMode()) {
+    throw new Error("Stripe payouts are disabled in public demo mode");
+  }
+  if (process.env.ARBOR_PAYMENTS_MODE !== "stripe_checkout") {
+    throw new Error("Stripe payouts require ARBOR_PAYMENTS_MODE=stripe_checkout");
   }
 }
 
@@ -62,6 +72,7 @@ export const approveCapture = action({
     detail: v.optional(v.string()),
   }),
   handler: async (ctx, args) => {
+    assertStripePayoutsEnabled();
     assertAdminSecret(args.admin_secret);
 
     const escrow = (await ctx.runQuery(api.escrow.forTask, {

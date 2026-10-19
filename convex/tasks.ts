@@ -8,6 +8,12 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { buildOrchestrationContext } from "../lib/orchestration-context";
 import { isConversionDropPrompt } from "../lib/conversion-drop-demo";
+import {
+  PUBLIC_DEMO_SMOKE_BUDGET,
+  PUBLIC_DEMO_SMOKE_POSTED_BY,
+  PUBLIC_DEMO_SMOKE_PROMPT,
+  publicDemoMode,
+} from "../lib/public-demo";
 
 // 90s. Was 30s on the reasoning that the slowest single leg (~12s A2A bid +
 // ~6s plan screen) fit with headroom once the probe and bid request ran
@@ -77,6 +83,40 @@ export const post = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
     const closesAt = now + BID_WINDOW_SECONDS * 1000;
+    if (publicDemoMode()) {
+      const safeSmokeRequest =
+        args.posted_by === PUBLIC_DEMO_SMOKE_POSTED_BY &&
+        args.prompt === PUBLIC_DEMO_SMOKE_PROMPT &&
+        args.max_budget === PUBLIC_DEMO_SMOKE_BUDGET &&
+        args.workflow_mode === "hive" &&
+        (args.task_type === undefined || args.task_type === "general") &&
+        args.output_schema === undefined &&
+        args.business_context === undefined &&
+        args.repo_context === undefined &&
+        (args.source_hints === undefined || args.source_hints.length === 0) &&
+        args.model_gateway === undefined;
+      if (!safeSmokeRequest) {
+        throw new Error(
+          "Public demo task posting is restricted to the fixed preview smoke task",
+        );
+      }
+      const existing = await ctx.db
+        .query("tasks")
+        .withIndex("by_posted_by_and_parent_task_id", (q) =>
+          q
+            .eq("posted_by", PUBLIC_DEMO_SMOKE_POSTED_BY)
+            .eq("parent_task_id", undefined),
+        )
+        .order("desc")
+        .first();
+      if (existing) {
+        return {
+          task_id: existing._id,
+          status: "planning" as const,
+          bid_window_closes_at: existing.bid_window_closes_at,
+        };
+      }
+    }
     const profile = await ctx.db
       .query("product_context_profiles")
       .withIndex("by_owner", (q) => q.eq("owner_id", args.posted_by))

@@ -303,8 +303,10 @@ export async function callA2aAgent(options: {
   bearer?: string;
   text: string;
   timeoutMs?: number;
+  pollIntervalMs?: number;
 }): Promise<BackendReply> {
   const timeoutMs = options.timeoutMs ?? 60_000;
+  const pollIntervalMs = options.pollIntervalMs ?? 3_000;
   const headers: Record<string, string> = {
     "content-type": "application/json",
     accept: "application/json",
@@ -367,6 +369,7 @@ export async function callA2aAgent(options: {
   if (!/\/a2a$/i.test(trimmed)) endpoints.push(`${trimmed}/a2a`);
 
   let result: unknown;
+  let resultEndpoint = options.endpoint;
   let lastError: Error | null = null;
   outer: for (const endpoint of endpoints) {
     // Dialects in order: v0.3 message/send, legacy text parts, legacy
@@ -379,6 +382,7 @@ export async function callA2aAgent(options: {
     for (const attempt of attempts) {
       try {
         result = await rpc(endpoint, attempt.method, attempt.params);
+        resultEndpoint = endpoint;
         lastError = null;
         break outer;
       } catch (err) {
@@ -403,8 +407,8 @@ export async function callA2aAgent(options: {
   const state = a2aTaskState(result);
   if (!text && taskId && state && !["failed", "canceled", "rejected"].includes(state)) {
     for (let poll = 0; poll < 5 && !text; poll += 1) {
-      await sleep(3_000);
-      const polled = await rpc(options.endpoint, "tasks/get", { id: taskId }).catch(
+      await sleep(pollIntervalMs);
+      const polled = await rpc(resultEndpoint, "tasks/get", { id: taskId }).catch(
         () => null,
       );
       if (!polled) break;
@@ -422,7 +426,7 @@ export async function callA2aAgent(options: {
   }
   return {
     text,
-    provenance: `real agent-to-agent: A2A message/send @ ${options.endpoint}`,
+    provenance: `real agent-to-agent: A2A message/send @ ${resultEndpoint}`,
   };
 }
 

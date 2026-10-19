@@ -177,15 +177,19 @@ export function finalizeProvenance(
   provenance: SpecialistProvenance,
   successfulToolCallIds: string[],
 ): SpecialistProvenance {
+  const isDeterministicMock = provenance.transport === "mock";
   const isAuditedToolTransport =
-    provenance.tier === "not-a2a-yet" ||
-    provenance.tier === "a2a-bridge" ||
-    provenance.transport === "mcp" ||
-    provenance.transport === "a2a-bridge";
+    !isDeterministicMock &&
+    (provenance.tier === "not-a2a-yet" ||
+      provenance.tier === "a2a-bridge" ||
+      provenance.transport === "mcp" ||
+      provenance.transport === "a2a-bridge");
   const successful_tool_call_count =
     provenance.successful_tool_call_count ?? successfulToolCallIds.length;
   const proofLevel: ProofLevel =
-    provenance.pr_url || provenance.pr_number
+    isDeterministicMock
+      ? provenance.proof_level ?? "none"
+      : provenance.pr_url || provenance.pr_number
       ? "pr_opened"
       : provenance.external_session_id
         ? "agent_session"
@@ -195,7 +199,9 @@ export function finalizeProvenance(
 
   return {
     ...provenance,
-    live_tools_called: isAuditedToolTransport
+    live_tools_called: isDeterministicMock
+      ? false
+      : isAuditedToolTransport
       ? successful_tool_call_count > 0
       : provenance.live_tools_called,
     successful_tool_call_count,

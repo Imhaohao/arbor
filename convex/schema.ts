@@ -95,7 +95,9 @@ export default defineSchema({
     // as before when best-of-N is off.
     hive_candidate_index: v.optional(v.number()),
     success_criteria: v.optional(v.string()),
-  }).index("by_parent", ["parent_task_id"]),
+  })
+    .index("by_parent", ["parent_task_id"])
+    .index("by_posted_by_and_parent_task_id", ["posted_by", "parent_task_id"]),
 
   product_context_profiles: defineTable({
     owner_id: v.string(),

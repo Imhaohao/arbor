@@ -8,3 +8,7 @@ export function publicDemoMode(): boolean {
 }
 
 export const PUBLIC_DEMO_AGENT_ID = "arbor-public-demo";
+export const PUBLIC_DEMO_SMOKE_POSTED_BY = "preview-smoke-2026-08-08";
+export const PUBLIC_DEMO_SMOKE_PROMPT =
+  "Return the exact sentence: Arbor preview smoke test passed safely.";
+export const PUBLIC_DEMO_SMOKE_BUDGET = 0.01;
