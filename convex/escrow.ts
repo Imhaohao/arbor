@@ -80,7 +80,7 @@ export const _attachStripeCheckout = internalMutation({
     task_id: v.id("tasks"),
     stripe_checkout_session_id: v.string(),
     stripe_payment_intent_id: v.optional(v.string()),
-    stripe_connected_account_id: v.string(),
+    stripe_connected_account_id: v.optional(v.string()),
     stripe_application_fee_amount: v.number(),
     stripe_currency: v.string(),
   },
@@ -161,6 +161,25 @@ export const _markStripeCanceled = internalMutation({
       stripe_payment_intent_id:
         args.stripe_payment_intent_id ?? target.stripe_payment_intent_id,
       payment_canceled_at: Date.now(),
+      payment_last_error: args.reason,
+    });
+    return target._id;
+  },
+});
+
+export const _markStripeRefunded = internalMutation({
+  args: {
+    task_id: v.id("tasks"),
+    stripe_refund_id: v.optional(v.string()),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const target = await activeEscrowForTask(ctx, args.task_id);
+    if (!target) throw new Error(`escrow for task ${args.task_id} not found`);
+    await ctx.db.patch(target._id, {
+      payment_status: "refunded",
+      stripe_refund_id: args.stripe_refund_id,
+      payment_refunded_at: Date.now(),
       payment_last_error: args.reason,
     });
     return target._id;

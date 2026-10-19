@@ -160,11 +160,24 @@ fallback used by both paths when the provider-specific var is unset.
 | `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `AZURE_LOCATION`, `AZURE_NAME_PREFIX`, `AZURE_OPENAI_RESOURCE_NAME`, `AZURE_CONTAINER_APP_NAME`, `AZURE_WEBAPP_NAME`, `AZURE_MANAGEMENT_TOKEN` | Local/admin scripts | Optional | Azure bootstrap, readiness, deploy, and shutoff scripts. `AZURE_MANAGEMENT_TOKEN` is sensitive. |
 | `AZURE_BUDGET_EMAIL`, `AZURE_BUDGET_NAME`, `AZURE_CREDITS_TOTAL`, `AZURE_MONTHLY_BUDGET`, `AZURE_BUDGET_START`, `AZURE_BUDGET_END` | Local/admin scripts | Optional | Azure budget guardrail setup. |
 
+## Accounts and access
+
+| Var | Where (Next / Convex / both) | Required? | Purpose |
+| --- | --- | --- | --- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Next | Required for sign-in | Clerk publishable key. Unset runs the site without accounts (local dev only). |
+| `CLERK_SECRET_KEY` | Next | Required for sign-in | Clerk secret key, used by middleware and server routes. |
+| `CLERK_JWT_ISSUER_DOMAIN` | Convex | Required for sign-in | Clerk Frontend API URL (`https://<instance>.clerk.accounts.dev` in dev). Convex verifies Clerk tokens with `aud: "convex"`; the Clerk dashboard needs a JWT template named `convex`. |
+| `ARBOR_REQUIRE_AUTH` | Both | Required in production (`true`) | Buyers must sign in to post; task lists, company profiles, overrides and checkout are scoped to the task's owner. Unset keeps anonymous posting for local scripts. |
+| `ARBOR_ADMIN_EMAILS` | Both | Required in production | Comma-separated emails allowed into `/admin`, `/replay`, admin API routes and every buyer's tasks. |
+| `NEXT_PUBLIC_ARBOR_OPERATOR_NAME` | Next | Recommended | Legal name shown as the operator on `/terms` and `/privacy`. |
+| `NEXT_PUBLIC_ARBOR_JURISDICTION` | Next | Optional | Governing law on `/terms` and `/privacy`; defaults to California, United States. |
+
 ## Payments
 
 | Var | Where (Next / Convex / both) | Required? | Purpose |
 | --- | --- | --- | --- |
-| `ARBOR_PAYMENTS_MODE` | Both | Optional | Set `stripe_checkout` to use real Stripe checkout; unset uses simulated Convex escrow. |
+| `ARBOR_PAYMENTS_MODE` | Both | Optional | Set `stripe_checkout` to use real Stripe checkout; unset uses simulated Convex escrow. Arbor is merchant of record: a seller without finished Connect onboarding is paid out of a plain platform charge; an onboarded seller gets a destination charge. |
+| `ARBOR_STRIPE_CONVEX_BRIDGE_SECRET` | Both | Required for Stripe checkout | Shared secret the Next webhook and checkout routes send to Convex payment mutations; they fail closed when it is unset. |
 | `STRIPE_SECRET_KEY` | Next and Convex where noted | Required for Stripe checkout | Real Stripe checkout payments. Keep unset for simulated Convex escrow. |
 | `STRIPE_WEBHOOK_SECRET` | Next | Required for Stripe webhooks | Stripe webhook verification. |
 | `STRIPE_CURRENCY` | Both | Optional | Settlement/checkout currency, defaults to `usd`. |
@@ -283,7 +296,7 @@ accounts automatically; the operator signs up and pastes keys.
 | Var | Where | Required? | Purpose |
 | --- | --- | --- | --- |
 | `STRIPE_SECRET_KEY` | Next + Convex | For payments | Stripe secret key (sk_test today). `stripePayouts.approveCapture` falls back to `STRIPE_API_KEY`. |
-| `ARBOR_PAYMENTS_MODE` | Next + Convex | For payments | `stripe_checkout` turns on real payment side effects (auction award gates on authorization; capture is human-approved). |
+| `ARBOR_PAYMENTS_MODE` | Next + Convex | For payments | `stripe_checkout` turns on real payment side effects: award waits for card authorization, a judge accept captures, a reject voids, and a buyer override refunds a captured charge. |
 | `ADMIN_DASHBOARD_SECRET` | Convex | For payouts | Required by `stripePayouts.approveCapture` — the single money-moving action. |
 
 Flow: checkout authorizes with manual capture; `npm run payouts -- list` shows

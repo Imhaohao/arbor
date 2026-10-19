@@ -5,6 +5,8 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { JudgeVerdict } from "../lib/types";
 import { publicDemoMode } from "../lib/public-demo";
+import { assertCanActOn } from "./viewer";
+import { settleStripeForOverride } from "./stripeMoney";
 
 /**
  * Re-runs the judge with the dispute reason injected. Reputation and escrow
@@ -13,6 +15,10 @@ import { publicDemoMode } from "../lib/public-demo";
 export const raise = action({
   args: { task_id: v.id("tasks"), reason: v.string() },
   handler: async (ctx, args) => {
+    const task = await ctx.runQuery(internal.tasks._get, {
+      task_id: args.task_id,
+    });
+    await assertCanActOn(ctx, task.posted_by);
     await ctx.runMutation(internal.lifecycle.log, {
       task_id: args.task_id,
       event_type: "judge_verdict",
@@ -44,6 +50,7 @@ export const override = action({
     const task = await ctx.runQuery(internal.tasks._get, {
       task_id: args.task_id,
     });
+    await assertCanActOn(ctx, task.posted_by);
     if (!task.result) throw new Error("cannot override before execution result");
 
     const overrideVerdict: JudgeVerdict = {
@@ -102,6 +109,8 @@ export const override = action({
     const agent = await ctx.runQuery(internal.agents._getByAgentId, {
       agent_id: winner.agent_id,
     });
+
+    await settleStripeForOverride(ctx, args.task_id, args.verdict);
 
     if (args.verdict === "accept") {
       await ctx.runMutation(internal.escrow._settle, {

@@ -306,6 +306,8 @@ export default defineSchema({
     payment_authorized_at: v.optional(v.number()),
     payment_captured_at: v.optional(v.number()),
     payment_canceled_at: v.optional(v.number()),
+    payment_refunded_at: v.optional(v.number()),
+    stripe_refund_id: v.optional(v.string()),
     payment_last_error: v.optional(v.string()),
     status: v.union(
       v.literal("locked"),

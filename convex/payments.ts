@@ -84,7 +84,7 @@ export const attachStripeCheckout = mutation({
     task_id: v.id("tasks"),
     stripe_checkout_session_id: v.string(),
     stripe_payment_intent_id: v.optional(v.string()),
-    stripe_connected_account_id: v.string(),
+    stripe_connected_account_id: v.optional(v.string()),
     stripe_application_fee_amount: v.number(),
     stripe_currency: v.string(),
   },

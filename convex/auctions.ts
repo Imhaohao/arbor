@@ -57,6 +57,12 @@ import {
 } from "../lib/tool-call-audit";
 import { sha256Hex } from "../lib/a2a-hmac";
 import { PUBLIC_DEMO_AGENT_ID, publicDemoMode } from "../lib/public-demo";
+import {
+  cancelStripePaymentForTask,
+  captureStripePaymentForTask,
+  stripeCheckoutMode,
+  stripeCurrency,
+} from "./stripeMoney";
 
 const BUYER_ID = "buyer:default";
 
@@ -66,155 +72,6 @@ function dedupeRoster(configs: SpecialistConfig[]): SpecialistConfig[] {
     if (!byId.has(config.agent_id)) byId.set(config.agent_id, config);
   }
   return Array.from(byId.values());
-}
-
-function stripeCheckoutMode(): boolean {
-  // The public preview must never enter a real-money settlement path, even
-  // if a deployment accidentally retains Stripe checkout configuration.
-  return !publicDemoMode() && process.env.ARBOR_PAYMENTS_MODE === "stripe_checkout";
-}
-
-function stripeCurrency(): string {
-  return (process.env.STRIPE_CURRENCY ?? "usd").toLowerCase();
-}
-
-function stripeSecretKey(): string {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error("STRIPE_SECRET_KEY is required for Stripe settlement");
-  return key;
-}
-
-function latestChargeId(value: unknown): string | undefined {
-  if (typeof value === "string") return value;
-  if (value && typeof value === "object" && "id" in value) {
-    const id = (value as { id?: unknown }).id;
-    return typeof id === "string" ? id : undefined;
-  }
-  return undefined;
-}
-
-async function stripePost(
-  path: string,
-  params: URLSearchParams,
-  idempotencyKey: string,
-): Promise<Record<string, unknown>> {
-  const response = await fetch(`https://api.stripe.com/v1/${path}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${stripeSecretKey()}:`).toString("base64")}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Idempotency-Key": idempotencyKey,
-    },
-    body: params,
-  });
-  const body = (await response.json().catch(() => null)) as
-    | Record<string, unknown>
-    | null;
-  if (!response.ok) {
-    const message =
-      body &&
-      typeof body.error === "object" &&
-      body.error &&
-      "message" in body.error
-        ? String((body.error as { message?: unknown }).message)
-        : `Stripe API error ${response.status}`;
-    throw new Error(message);
-  }
-  return body ?? {};
-}
-
-async function captureStripePaymentForTask(
-  ctx: ActionCtx,
-  task_id: Id<"tasks">,
-) {
-  if (!stripeCheckoutMode()) return;
-  const escrow = (await ctx.runQuery(api.escrow.forTask, { task_id })) as
-    | {
-        payment_processor?: string;
-        payment_status?: string;
-        stripe_payment_intent_id?: string;
-        stripe_charge_id?: string;
-      }
-    | null;
-  if (!escrow || escrow.payment_processor !== "stripe") return;
-  if (escrow.payment_status === "captured") return;
-  if (!escrow.stripe_payment_intent_id) {
-    throw new Error("Stripe payment intent missing for real-money settlement");
-  }
-  if (escrow.payment_status !== "authorized") {
-    throw new Error(
-      `Stripe payment must be authorized before capture; got ${escrow.payment_status ?? "unknown"}`,
-    );
-  }
-  const intent = await stripePost(
-    `payment_intents/${escrow.stripe_payment_intent_id}/capture`,
-    new URLSearchParams(),
-    `arbor_capture_${task_id}_${escrow.stripe_payment_intent_id}`,
-  );
-  const chargeId = latestChargeId(intent.latest_charge) ?? escrow.stripe_charge_id;
-  await ctx.runMutation(internal.escrow._markStripeCaptured, {
-    task_id,
-    stripe_payment_intent_id: escrow.stripe_payment_intent_id,
-    stripe_charge_id: chargeId,
-  });
-  await ctx.runMutation(internal.tasks._setPaymentStatus, {
-    task_id,
-    payment_status: "captured",
-  });
-  await ctx.runMutation(internal.lifecycle.log, {
-    task_id,
-    event_type: "stripe_payment_captured",
-    payload: {
-      stripe_payment_intent_id: escrow.stripe_payment_intent_id,
-      stripe_charge_id: chargeId,
-    },
-  });
-}
-
-async function cancelStripePaymentForTask(
-  ctx: ActionCtx,
-  task_id: Id<"tasks">,
-  reason: string,
-) {
-  if (!stripeCheckoutMode()) return;
-  const escrow = (await ctx.runQuery(api.escrow.forTask, { task_id })) as
-    | {
-        payment_processor?: string;
-        payment_status?: string;
-        stripe_payment_intent_id?: string;
-      }
-    | null;
-  if (!escrow || escrow.payment_processor !== "stripe") return;
-  if (escrow.payment_status === "canceled" || escrow.payment_status === "captured") {
-    return;
-  }
-  if (!escrow.stripe_payment_intent_id) return;
-  if (escrow.payment_status === "authorized") {
-    const params = new URLSearchParams();
-    params.set("cancellation_reason", "requested_by_customer");
-    await stripePost(
-      `payment_intents/${escrow.stripe_payment_intent_id}/cancel`,
-      params,
-      `arbor_cancel_${task_id}_${escrow.stripe_payment_intent_id}`,
-    );
-  }
-  await ctx.runMutation(internal.escrow._markStripeCanceled, {
-    task_id,
-    stripe_payment_intent_id: escrow.stripe_payment_intent_id,
-    reason,
-  });
-  await ctx.runMutation(internal.tasks._setPaymentStatus, {
-    task_id,
-    payment_status: "canceled",
-  });
-  await ctx.runMutation(internal.lifecycle.log, {
-    task_id,
-    event_type: "stripe_payment_canceled",
-    payload: {
-      stripe_payment_intent_id: escrow.stripe_payment_intent_id,
-      reason,
-    },
-  });
 }
 
 function normalizeSpecialistOutput(output: SpecialistOutput): {
