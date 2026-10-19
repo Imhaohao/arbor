@@ -56,3 +56,20 @@ If `solo-sonnet` overall lands within 10 points of Vals' 83.06, the harness is t
 - "Matches Astra": not claimed (94.02 < 100).
 - partition (Sonnet) hit the 90-minute cap; solution.cpp was already written and scored 100, which the rules count.
 - Audit: 5 flags, all benign (a run script's `ulimit -s`, `git commit` walking into the denied runs/ folder, and C++ variables named `nc`). See audit-cal1.json.
+
+## Amendment: arm `team-v2` (pre-registered 2026-10-19 00:50 PDT, before any team-v2 attempt)
+
+Why: in cal1 the team found no evidence on message, worldmap, migrations, ballmachine and classroom. Their outputs are non-unique or scored, so the tester marked them non-unique, no brute-force comparison existed, no failure was found and no repair ran. Those five problems hold every point the team lost.
+
+Change (everything else is the `team` arm unchanged: same cal1 candidates, Sonnet tester and repairer, effort high, 90-minute cap, two repair rounds, repair kept only if the evidence ranking improves, hidden tests never consulted before the final grade):
+
+1. The tester also writes `checker.py`: `python3 checker.py <input> <output>` reads a test input and what the sample grader printed for it, and prints `{"valid": bool, "score": 0..1, "detail": str}`. `valid` means every answer is legal and correct for that input, checked independently of the candidate. `score` is the fraction of points the statement's scoring rule gives that output in the most general subtask, computed from the counts the sample grader prints (packets, map size, message values, resources, list lengths).
+2. The checker is trusted only if it marks every `examples/*.out` valid and rejects an empty output for every sample input. It is used only when the brute force is not trusted (non-unique or scored outputs), so the 13 problems with a trusted brute force keep the cal1 evidence.
+3. With a trusted checker, every candidate output on the samples, the 40 small and the 3 large generated inputs is checked. Invalid outputs and crashes or timeouts are failures; valid outputs below full score are added as the three lowest-scoring cases. The repairer gets these cases (input, the candidate's output, the checker's verdict) plus `checker.py` and `gen.py`.
+4. Ranking: compiled, samples clean, brute-force agreement, number of checker-valid outputs, mean checker score (invalid = 0), large inputs within the limit, Sonnet before Haiku. Without a trusted checker the last two keys tie, so the ranking equals cal1's.
+
+Option considered and not used alone: parsing the counts the sample graders already print. They print raw counts, not scores (message prints the packet count K, ballmachine K B C, classroom C and H, worldmap the map, migrations the raw messages), and a count says nothing about whether the answer is correct, so a cheap wrong output would rank first. The checker reads those counts and also verifies the answer.
+
+Known limits: the sample graders are not the official ones. message's sample Cleopatra alternates bits where the official grader is adaptive, and message and migrations run both communication phases in one process. The checker can only score what the sample grader shows.
+
+Run and claims: run `v2a`, `python3 bench.py team v2a --candidates cal1` on the five problems first (code at the commit after this amendment). The five were chosen after seeing cal1 hidden-test scores, so the five-problem result is descriptive only: team-v2 vs team per problem; with n <= 5 non-zero differences the exact Wilcoxon p cannot fall below 0.0625, so no significance is claimed. A team-v2 overall score (Vals formula) is reported only after the same code runs on all 18 problems.
