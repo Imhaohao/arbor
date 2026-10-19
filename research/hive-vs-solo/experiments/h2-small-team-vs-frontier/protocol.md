@@ -370,6 +370,13 @@ the 42 AtCoder problems, `arc226_d` and `arc231_d` are interactive and
 are excluded under the existing rules. The remaining 39 and the 6
 Codeforces problems go to adaptation on Cursor (Gemini 4 Argon High).
 
+### v5 outcome, 2026-10-18 (no v5 test task has run)
+
+The screening cycle reached the 2026-10-18 20:00 PDT cutoff with 17
+surviving tasks, below the pre-registered floor of 25. The v5 test was not
+run, at the user's decision, so v5 makes no claim and the bank stays sealed
+and unused. v4 remains the only H2 test result (underpowered, no claim).
+
 ## What dev may change
 
 Only on the dev split, and only before the test run: the team's prompts, the
