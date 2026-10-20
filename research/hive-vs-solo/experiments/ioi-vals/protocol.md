@@ -218,3 +218,7 @@ Design (fixed before any of these runs; the pre-registration time is this entry'
 ### Harness fix before v5b
 
 The v5 calls failed with "You've hit your session limit · resets 6pm" (HTTP 429). agent.py's usage-limit pattern did not match that wording, so it counted the calls as plain errors instead of waiting and retrying. Now a 429 status, "session limit" and "resets <time>" also count as a usage limit (wait 20 minutes, then restart from a clean workspace). A scan of every attempt.json across all runs found no other affected calls; every other failure is a 90-minute timeout (cal1 partition, s5 ballmachine, v3 migrations repair2). This is a harness fix, not a pipeline change. v5b runs the frozen team-v4 pipeline exactly as pre-registered in a984519.
+
+### Infrastructure interruption during v5b (logged 2026-10-20 01:15 PDT, before resuming)
+
+The Mac rebooted at 23:48 PDT on 2026-10-19 (`kern.boottime`), which killed v5b and Docker Desktop. By then v5b had graded 8 problems (nile, tree, mosaic, hieroglyphs, souvenirs, triples, worldmap, festival, all 100). Three agent calls were cut off mid-stream with no result event: message breaker2, sphinx breaker3 and migrations repair1. Per item 5 of the v5 pre-registration, v5b resumes with the same frozen code and the same command: the 8 graded problems are kept, and the other 10 run again from scratch (their partial tester, breaker and repair folders are overwritten). No code, prompt or harness change.
