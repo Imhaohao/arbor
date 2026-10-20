@@ -209,3 +209,8 @@ Design (fixed before any of these runs; the pre-registration time is this entry'
 3. Success criterion: **team-v5 overall (Vals formula) above 95.06 counts as a replication of "beats Opus 5.5"**; at or below 95.06, it does not, and the headline becomes "not replicated". Both are reported with team-v4.
 4. Same integrity rules: transcript audit plus a scan of every command for installs or downloads. A problem whose chosen program came from a call that installed or downloaded software is void and re-run once, as before.
 5. No code, prompt or harness change until v5 is graded. If infrastructure fails (Docker, usage limits), the affected problem resumes or re-runs with the same code, and that is logged.
+
+### Results so far: v5 replication (2026-10-19, solo 14:33 to 17:47, team 17:47 to 17:49 PDT)
+
+- Fresh solo-sonnet: s4 88.87, s5 92.96, s6 91.73. Across all six solo runs the mean is 91.70 and the range is 88.87 to 98.16.
+- **The v5 team run is invalid, not a result.** It finished in about 90 seconds and picked the first candidate (s4) on every problem, which gives 88.87. The subscription usage limit was reached at that point, so the tester, breaker and repairer calls produced nothing and there was no evidence to rank on. Per item 5 of the pre-registration this is an infrastructure failure: v5 must be re-run with the same frozen code (`python3 bench.py team v5b --candidates s4 --candidates s5 --candidates s6`) once usage resets. **Until then, "team-v4 beats Opus 5.5" is not replicated; it rests on the single in-sample run (99.75).**
