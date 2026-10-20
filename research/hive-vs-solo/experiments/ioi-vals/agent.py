@@ -27,7 +27,7 @@ NO_INSTALL_DIRS = [Path("/opt/miniconda3"), Path("/opt/homebrew"), Path("/usr/lo
 OFFLINE_ENV = {"PIP_NO_INDEX": "1", "PIP_INDEX_URL": "http://127.0.0.1:9/", "UV_OFFLINE": "1", "npm_config_offline": "true",
                "HOMEBREW_NO_AUTO_UPDATE": "1", "CONDA_OFFLINE": "true"}
 ATTEMPT_SECONDS = 90 * 60
-USAGE_LIMIT_PATTERN = re.compile(r"(usage|rate) limit|limit reached|resets? (at|in)|overloaded", re.IGNORECASE)
+USAGE_LIMIT_PATTERN = re.compile(r"(usage|rate|session) limit|limit reached|resets? (at|in|\d)|overloaded", re.IGNORECASE)
 USAGE_LIMIT_WAIT_SECONDS = 20 * 60
 GXX_SHIM = """#!/bin/sh
 # Linux-style g++ for macOS: Homebrew GCC has bits/stdc++.h; -static is unsupported on macOS.
@@ -119,7 +119,8 @@ def run_once(workspace: Path, attempt_dir: Path, prompt: str, model: str, effort
     event = final_event(transcript)
     text = f"{event.get('result', '')} {(attempt_dir / 'stderr.txt').read_text(errors='replace')[-2000:]}"
     if event.get("is_error") or not event:
-        return event, "usage_limit" if USAGE_LIMIT_PATTERN.search(text) else "error"
+        limited = event.get("api_error_status") == 429 or USAGE_LIMIT_PATTERN.search(text)
+        return event, "usage_limit" if limited else "error"
     return event, ""
 
 

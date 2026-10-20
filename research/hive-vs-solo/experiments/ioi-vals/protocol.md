@@ -214,3 +214,7 @@ Design (fixed before any of these runs; the pre-registration time is this entry'
 
 - Fresh solo-sonnet: s4 88.87, s5 92.96, s6 91.73. Across all six solo runs the mean is 91.70 and the range is 88.87 to 98.16.
 - **The v5 team run is invalid, not a result.** It finished in about 90 seconds and picked the first candidate (s4) on every problem, which gives 88.87. The subscription usage limit was reached at that point, so the tester, breaker and repairer calls produced nothing and there was no evidence to rank on. Per item 5 of the pre-registration this is an infrastructure failure: v5 must be re-run with the same frozen code (`python3 bench.py team v5b --candidates s4 --candidates s5 --candidates s6`) once usage resets. **Until then, "team-v4 beats Opus 5.5" is not replicated; it rests on the single in-sample run (99.75).**
+
+### Harness fix before v5b
+
+The v5 calls failed with "You've hit your session limit · resets 6pm" (HTTP 429). agent.py's usage-limit pattern did not match that wording, so it counted the calls as plain errors instead of waiting and retrying. Now a 429 status, "session limit" and "resets <time>" also count as a usage limit (wait 20 minutes, then restart from a clean workspace). A scan of every attempt.json across all runs found no other affected calls; every other failure is a 90-minute timeout (cal1 partition, s5 ballmachine, v3 migrations repair2). This is a harness fix, not a pipeline change. v5b runs the frozen team-v4 pipeline exactly as pre-registered in a984519.
