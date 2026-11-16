@@ -5,6 +5,7 @@ import { GroveRoster } from "@/components/landing/GroveRoster";
 import { Benchmarks } from "@/components/landing/Benchmarks";
 import { HonestQuote } from "@/components/landing/HonestQuote";
 import { SiteFooter } from "@/components/landing/SiteFooter";
+import { Waitlist } from "@/components/landing/Waitlist";
 import { Treeling } from "@/components/grove/Treeling";
 import { SiteNav } from "@/components/ui/SiteNav";
 import { getGroveRoster, type GroveAgent } from "@/lib/grove/roster";
@@ -65,6 +66,7 @@ export default async function HomePage() {
             <PostTaskForm />
           </div>
         </section>
+        <Waitlist />
       </main>
       <SiteFooter />
     </>

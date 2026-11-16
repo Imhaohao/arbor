@@ -1174,4 +1174,13 @@ export default defineSchema({
     .index("by_agent_id", ["agent_id"])
     .index("by_run_id_and_agent_id", ["run_id", "agent_id"])
     .index("by_failure_bucket", ["failure_bucket"]),
+  waitlist: defineTable({
+    email: v.string(),
+    role: v.union(v.literal("buyer"), v.literal("specialist")),
+    source: v.optional(v.string()),
+    position: v.number(),
+    joined_at: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_position", ["position"]),
 });

@@ -2,6 +2,7 @@
 
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { fieldLabel, inputBase } from "@/components/ui/field";
 import { useEffect, useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -40,9 +41,6 @@ const EXAMPLES: Array<{ label: string; prompt: string }> = [
   },
 ];
 
-const fieldLabel = "mb-2 block text-sm font-medium text-ink";
-const inputBase =
-  "w-full rounded-control border border-line-control/60 bg-surface px-3.5 py-2.5 text-[0.9375rem] text-ink placeholder:text-ink-subtle hover:border-line-control focus:border-brand-500 focus:outline-none focus:shadow-ring disabled:bg-surface-muted disabled:text-ink-muted";
 
 type IntakeId = Id<"task_intakes">;
 

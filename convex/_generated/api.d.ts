@@ -77,6 +77,7 @@ import type * as tasks from "../tasks.js";
 import type * as tiktokUploadActions from "../tiktokUploadActions.js";
 import type * as trilemma from "../trilemma.js";
 import type * as userContext from "../userContext.js";
+import type * as waitlist from "../waitlist.js";
 
 import type {
   ApiFromModules,
@@ -154,6 +155,7 @@ declare const fullApi: ApiFromModules<{
   tiktokUploadActions: typeof tiktokUploadActions;
   trilemma: typeof trilemma;
   userContext: typeof userContext;
+  waitlist: typeof waitlist;
 }>;
 
 /**
