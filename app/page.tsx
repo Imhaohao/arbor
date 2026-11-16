@@ -2,6 +2,7 @@ import { PostTaskForm } from "@/components/PostTaskForm";
 import { AgoraHero } from "@/components/landing/AgoraHero";
 import { GroveLifecycle } from "@/components/landing/GroveLifecycle";
 import { GroveRoster } from "@/components/landing/GroveRoster";
+import { Benchmarks } from "@/components/landing/Benchmarks";
 import { HonestQuote } from "@/components/landing/HonestQuote";
 import { SiteFooter } from "@/components/landing/SiteFooter";
 import { Treeling } from "@/components/grove/Treeling";
@@ -40,6 +41,7 @@ export default async function HomePage() {
       <main>
         <AgoraHero agents={forestAgents} />
         <GroveLifecycle />
+        <Benchmarks />
         <HonestQuote />
         <GroveRoster agents={pickStrip(roster)} total={roster.length} />
 
