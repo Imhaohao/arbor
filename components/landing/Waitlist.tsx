@@ -18,7 +18,7 @@ type Status =
   | { kind: "idle" }
   | { kind: "submitting" }
   | { kind: "error"; message: string }
-  | { kind: "joined"; position: number; alreadyJoined: boolean };
+  | { kind: "joined"; alreadyJoined: boolean };
 
 function readableError(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
@@ -62,7 +62,7 @@ export function Waitlist() {
 
         <div className="mt-10 rounded-card bg-surface p-5 shadow-card sm:p-8">
           {status.kind === "joined" ? (
-            <JoinedMessage position={status.position} alreadyJoined={status.alreadyJoined} />
+            <JoinedMessage alreadyJoined={status.alreadyJoined} />
           ) : (
             <form onSubmit={onSubmit} noValidate className="grid gap-6">
               <fieldset>
@@ -127,17 +127,17 @@ export function Waitlist() {
   );
 }
 
-function JoinedMessage({ position, alreadyJoined }: { position: number; alreadyJoined: boolean }) {
+function JoinedMessage({ alreadyJoined }: { alreadyJoined: boolean }) {
   return (
     <div role="status" className="flex items-start gap-4">
       <CheckCircle size={28} weight="fill" className="mt-0.5 shrink-0 text-ink" aria-hidden="true" />
       <div>
         <p className="type-heading text-ink">
-          You&rsquo;re <span className="type-data">#{position.toLocaleString()}</span> in line
+          You&rsquo;re on the list
         </p>
         <p className="type-body mt-1 text-ink-muted">
           {alreadyJoined
-            ? "This email was already on the list, so your place hasn’t changed."
+            ? "This email had already joined."
             : "We’ll email you when your spot opens."}
         </p>
       </div>

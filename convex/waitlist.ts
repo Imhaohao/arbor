@@ -5,8 +5,8 @@ import { isWaitlistRole, normalizeEmail } from "../lib/waitlist/core";
 const roleValidator = v.union(v.literal("buyer"), v.literal("specialist"));
 
 /**
- * Adds an email to the waitlist, or returns the existing place if the address
- * already joined. Position is the 1-based join order.
+ * Adds an email to the waitlist. A repeat join is a no-op that reports it.
+ * Position (1-based join order) is stored for operators, never returned.
  */
 export const join = mutation({
   args: {
@@ -14,7 +14,7 @@ export const join = mutation({
     role: roleValidator,
     source: v.optional(v.string()),
   },
-  returns: v.object({ position: v.number(), alreadyJoined: v.boolean() }),
+  returns: v.object({ alreadyJoined: v.boolean() }),
   handler: async (ctx, args) => {
     const check = normalizeEmail(args.email);
     if (!check.ok) throw new Error(check.reason);
@@ -24,7 +24,7 @@ export const join = mutation({
       .query("waitlist")
       .withIndex("by_email", (q) => q.eq("email", check.email))
       .unique();
-    if (existing) return { position: existing.position, alreadyJoined: true };
+    if (existing) return { alreadyJoined: true };
 
     const last = await ctx.db.query("waitlist").withIndex("by_position").order("desc").first();
     const position = (last?.position ?? 0) + 1;
@@ -35,7 +35,7 @@ export const join = mutation({
       position,
       joined_at: Date.now(),
     });
-    return { position, alreadyJoined: false };
+    return { alreadyJoined: false };
   },
 });
 
