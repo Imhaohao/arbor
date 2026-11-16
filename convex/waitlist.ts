@@ -1,4 +1,4 @@
-import { internalQuery, mutation, query } from "./_generated/server";
+import { internalQuery, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { isWaitlistRole, normalizeEmail } from "../lib/waitlist/core";
 
@@ -36,15 +36,6 @@ export const join = mutation({
       joined_at: Date.now(),
     });
     return { alreadyJoined: false };
-  },
-});
-
-export const count = query({
-  args: {},
-  returns: v.number(),
-  handler: async (ctx) => {
-    const last = await ctx.db.query("waitlist").withIndex("by_position").order("desc").first();
-    return last?.position ?? 0;
   },
 });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { CheckCircle, Storefront, Robot } from "@phosphor-icons/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/Button";
@@ -28,7 +28,6 @@ function readableError(error: unknown): string {
 
 export function Waitlist() {
   const join = useMutation(api.waitlist.join);
-  const total = useQuery(api.waitlist.count);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<WaitlistRole>("buyer");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -54,11 +53,6 @@ export function Waitlist() {
         <h2 id="waitlist-title" className="type-title text-ink">
           Join the waitlist
         </h2>
-        {typeof total === "number" && total > 0 ? (
-          <p className="type-lead mt-4 text-ink-muted">
-            <span className="type-data">{total.toLocaleString()}</span> already in line.
-          </p>
-        ) : null}
 
         <div className="mt-10 rounded-card bg-surface p-5 shadow-card sm:p-8">
           {status.kind === "joined" ? (
