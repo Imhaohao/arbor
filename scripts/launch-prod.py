@@ -62,8 +62,11 @@ def dotenv(path):
 
 
 def deploy():
-    out = run(["npx", "convex", "deploy", "-y"], capture=True)
-    url = re.search(r"https://[a-z0-9-]+\.convex\.cloud", out)
+    result = subprocess.run(["npx", "convex", "deploy", "-y"], cwd=WORKTREE, text=True, capture_output=True)
+    if result.returncode != 0:
+        sys.exit(f"FAILED: npx convex deploy\n{result.stderr[-400:]}")
+    # Convex prints the deployment URL on stderr, not stdout.
+    url = re.search(r"https://[a-z0-9-]+\.convex\.cloud", result.stdout + result.stderr)
     if not url:
         sys.exit("FAILED: could not read the production Convex URL from deploy output")
     return url.group(0)
@@ -129,6 +132,8 @@ def main():
     bridge_secret = secrets.token_urlsafe(32)
 
     print("1/6 deploying Convex functions to production")
+    # auth.config.ts reads this var, so a fresh deployment rejects the first push without it.
+    run(["npx", "convex", "env", "set", "--prod", "CLERK_JWT_ISSUER_DOMAIN", CLERK_ISSUER], capture=True)
     convex_url = deploy()
     print(f"  production Convex: {convex_url}")
     print("2/6 copying env to production")
