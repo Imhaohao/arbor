@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { Card } from "@/components/ui/Card";
 import { Pill, type PillTone } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
 import { api } from "@/convex/_generated/api";
 import { CaretRight, SealWarning } from "@phosphor-icons/react";
 import { goalHeadline } from "@/lib/hive/replay-core";
@@ -37,10 +36,9 @@ function formatRelativeTime(ms: number): string {
   }).format(new Date(ms));
 }
 
-function IndexMessage({ children, asleep = false }: { children: string; asleep?: boolean }) {
+function IndexMessage({ children }: { children: string }) {
   return (
     <Card className="flex flex-col items-center gap-3 py-10 text-center">
-      <Treeling seed="replay-index" asleep={asleep} alive={false} size={72} />
       <p className="type-body text-ink-muted">{children}</p>
     </Card>
   );
@@ -79,7 +77,7 @@ export function ReplayIndex() {
     );
   }
   if (rows.length === 0) {
-    return <IndexMessage asleep>No finished runs recorded yet. Post a task and its replay will show up here.</IndexMessage>;
+    return <IndexMessage>No finished runs recorded yet. Post a task and its replay will show up here.</IndexMessage>;
   }
 
   return (

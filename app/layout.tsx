@@ -1,17 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Geist_Mono } from "next/font/google";
+import { EB_Garamond, Geist_Mono, Manrope } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Providers } from "./providers";
 import { clerkEnabled } from "@/lib/clerk-config";
 
-// Archivo carries both display and body. Its width axis (62-125) lets
-// headings run wide and rooted while body copy stays at normal width, so the
-// whole product uses one variable file. Geist Mono is reserved for figures,
-// ids and code.
-const archivo = Archivo({
+// EB Garamond sets headings; Manrope carries every other piece of text. Both
+// are variable, so each family is a single file. Geist Mono is reserved for
+// figures, ids and code.
+const garamond = EB_Garamond({
   subsets: ["latin"],
-  axes: ["wdth"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
 });
@@ -43,11 +47,11 @@ export default function RootLayout({
   const page = (
     <html
       lang="en"
-      className={`${archivo.variable} ${geistMono.variable}`}
+      className={`${garamond.variable} ${manrope.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
       <body
-        className="grain min-h-dvh bg-surface-subtle text-ink antialiased"
+        className="min-h-dvh bg-surface-subtle text-ink antialiased"
         suppressHydrationWarning
       >
         <Providers>{children}</Providers>

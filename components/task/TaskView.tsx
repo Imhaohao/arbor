@@ -6,7 +6,6 @@ import type { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { buttonClasses } from "@/components/ui/Button";
-import { Treeling } from "@/components/grove/Treeling";
 import { DagProgressPanel } from "./DagProgressPanel";
 import { TaskHeader } from "./TaskHeader";
 import { ContextEnrichmentPanel } from "./ContextEnrichmentPanel";
@@ -58,7 +57,6 @@ export function TaskView({ taskId }: { taskId: string }) {
   if (task === null) {
     return (
       <Card role="alert" className="flex flex-col items-center gap-3 py-10 text-center">
-        <Treeling seed={taskId} size={72} asleep alive={false} />
         <p className="type-body text-ink">This task does not exist or was removed.</p>
         <Link href="/tasks" className={buttonClasses({ variant: "secondary" })}>
           Browse all tasks

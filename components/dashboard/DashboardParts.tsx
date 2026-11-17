@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Treeling } from "@/components/grove/Treeling";
 import { cn } from "@/lib/utils";
 
 export function prettyAgent(id: string) {
@@ -7,17 +6,14 @@ export function prettyAgent(id: string) {
 }
 
 export function EmptyState({
-  seed,
   message,
   action,
 }: {
-  seed: string;
   message: string;
   action?: ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
-      <Treeling seed={seed} asleep alive={false} size={56} />
       <p className="type-body max-w-[40ch] text-ink-muted">{message}</p>
       {action}
     </div>

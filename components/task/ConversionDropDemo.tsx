@@ -2,7 +2,7 @@
 
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button, buttonClasses } from "@/components/ui/Button";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { Pill } from "@/components/ui/Pill";
 import { MarkdownLite } from "./MarkdownLite";
 import {
@@ -618,13 +618,7 @@ function BidRow({
       }
     >
       <div className="flex flex-wrap items-center gap-2">
-        <Treeling
-          seed={bid.agent_id}
-          size={32}
-          alive={false}
-          pose={isWinner ? "rest" : "raised"}
-          lantern={isWinner}
-        />
+        <AgentAvatar seed={bid.agent_id} name={bid.agent_id} size={20} />
         <span className="type-data text-sm text-ink">{bid.agent_id}</span>
         {bid.sponsor && (
           <span className="text-xs text-ink-muted">{bid.sponsor}</span>
@@ -655,7 +649,7 @@ function WinnerCard({ payload }: { payload: AuctionResolvedPayload }) {
   return (
     <div className="rounded-control bg-ink p-3 text-paper">
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <Treeling seed={winner.agent_id} size={36} alive={false} lantern />
+        <AgentAvatar seed={winner.agent_id} name={winner.agent_id} size={22} />
         <span className="font-medium">Awarded to</span>
         <span className="type-data">{winner.agent_id}</span>
       </div>

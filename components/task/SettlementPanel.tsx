@@ -10,7 +10,7 @@ import type {
   SettledPayload,
   TaskDoc,
 } from "@/lib/task-view";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { ArrowRight, ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 
 interface Props {
@@ -164,7 +164,7 @@ function Stop({
         highlight ? "bg-brand-50" : "bg-surface-subtle",
       )}
     >
-      {seed && <Treeling seed={seed} size={40} alive={false} />}
+      {seed && <AgentAvatar seed={seed} name={seed} size={24} />}
       <dl className="min-w-0">
         <dt className="text-[0.8125rem] text-ink-muted">{label}</dt>
         <dd className="type-data mt-0.5 truncate text-sm text-ink">{sub}</dd>

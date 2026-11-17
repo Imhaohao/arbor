@@ -5,7 +5,7 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
@@ -103,14 +103,11 @@ function AgentCard({
           active ? "scale-[1.04] shadow-card-hover" : ""
         } ${idle ? "opacity-60" : "opacity-100"}`}
       >
-        <Treeling
+        <AgentAvatar
           seed={agent.agent_id}
-          species={agent.role === "judge" ? "birch" : undefined}
-          size={40}
-          asleep={idle}
-          pose={active && agent.role === "worker" ? "raised" : "rest"}
-          lantern={active && tone === "good"}
-          alive={active}
+          name={agent.role === "judge" ? "Judge" : agent.agent_id}
+          size={24}
+          muted={idle}
           className="shrink-0"
         />
         <div className="min-w-0 flex-1">
@@ -197,10 +194,9 @@ function PlaybackControls({
   );
 }
 
-function NetworkMessage({ children, asleep = false }: { children: string; asleep?: boolean }) {
+function NetworkMessage({ children }: { children: string }) {
   return (
     <Card className="flex flex-col items-center gap-3 py-10 text-center">
-      <Treeling seed="agent-network" asleep={asleep} alive={false} size={72} />
       <p className="type-body text-ink-muted">{children}</p>
     </Card>
   );
@@ -512,12 +508,12 @@ export function AgentNetwork({ dagId }: Props) {
   }
   if (data === null || !network || !timeline) {
     return (
-      <NetworkMessage asleep>No run found for this id.</NetworkMessage>
+      <NetworkMessage>No run found for this id.</NetworkMessage>
     );
   }
   if (network.agents.length === 0) {
     return (
-      <NetworkMessage asleep>This run recorded no agent activity.</NetworkMessage>
+      <NetworkMessage>This run recorded no agent activity.</NetworkMessage>
     );
   }
 

@@ -14,7 +14,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageShell } from "@/components/ui/PageShell";
 import { AdminInsights } from "@/components/admin/AdminInsights";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { Button } from "@/components/ui/Button";
 import { Pill, type PillTone } from "@/components/ui/Pill";
 import { PaperPlaneTilt, WarningDiamond } from "@phosphor-icons/react";
@@ -275,12 +275,11 @@ function SpecialistRow({
             : "hover:bg-surface-subtle"
         }`}
       >
-        <Treeling
+        <AgentAvatar
           seed={s.agent_id}
           name={s.display_name}
-          size={32}
-          alive={false}
-          asleep={!s.chat_ready}
+          size={20}
+          muted={!s.chat_ready}
           className="shrink-0"
         />
         <span className="min-w-0 flex-1">
@@ -444,13 +443,7 @@ function EmptyChatState({
 }) {
   return (
     <div className="mx-auto flex max-w-sm flex-col items-center gap-3 py-10 text-center">
-      <Treeling
-        seed={spec?.agent_id ?? "a2a-console"}
-        name={spec?.display_name}
-        asleep={!canChat}
-        alive={false}
-        size={72}
-      />
+      {spec && <AgentAvatar seed={spec.agent_id} name={spec.display_name} muted={!canChat} size={43} />}
       <EmptyChatBody spec={spec} canChat={canChat} onUseSuggestion={onUseSuggestion} />
     </div>
   );

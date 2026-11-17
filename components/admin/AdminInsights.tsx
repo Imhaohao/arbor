@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
 import { api } from "@/convex/_generated/api";
 
 /* ------------------------------------------------------------------ */
@@ -88,7 +87,6 @@ function NegotiationsSection() {
       )}
       {contexts?.length === 0 && (
         <div className="flex items-center gap-3">
-          <Treeling seed="a2a-negotiations" asleep alive={false} size={48} />
           <p className="type-body text-ink-muted">
             No negotiations recorded yet. Threads appear here when a foreign
             agent negotiates with the arbitrator over the A2A market gateway.

@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { ArborMark } from "@/components/ui/ArborMark";
-import { Treeling } from "@/components/grove/Treeling";
-import type { Species } from "@/lib/grove/treeling";
 
 type FooterLink = { label: string; href: string };
 
@@ -25,41 +23,10 @@ const columns: { heading: string; links: FooterLink[] }[] = [
   },
 ];
 
-const RIDGE: Array<{ species: Species; size: number }> = [
-  { species: "conifer", size: 70 },
-  { species: "oak", size: 54 },
-  { species: "birch", size: 62 },
-  { species: "willow", size: 50 },
-  { species: "oak", size: 66 },
-  { species: "acacia", size: 52 },
-  { species: "conifer", size: 58 },
-  { species: "birch", size: 74 },
-  { species: "oak", size: 48 },
-  { species: "willow", size: 64 },
-  { species: "conifer", size: 52 },
-  { species: "oak", size: 70 },
-];
-
-/** Closes every page on a ridge of tree-people standing on the footer edge. */
 export function SiteFooter() {
   return (
-    <footer className="relative mt-16 bg-surface">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-full flex items-end justify-around overflow-hidden px-2"
-      >
-        {RIDGE.map((tree, index) => (
-          <Treeling
-            key={index}
-            seed={`ridge-${index}`}
-            species={tree.species}
-            size={tree.size}
-            stature={0.5}
-            className={index > 7 ? "-mb-1 hidden md:block" : "-mb-1"}
-          />
-        ))}
-      </div>
-      <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6">
+    <footer className="mt-16 bg-surface">
+      <div className="mx-auto max-w-6xl px-4 pb-10 pt-16 sm:px-6">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
           <div className="max-w-xs">
             <ArborMark />

@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { Card } from "@/components/ui/Card";
 import { Button, buttonClasses } from "@/components/ui/Button";
-import { Treeling } from "@/components/grove/Treeling";
 import { api } from "@/convex/_generated/api";
 import { CaretRight, Check, MagnifyingGlass } from "@phosphor-icons/react";
 import { cn, formatMoney } from "@/lib/utils";
@@ -33,7 +32,6 @@ const SEARCH_DEBOUNCE_MS = 300;
 function EmptyState({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-4 rounded-card bg-surface px-6 py-12 text-center shadow-card">
-      <Treeling seed="tasks-index-empty" size={80} asleep alive={false} />
       <div className="type-body max-w-[40ch] text-ink-muted">{children}</div>
       {action}
     </div>

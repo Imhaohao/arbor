@@ -8,12 +8,16 @@ import { MCP_CATALOG } from "@/lib/specialists/catalog";
 import { specialistConfigFromCatalog } from "@/lib/specialists/catalog-config";
 import { SpecialistCard } from "@/components/agents/SpecialistCard";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Treeling } from "@/components/grove/Treeling";
 import { cn } from "@/lib/utils";
 import { PageShell } from "@/components/ui/PageShell";
 import { Pill } from "@/components/ui/Pill";
-import { ArrowRight, Check, MagnifyingGlass, X } from "@phosphor-icons/react";
+import {
+  ArrowRight,
+  CaretDown,
+  Check,
+  MagnifyingGlass,
+  X,
+} from "@phosphor-icons/react";
 
 interface LiveAgent {
   agent_id: string;
@@ -68,7 +72,12 @@ function oneLinerFromSystemPrompt(text: string): string {
 }
 
 function specialistHaystack(spec: SpecialistConfig): string {
-  return [spec.display_name, spec.sponsor, spec.one_liner, spec.capabilities.join(" ")]
+  return [
+    spec.display_name,
+    spec.sponsor,
+    spec.one_liner,
+    spec.capabilities.join(" "),
+  ]
     .join(" ")
     .toLowerCase();
 }
@@ -92,52 +101,70 @@ const A2A_PATH_STEPS = [
 
 function CensusEvidence() {
   return (
-    <Card className="mb-6">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-2xl">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="type-subheading text-ink">Roster census evidence</h2>
-            <Pill tone="info">Frozen research cohort</Pill>
+    <details className="group mb-6 rounded-card bg-surface shadow-card">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-card px-5 py-4 text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
+        How the specialist count is measured
+        <CaretDown
+          size={14}
+          weight="bold"
+          aria-hidden="true"
+          className="text-ink-muted transition-transform group-open:rotate-180"
+        />
+      </summary>
+      <div className="px-5 pb-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="type-subheading text-ink">
+                Roster census evidence
+              </h2>
+              <Pill tone="info">Frozen research cohort</Pill>
+            </div>
+            <p className="mt-2 text-sm text-ink-muted">
+              The “250-agent census” is the first measured cohort, not the
+              current network size. The tracked snapshot later expanded to 1,248
+              rows: 556 live open endpoints, 4 live keyed endpoints, and 688
+              entries that were paywalled, dead, house-owned, or missing a
+              transport.
+            </p>
           </div>
-          <p className="mt-2 text-sm text-ink-muted">
-            The “250-agent census” is the first measured cohort, not the current
-            network size. The tracked snapshot later expanded to 1,248 rows:
-            556 live open endpoints, 4 live keyed endpoints, and 688 entries
-            that were paywalled, dead, house-owned, or missing a transport.
+          <dl className="grid min-w-0 grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 lg:min-w-[480px]">
+            {CENSUS_STATS.map((stat) => (
+              <div key={stat.label}>
+                <dd className="type-data text-xl text-ink">{stat.value}</dd>
+                <dt className="mt-0.5 text-[0.8125rem] leading-tight text-ink-muted">
+                  {stat.label}
+                </dt>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <div className="mt-5 rounded-control bg-surface-subtle p-4">
+          <p className="text-sm font-medium text-ink">A2A compatibility path</p>
+          <ol className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            {A2A_PATH_STEPS.map((step, index) => (
+              <li key={step} className="flex items-center gap-2">
+                {index > 0 && (
+                  <ArrowRight
+                    size={12}
+                    aria-hidden="true"
+                    className="text-ink-subtle"
+                  />
+                )}
+                <code className="type-data rounded-full bg-surface px-2.5 py-1 text-ink-soft shadow-hairline">
+                  {step}
+                </code>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-3 text-[0.8125rem] text-ink-muted">
+            Regression-tested against local HTTP fixtures. This protected
+            preview does not invoke external agents or expose A2A credentials.
           </p>
         </div>
-        <dl className="grid min-w-0 grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 lg:min-w-[480px]">
-          {CENSUS_STATS.map((stat) => (
-            <div key={stat.label}>
-              <dd className="type-data text-xl text-ink">{stat.value}</dd>
-              <dt className="mt-0.5 text-[0.8125rem] leading-tight text-ink-muted">
-                {stat.label}
-              </dt>
-            </div>
-          ))}
-        </dl>
       </div>
-
-      <div className="mt-5 rounded-control bg-surface-subtle p-4">
-        <p className="text-sm font-medium text-ink">A2A compatibility path</p>
-        <ol className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          {A2A_PATH_STEPS.map((step, index) => (
-            <li key={step} className="flex items-center gap-2">
-              {index > 0 && (
-                <ArrowRight size={12} aria-hidden="true" className="text-ink-subtle" />
-              )}
-              <code className="type-data rounded-full bg-surface px-2.5 py-1 text-ink-soft shadow-hairline">
-                {step}
-              </code>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-3 text-[0.8125rem] text-ink-muted">
-          Regression-tested against local HTTP fixtures. This protected preview
-          does not invoke external agents or expose A2A credentials.
-        </p>
-      </div>
-    </Card>
+    </details>
   );
 }
 
@@ -226,8 +253,7 @@ function EmptyDirectory({
 }) {
   return (
     <div className="flex flex-col items-center rounded-card bg-surface px-6 py-14 text-center shadow-card">
-      <Treeling seed="empty-directory" asleep alive={false} size={96} />
-      <p className="type-subheading mt-5 text-ink">
+      <p className="type-subheading text-ink">
         {searchInput
           ? `No specialists match "${searchInput}".`
           : "No specialists match this filter."}
@@ -314,7 +340,9 @@ export function AgentsPageClient({
 
   const filtered = useMemo(() => {
     if (transport === "all") return searchMatches;
-    return searchMatches.filter((spec) => classifyTransport(spec) === transport);
+    return searchMatches.filter(
+      (spec) => classifyTransport(spec) === transport,
+    );
   }, [searchMatches, transport]);
 
   const visible = filtered.slice(0, visibleCount);
@@ -342,7 +370,10 @@ export function AgentsPageClient({
               }}
             />
           </div>
-          <p className="text-[0.8125rem] text-ink-muted sm:text-right" aria-live="polite">
+          <p
+            className="text-[0.8125rem] text-ink-muted sm:text-right"
+            aria-live="polite"
+          >
             Showing {visible.length.toLocaleString()} of{" "}
             {filtered.length.toLocaleString()} matching specialist
             {filtered.length === 1 ? "" : "s"}
@@ -350,12 +381,20 @@ export function AgentsPageClient({
               ` (out of ${directory.length.toLocaleString()} total)`}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by integration type">
+        <div
+          className="flex flex-wrap gap-2"
+          role="group"
+          aria-label="Filter by integration type"
+        >
           {TRANSPORT_FILTERS.map((item) => (
             <FilterChip
               key={item.key}
               label={item.label}
-              count={item.key === "all" ? searchMatches.length : transportCounts[item.key]}
+              count={
+                item.key === "all"
+                  ? searchMatches.length
+                  : transportCounts[item.key]
+              }
               active={transport === item.key}
               onSelect={() => {
                 setTransport(item.key);

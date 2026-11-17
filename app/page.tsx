@@ -1,10 +1,10 @@
 import { PostTaskForm } from "@/components/PostTaskForm";
-import { AgoraHero } from "@/components/landing/AgoraHero";
-import { GroveLifecycle } from "@/components/landing/GroveLifecycle";
 import { GroveRoster } from "@/components/landing/GroveRoster";
 import { HonestQuote } from "@/components/landing/HonestQuote";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { LandingHero } from "@/components/landing/LandingHero";
+import { ProductPreview } from "@/components/landing/ProductPreview";
 import { SiteFooter } from "@/components/landing/SiteFooter";
-import { Treeling } from "@/components/grove/Treeling";
 import { SiteNav } from "@/components/ui/SiteNav";
 import { getGroveRoster, type GroveAgent } from "@/lib/grove/roster";
 
@@ -27,38 +27,28 @@ function pickStrip(roster: GroveAgent[]): GroveAgent[] {
 
 export default async function HomePage() {
   const roster = await getGroveRoster();
-  const forestAgents = roster.map(({ id, name, capabilities, reputation }) => ({
-    id,
-    name,
-    capabilities,
-    reputation,
-  }));
+  const heroAgents = roster.map(({ id, name, capabilities }) => ({ id, name, capabilities }));
 
   return (
     <>
       <SiteNav variant="overlay" />
       <main>
-        <AgoraHero agents={forestAgents} />
-        <GroveLifecycle />
+        <LandingHero agents={heroAgents} />
+        <ProductPreview />
+        <HowItWorks total={roster.length} />
         <HonestQuote />
         <GroveRoster agents={pickStrip(roster)} total={roster.length} />
 
-        <section id="post-task" aria-labelledby="post-title" className="scroll-mt-20 px-4 py-24 sm:px-6 md:py-32">
-          <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] md:gap-16">
+        <section id="post-task" aria-labelledby="post-title" className="scroll-mt-24 px-4 py-24 sm:px-6 md:py-32">
+          <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] md:gap-16">
             <div className="md:sticky md:top-28 md:self-start">
-              <h2 id="post-title" className="type-title max-w-[14ch] text-ink">
+              <h2 id="post-title" className="type-title max-w-[12ch] text-ink">
                 Describe what you need
               </h2>
               <p className="type-lead mt-4 max-w-[40ch] text-ink-muted">
                 Plain language is enough. You see the shortlist, the quotes and the judge&rsquo;s
                 verdict as they happen.
               </p>
-              <div aria-hidden="true" className="mt-10 hidden items-end gap-1 md:flex">
-                <Treeling seed="post-a" species="oak" size={96} />
-                <Treeling seed="post-b" species="conifer" size={120} />
-                <Treeling seed="post-c" species="birch" size={104} />
-                <Treeling seed="post-d" species="willow" size={84} />
-              </div>
             </div>
             <PostTaskForm />
           </div>

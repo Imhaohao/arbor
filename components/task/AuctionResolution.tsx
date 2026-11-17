@@ -5,7 +5,7 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { formatMoney, formatScore } from "@/lib/utils";
 import { ArrowRight } from "@phosphor-icons/react";
 import { Pill, type PillTone } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { LoadingProgress, useElapsedSeconds } from "./LoadingProgress";
 import type {
   AuctionResolvedPayload,
@@ -240,7 +240,7 @@ function WinnerRow({
 }) {
   return (
     <div className="flex items-start gap-4 rounded-control bg-brand-50 p-4 shadow-hairline">
-      <Treeling seed={bid.agent_id} name={bid.agent_id} lantern pose="raised" size={96} />
+      <AgentAvatar seed={bid.agent_id} name={bid.agent_id} size={48} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="type-data text-sm text-ink">{bid.agent_id}</span>
@@ -274,7 +274,7 @@ function LoserRow({
   return (
     <li className="flex items-start gap-3 rounded-control bg-surface-subtle p-3 text-sm">
       <span className="type-data mt-1 w-5 shrink-0 text-center text-xs text-ink-muted">{rank}</span>
-      <Treeling seed={bid.agent_id} name={bid.agent_id} size={36} alive={false} className="opacity-70" />
+      <AgentAvatar seed={bid.agent_id} name={bid.agent_id} size={22} className="opacity-70" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="type-data text-[0.8125rem] text-ink-soft">{bid.agent_id}</span>

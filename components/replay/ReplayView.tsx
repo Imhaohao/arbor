@@ -3,7 +3,7 @@
 import { useQuery } from "convex/react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
@@ -124,7 +124,7 @@ function EvaluationRow({ e }: { e: ReplayEvaluation }) {
     <div className={`rounded-control p-3 ${accepted ? "bg-moss-50" : "bg-danger-50"}`}>
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <Treeling seed={e.judge_model} species="birch" size={28} alive={false} />
+          <AgentAvatar seed={e.judge_model} name="Judge" size={20} />
           <VerdictPill verdict={e.verdict} />
           <code className="type-data break-all text-xs text-ink-soft">{e.judge_model}</code>
         </div>
@@ -167,7 +167,7 @@ function NodeCard({
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex min-w-0 gap-3">
           {node.assigned_agent_id && (
-            <Treeling seed={node.assigned_agent_id} size={44} alive={false} asleep={majorityRejected} className="shrink-0" />
+            <AgentAvatar seed={node.assigned_agent_id} name={node.assigned_agent_id} size={26} muted={majorityRejected} className="shrink-0" />
           )}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -215,10 +215,9 @@ function NodeCard({
   );
 }
 
-function ReplayMessage({ children, asleep = false }: { children: string; asleep?: boolean }) {
+function ReplayMessage({ children }: { children: string }) {
   return (
     <Card className="flex flex-col items-center gap-3 py-10 text-center">
-      <Treeling seed="replay-view" asleep={asleep} alive={false} size={72} />
       <p className="type-body text-ink-muted">{children}</p>
     </Card>
   );
@@ -321,7 +320,7 @@ function LedgerCard({ ledger }: { ledger: ReturnType<typeof buildLedger> }) {
               <tr key={row.agent_id} className="shadow-[0_1px_0_oklch(var(--line)/0.5)] last:shadow-none">
                 <td className="py-2">
                   <span className="flex items-center gap-2">
-                    <Treeling seed={row.agent_id} size={28} alive={false} />
+                    <AgentAvatar seed={row.agent_id} name={row.agent_id} size={20} />
                     <span className="type-data break-all text-xs text-ink">{row.agent_id}</span>
                   </span>
                 </td>
@@ -354,7 +353,7 @@ export function ReplayView({ dagId }: Props) {
     return <div className="shimmer h-64 rounded-card" role="status" aria-label="Loading replay" />;
   }
   if (data === null) {
-    return <ReplayMessage asleep>No run found for this id. Check the link or pick one from all replays.</ReplayMessage>;
+    return <ReplayMessage>No run found for this id. Check the link or pick one from all replays.</ReplayMessage>;
   }
 
   const nodes = orderNodes(data.nodes);

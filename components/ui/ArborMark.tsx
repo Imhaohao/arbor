@@ -1,17 +1,19 @@
 import Link from "next/link";
-import { Treeling } from "@/components/grove/Treeling";
+import { Tree } from "@phosphor-icons/react/dist/ssr";
 
-/** Arbor's mark is the first tree-person of the grove, with the wordmark. */
+/** Arbor's mark: a tree on a coral disc, beside the wordmark. */
 export function ArborMark({ as = "div" }: { as?: "link" | "div" }) {
   const inner = (
-    <span className="inline-flex items-center gap-1.5 text-ink">
-      <Treeling seed="arbor" species="oak" stature={0.7} size={28} alive={false} />
-      <span className="text-[1.1875rem] font-semibold [font-stretch:118%]">Arbor</span>
+    <span className="inline-flex items-center gap-2.5 text-ink">
+      <span className="inline-flex size-8 items-center justify-center rounded-full bg-ember-400 text-white">
+        <Tree size={18} weight="fill" aria-hidden="true" />
+      </span>
+      <span className="font-display text-[1.375rem] leading-none">Arbor</span>
     </span>
   );
   if (as === "link") {
     return (
-      <Link href="/" className="inline-flex items-center rounded-full" aria-label="Arbor home">
+      <Link href="/" className="inline-flex items-center rounded-control" aria-label="Arbor home">
         {inner}
       </Link>
     );

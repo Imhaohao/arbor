@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -87,7 +87,7 @@ export function PlanPanel({ task }: Props) {
                   )}
                   {winnerId && (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-moss-50 py-0.5 pl-1 pr-2.5 text-xs font-medium text-moss-700">
-                      <Treeling seed={winnerId} size={20} alive={false} />
+                      <AgentAvatar seed={winnerId} name={winnerId} size={20} />
                       delivered by <span className="type-data">{winnerId}</span>
                     </span>
                   )}

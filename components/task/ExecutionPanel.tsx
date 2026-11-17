@@ -2,7 +2,7 @@
 
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill, type PillTone } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { CheckCircle, CircleNotch, XCircle } from "@phosphor-icons/react";
 import { LoadingProgress, useElapsedSeconds } from "./LoadingProgress";
 import type {
@@ -274,7 +274,7 @@ function ExecutionFailed({
         meta={<Pill tone="danger">Failed</Pill>}
       />
       <p role="alert" className="flex items-center gap-3 rounded-control bg-danger-50 p-3 text-sm text-danger-700">
-        <Treeling seed={agentId} size={40} alive={false} asleep />
+        <AgentAvatar seed={agentId} name={agentId} size={24} muted />
         <span className="min-w-0 [overflow-wrap:anywhere]"><span className="type-data text-ink">{agentId}</span> failed: {reason}.
         Escrow refunded.</span>
       </p>
@@ -304,7 +304,7 @@ function ExecutionRunning({
         tone="brand"
       />
       <div className="mt-4 flex items-end gap-4">
-        <Treeling seed={agentId} size={56} lantern pose="raised" label={`${agentId} is working`} />
+        <AgentAvatar seed={agentId} name={agentId} size={34} label={`${agentId} is working`} />
         <div className="streaming-caret flex-1 space-y-2 pb-1">
           <div className="shimmer h-3 w-full rounded-full" />
           <div className="shimmer h-3 w-5/6 rounded-full" />
@@ -336,7 +336,7 @@ function CompleteMeta({
   return (
     <span className="flex items-center gap-2">
       <TierBadge provenance={provenance} />
-      <Treeling seed={agentId} size={28} alive={false} />
+      <AgentAvatar seed={agentId} name={agentId} size={20} />
       <span className="type-data text-ink">{agentId}</span>
     </span>
   );

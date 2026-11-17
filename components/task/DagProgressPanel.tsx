@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
@@ -68,12 +68,11 @@ function NodeRow({ node }: { node: ProgressNode }) {
   return (
     <div className="flex items-start gap-3 rounded-control bg-surface-muted p-3">
       {node.assigned_agent_id ? (
-        <Treeling
+        <AgentAvatar
           seed={node.assigned_agent_id}
-          size={36}
-          alive={false}
-          lantern={presentation.tone === "running"}
-          asleep={presentation.tone === "waiting"}
+          name={node.assigned_agent_id}
+          size={22}
+          muted={presentation.tone === "waiting"}
         />
       ) : (
         <span className="mt-0.5 shrink-0">

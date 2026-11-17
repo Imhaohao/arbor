@@ -18,7 +18,7 @@ import {
 } from "@phosphor-icons/react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill, type PillTone } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { EmptyState, SkeletonRows } from "@/components/dashboard/DashboardParts";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -230,7 +230,7 @@ function ReadinessTableRow({ row }: { row: ReadinessRow }) {
     <tr className="align-top text-[0.8125rem]">
       <td className="max-w-56 px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <Treeling seed={row.agent_id} asleep={status !== "ready"} alive={false} size={32} />
+          <AgentAvatar seed={row.agent_id} name={row.agent_id} muted={status !== "ready"} size={20} />
           <div className="min-w-0">
             <p className="truncate font-medium text-ink">{row.agent_id}</p>
             <p className="mt-0.5 truncate text-xs text-ink-muted">{row.failure_bucket ?? "not run"}</p>
@@ -311,7 +311,6 @@ function ReadinessBody({
   if (rows.length === 0) {
     return (
       <EmptyState
-        seed="readiness-no-data"
         message={`No readiness data yet. Run ${SMOKE_COMMAND} to probe every agent.`}
       />
     );
@@ -319,7 +318,6 @@ function ReadinessBody({
   if (visible.length === 0) {
     return (
       <EmptyState
-        seed="readiness-empty-bucket"
         message="No agents in this bucket."
         action={
           <Button variant="secondary" size="sm" onClick={onShowAll}>

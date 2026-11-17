@@ -3,27 +3,27 @@
 @tailwind utilities;
 
 /*
- * Arbor forest tokens. Every color in the product resolves to one of these
+ * Arbor tokens. Every color in the product resolves to one of these
  * oklch channel triplets (consumed as oklch(var(--token) / <alpha>) by the
- * Tailwind theme). Light mode is a misty morning grove, dark mode the same
- * grove at night. One switching mechanism: prefers-color-scheme.
+ * Tailwind theme). A sage-tinted paper page with green-black ink; one
+ * switching mechanism: prefers-color-scheme.
  *
- * Ramps: canopy neutrals (hue 170), pine `brand` calm accent (195), `moss`
- * success (148), `ember` hot accent used only as light (52), `warn` (80),
+ * Ramps: sage neutrals (hue 150-166), sage `brand` calm accent (165), `moss`
+ * success (148), `ember` coral accent used only as light and marks (31), `warn` (80),
  * `danger` (25). Contrast of every text pair is measured, not eyeballed.
  */
 :root {
   color-scheme: light dark;
-  --brand-50: 0.972 0.013 195;
-  --brand-100: 0.942 0.023 195;
-  --brand-200: 0.893 0.042 195;
-  --brand-300: 0.82 0.068 195;
-  --brand-400: 0.72 0.089 195;
-  --brand-500: 0.6 0.101 195;
-  --brand-600: 0.515 0.088 195;
-  --brand-700: 0.465 0.079 195;
-  --brand-800: 0.385 0.065 195;
-  --brand-900: 0.305 0.054 195;
+  --brand-50: 0.972 0.01 165;
+  --brand-100: 0.942 0.018 165;
+  --brand-200: 0.893 0.034 165;
+  --brand-300: 0.82 0.054 165;
+  --brand-400: 0.72 0.071 165;
+  --brand-500: 0.6 0.081 165;
+  --brand-600: 0.515 0.07 165;
+  --brand-700: 0.465 0.063 165;
+  --brand-800: 0.385 0.052 165;
+  --brand-900: 0.305 0.043 165;
   --moss-50: 0.972 0.018 148;
   --moss-100: 0.942 0.033 148;
   --moss-200: 0.893 0.06 148;
@@ -34,16 +34,16 @@
   --moss-700: 0.465 0.128 148;
   --moss-800: 0.385 0.105 148;
   --moss-900: 0.305 0.083 148;
-  --ember-50: 0.972 0.015 52;
-  --ember-100: 0.942 0.032 52;
-  --ember-200: 0.893 0.062 52;
-  --ember-300: 0.82 0.114 52;
-  --ember-400: 0.72 0.162 52;
-  --ember-500: 0.6 0.154 52;
-  --ember-600: 0.515 0.132 52;
-  --ember-700: 0.465 0.119 52;
-  --ember-800: 0.385 0.101 52;
-  --ember-900: 0.305 0.082 52;
+  --ember-50: 0.972 0.015 31;
+  --ember-100: 0.942 0.032 31;
+  --ember-200: 0.893 0.062 31;
+  --ember-300: 0.82 0.114 31;
+  --ember-400: 0.672 0.157 31;
+  --ember-500: 0.6 0.154 31;
+  --ember-600: 0.515 0.132 31;
+  --ember-700: 0.465 0.119 31;
+  --ember-800: 0.385 0.101 31;
+  --ember-900: 0.305 0.082 31;
   --warn-50: 0.972 0.018 80;
   --warn-100: 0.942 0.033 80;
   --warn-200: 0.893 0.06 80;
@@ -64,20 +64,23 @@
   --danger-700: 0.465 0.162 25;
   --danger-800: 0.385 0.133 25;
   --danger-900: 0.305 0.105 25;
-  --surface: 0.995 0.003 170;
-  --surface-subtle: 0.976 0.007 170;
-  --surface-muted: 0.953 0.009 170;
-  --surface-sunken: 0.918 0.011 170;
-  --line: 0.905 0.011 170;
-  --line-strong: 0.84 0.013 170;
-  --line-control: 0.64 0.014 170;
-  --ink-faint: 0.79 0.012 170;
-  --ink-subtle: 0.525 0.016 170;
-  --ink-muted: 0.47 0.018 170;
-  --ink-soft: 0.33 0.02 170;
-  --ink: 0.225 0.021 170;
-  --paper: 0.985 0.006 170;
-  --glow: 0.78 0.165 58;
+  --surface: 0.998 0.002 150;
+  --surface-subtle: 0.973 0.005 150;
+  --surface-muted: 0.952 0.007 155;
+  --surface-sunken: 0.925 0.009 158;
+  --line: 0.912 0.008 158;
+  --line-strong: 0.85 0.011 160;
+  --line-control: 0.64 0.014 165;
+  --ink-faint: 0.78 0.012 165;
+  --ink-subtle: 0.53 0.021 166;
+  --ink-muted: 0.5 0.02 166;
+  --ink-soft: 0.34 0.018 166;
+  --ink: 0.233 0.015 166;
+  --paper: 0.985 0.004 150;
+  --glow: 0.672 0.157 31;
+  /* A dark panel that stays dark in both schemes (product previews). */
+  --island: 0.251 0.014 164;
+  --island-ink: 0.96 0.005 150;
 
   /* Grove scene colors (hero forest, treeling avatars). */
   --sky-top: 0.925 0.022 180;
@@ -94,23 +97,23 @@
   --ground: 0.9 0.03 140;
 
   --radius-control: 0.75rem;
-  --radius-card: 1.25rem;
+  --radius-card: 1.5rem;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --brand-50: 0.235 0.011 195;
-    --brand-100: 0.27 0.02 195;
-    --brand-200: 0.32 0.037 195;
-    --brand-300: 0.39 0.06 195;
-    --brand-400: 0.5 0.079 195;
-    --brand-500: 0.62 0.092 195;
-    --brand-600: 0.71 0.088 195;
-    --brand-700: 0.8 0.079 195;
-    --brand-800: 0.875 0.065 195;
-    --brand-900: 0.935 0.051 195;
+    --brand-50: 0.235 0.009 165;
+    --brand-100: 0.27 0.016 165;
+    --brand-200: 0.32 0.03 165;
+    --brand-300: 0.39 0.048 165;
+    --brand-400: 0.5 0.063 165;
+    --brand-500: 0.62 0.074 165;
+    --brand-600: 0.71 0.07 165;
+    --brand-700: 0.8 0.063 165;
+    --brand-800: 0.875 0.052 165;
+    --brand-900: 0.935 0.041 165;
     --moss-50: 0.235 0.016 148;
     --moss-100: 0.27 0.029 148;
     --moss-200: 0.32 0.053 148;
@@ -121,16 +124,16 @@
     --moss-700: 0.8 0.112 148;
     --moss-800: 0.875 0.092 148;
     --moss-900: 0.935 0.073 148;
-    --ember-50: 0.235 0.02 52;
-    --ember-100: 0.27 0.037 52;
-    --ember-200: 0.32 0.067 52;
-    --ember-300: 0.39 0.103 52;
-    --ember-400: 0.5 0.128 52;
-    --ember-500: 0.62 0.159 52;
-    --ember-600: 0.71 0.159 52;
-    --ember-700: 0.8 0.128 52;
-    --ember-800: 0.875 0.075 52;
-    --ember-900: 0.935 0.036 52;
+    --ember-50: 0.235 0.02 31;
+    --ember-100: 0.27 0.037 31;
+    --ember-200: 0.32 0.067 31;
+    --ember-300: 0.39 0.103 31;
+    --ember-400: 0.5 0.128 31;
+    --ember-500: 0.62 0.159 31;
+    --ember-600: 0.71 0.159 31;
+    --ember-700: 0.8 0.128 31;
+    --ember-800: 0.875 0.075 31;
+    --ember-900: 0.935 0.036 31;
     --warn-50: 0.235 0.016 80;
     --warn-100: 0.27 0.029 80;
     --warn-200: 0.32 0.053 80;
@@ -151,20 +154,22 @@
     --danger-700: 0.8 0.114 25;
     --danger-800: 0.875 0.065 25;
     --danger-900: 0.935 0.032 25;
-    --surface: 0.205 0.014 170;
-    --surface-subtle: 0.172 0.013 170;
-    --surface-muted: 0.24 0.015 170;
-    --surface-sunken: 0.27 0.016 170;
-    --line: 0.29 0.016 170;
-    --line-strong: 0.36 0.018 170;
-    --line-control: 0.53 0.016 170;
-    --ink-faint: 0.42 0.016 170;
-    --ink-subtle: 0.66 0.014 170;
-    --ink-muted: 0.74 0.013 170;
-    --ink-soft: 0.86 0.01 170;
-    --ink: 0.955 0.008 170;
-    --paper: 0.172 0.013 170;
-    --glow: 0.8 0.16 62;
+    --surface: 0.235 0.012 165;
+    --surface-subtle: 0.19 0.01 165;
+    --surface-muted: 0.262 0.013 165;
+    --surface-sunken: 0.29 0.014 165;
+    --line: 0.3 0.013 165;
+    --line-strong: 0.37 0.015 165;
+    --line-control: 0.54 0.015 165;
+    --ink-faint: 0.43 0.014 165;
+    --ink-subtle: 0.68 0.013 160;
+    --ink-muted: 0.75 0.012 160;
+    --ink-soft: 0.87 0.008 155;
+    --ink: 0.96 0.005 150;
+    --paper: 0.19 0.01 165;
+    --glow: 0.72 0.15 33;
+    --island: 0.255 0.014 164;
+    --island-ink: 0.96 0.005 150;
 
     --sky-top: 0.16 0.022 230;
     --sky-low: 0.215 0.03 190;
@@ -210,50 +215,44 @@ body {
 
 @layer components {
   /* Type scale. Defined once; components reference these, never restate a
-   * family/size/width pair. Display type uses Archivo's width axis so
-   * headings read wide and rooted while body copy stays at normal width. */
+   * family/size pair. Headings set in EB Garamond, everything else in Manrope. */
   .type-display {
-    font-family: var(--font-sans);
-    font-stretch: 118%;
-    font-weight: 640;
-    font-size: clamp(2.5rem, 1.6rem + 3.6vw, 4.75rem);
-    line-height: 1.02;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.75rem, 1.7rem + 3.9vw, 4.75rem);
+    line-height: 0.98;
     text-wrap: balance;
   }
   .type-title {
-    font-family: var(--font-sans);
-    font-stretch: 114%;
-    font-weight: 620;
-    font-size: clamp(1.875rem, 1.4rem + 1.9vw, 3rem);
-    line-height: 1.08;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.125rem, 1.5rem + 2.3vw, 3.5rem);
+    line-height: 1.02;
     text-wrap: balance;
   }
   .type-page {
-    font-family: var(--font-sans);
-    font-stretch: 114%;
-    font-weight: 620;
-    font-size: clamp(1.75rem, 1.35rem + 1.3vw, 2.5rem);
-    line-height: 1.1;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2rem, 1.5rem + 1.6vw, 2.875rem);
+    line-height: 1.05;
     text-wrap: balance;
   }
   .type-heading {
-    font-family: var(--font-sans);
-    font-stretch: 110%;
-    font-weight: 600;
-    font-size: 1.375rem;
-    line-height: 1.2;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 1.625rem;
+    line-height: 1.15;
     text-wrap: balance;
   }
   .type-subheading {
     font-family: var(--font-sans);
-    font-stretch: 106%;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 1rem;
     line-height: 1.35;
   }
   .type-lead {
     font-size: 1.125rem;
-    line-height: 1.6;
+    line-height: 1.75;
     text-wrap: pretty;
   }
   .type-body {
@@ -334,14 +333,9 @@ textarea,
   }
 }
 
-/* Inner-page ground: the grove's floor. A faint canopy light from above so
- * product pages continue the landing's forest instead of sitting on flat
- * white. */
+/* Inner-page ground: the plain page color. */
 .grove-floor {
   background-color: oklch(var(--surface-subtle));
-  background-image:
-    radial-gradient(70rem 28rem at 15% -10%, oklch(var(--moss-200) / 0.35), transparent 65%),
-    radial-gradient(50rem 24rem at 90% -14%, oklch(var(--brand-200) / 0.3), transparent 65%);
 }
 
 /* Staggered entrance for static lists. Only for content whose DOM order is

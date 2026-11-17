@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
@@ -74,7 +74,7 @@ function EntryRow({ entry }: { entry: BlackboardEntry }) {
 
   return (
     <li className="flex gap-3 rounded-control bg-surface-subtle p-3">
-      <Treeling seed={entry.agent_id} size={36} alive={false} className="shrink-0" />
+      <AgentAvatar seed={entry.agent_id} name={entry.agent_id} size={22} className="shrink-0" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <EntryBadges entry={entry} />

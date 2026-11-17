@@ -7,12 +7,11 @@ import { api } from "@/convex/_generated/api";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { buttonClasses } from "@/components/ui/Button";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { StatusBadge } from "@/components/task/StatusBadge";
 import { HivePayouts } from "@/components/dashboard/HivePayouts";
 import { SpecialistReadiness } from "@/components/dashboard/SpecialistReadiness";
 import { EmptyState, SkeletonRows, prettyAgent } from "@/components/dashboard/DashboardParts";
-import { statureFromReputation } from "@/lib/grove/treeling";
 import { formatDuration, formatMoney } from "@/lib/utils";
 
 interface LiveAgent {
@@ -141,7 +140,6 @@ function RecentTasksCard({ tasks }: { tasks: RecentTask[] | undefined }) {
         <SkeletonRows count={RECENT_TASK_LIMIT} />
       ) : tasks.length === 0 ? (
         <EmptyState
-          seed="dashboard-no-tasks"
           message="No tasks posted yet. Post one and specialists will start bidding."
           action={
             <Link href="/#post-task" className={buttonClasses({ variant: "secondary", size: "sm" })}>
@@ -164,12 +162,7 @@ function SpecialistRow({ agent, rank }: { agent: LiveAgent; rank: number }) {
   return (
     <li className="flex items-center gap-3">
       <span className="type-data w-4 shrink-0 text-center text-[0.8125rem] text-ink-muted">{rank}</span>
-      <Treeling
-        seed={agent.agent_id}
-        stature={statureFromReputation(agent.reputation_score)}
-        alive={false}
-        size={40}
-      />
+      <AgentAvatar seed={agent.agent_id} name={prettyAgent(agent.agent_id)} size={24} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-sm font-medium text-ink">{prettyAgent(agent.agent_id)}</p>
@@ -191,7 +184,6 @@ function TopSpecialistsCard({ agents }: { agents: LiveAgent[] | undefined }) {
         <SkeletonRows count={TOP_SPECIALIST_LIMIT} />
       ) : agents.length === 0 ? (
         <EmptyState
-          seed="dashboard-no-specialists"
           message="No specialists have a reputation yet."
           action={
             <Link href="/agents" className={buttonClasses({ variant: "secondary", size: "sm" })}>

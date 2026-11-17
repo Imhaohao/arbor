@@ -5,16 +5,16 @@ type Variant = "primary" | "secondary" | "ghost" | "soft" | "danger";
 type Size = "sm" | "md" | "lg";
 
 /*
- * Shape rule for the whole product: buttons and chips are full pills, inputs
- * are radius-control (12px), cards and panels are radius-card (20px).
+ * Shape rule for the whole product: buttons and inputs are radius-control
+ * (12px), chips are full pills, cards and panels are radius-card (24px).
  * Primary actions fill with ink (the neutral ramp); the ember accent is light
  * and never a button fill.
  */
 const VARIANTS: Record<Variant, string> = {
   primary:
-    "bg-ink text-paper shadow-[0_1px_0_oklch(var(--paper)/0.12)_inset,0_6px_16px_-8px_oklch(var(--ink)/0.5)] hover:bg-ink-soft",
+    "bg-ink text-paper shadow-[0_14px_30px_-14px_oklch(var(--ink)/0.55)] hover:bg-ink-soft",
   secondary:
-    "bg-surface text-ink shadow-hairline hover:shadow-hairline-strong hover:bg-surface-subtle",
+    "bg-surface text-ink shadow-card hover:shadow-card-hover",
   ghost: "bg-transparent text-ink-soft hover:bg-ink/[0.06] hover:text-ink",
   soft: "bg-surface-muted text-ink hover:bg-surface-sunken",
   danger: "bg-danger-600 text-paper hover:bg-danger-700",
@@ -33,7 +33,7 @@ export function buttonClasses({
   className,
 }: { variant?: Variant; size?: Size; className?: string } = {}) {
   return cn(
-    "inline-flex select-none items-center justify-center whitespace-nowrap rounded-full font-medium outline-none active:scale-[0.96] disabled:pointer-events-none disabled:opacity-45 focus-visible:shadow-ring",
+    "inline-flex select-none items-center justify-center whitespace-nowrap rounded-control font-semibold outline-none active:scale-[0.96] disabled:pointer-events-none disabled:opacity-45 focus-visible:shadow-ring",
     VARIANTS[variant],
     SIZES[size],
     className,

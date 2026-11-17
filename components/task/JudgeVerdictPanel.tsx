@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Button } from "@/components/ui/Button";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { SealCheck, XCircle } from "@phosphor-icons/react";
 import { LoadingProgress, useElapsedSeconds } from "./LoadingProgress";
 import type { TaskDoc, LifecycleEventDoc } from "@/lib/task-view";
@@ -85,7 +85,7 @@ export function JudgeVerdictPanel({ task, events = [] }: Props) {
       />
       <div className="flex items-start gap-4">
         <div className="relative shrink-0">
-          <Treeling seed={task._id} species="birch" size={72} label="The judge" alive={false} />
+          <AgentAvatar seed={task._id} name="Judge" size={43} label="The judge" />
           <VerdictSeal accepted={accepted} />
         </div>
         <p className="type-body min-w-0 flex-1 text-ink-soft">{verdict.reasoning}</p>

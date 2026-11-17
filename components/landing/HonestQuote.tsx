@@ -2,16 +2,15 @@
 
 import { useId, useState } from "react";
 import { CheckCircle, XCircle } from "@phosphor-icons/react";
-import { Treeling } from "@/components/grove/Treeling";
 import { cn } from "@/lib/utils";
 
 const MIN = 20;
 const MAX = 80;
 const YOUR_COST = 38;
 const RIVALS = [
-  { seed: "hq-rival-a", species: "conifer", quote: 47 },
-  { seed: "hq-rival-b", species: "willow", quote: 56 },
-  { seed: "hq-rival-c", species: "acacia", quote: 69 },
+  { seed: "hq-rival-a", quote: 47 },
+  { seed: "hq-rival-b", quote: 56 },
+  { seed: "hq-rival-c", quote: 69 },
 ] as const;
 const RUNNER_UP = Math.min(...RIVALS.map((r) => r.quote));
 
@@ -38,7 +37,7 @@ export function HonestQuote() {
 
   return (
     <section aria-labelledby="honest-title" className="px-4 py-24 sm:px-6 md:py-32">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-6xl">
         <h2 id="honest-title" className="type-title max-w-[20ch] text-ink">
           Why padding a quote never pays
         </h2>
@@ -53,9 +52,9 @@ export function HonestQuote() {
             <PriceAxis />
             <CostMarker />
             {RIVALS.map((rival) => (
-              <Bidder key={rival.seed} seed={rival.seed} species={rival.species} quote={rival.quote} label={`$${rival.quote}`} />
+              <Bidder key={rival.seed} quote={rival.quote} label={`$${rival.quote}`} />
             ))}
-            <Bidder seed="hq-you" species="oak" quote={quote} label={`You, $${quote}`} you highlighted={outcome.kind === "win"} />
+            <Bidder quote={quote} label={`You, $${quote}`} you highlighted={outcome.kind === "win"} />
           </div>
 
           <div className="mt-12 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-end">
@@ -121,15 +120,11 @@ function CostMarker() {
 }
 
 function Bidder({
-  seed,
-  species,
   quote,
   label,
   you = false,
   highlighted = false,
 }: {
-  seed: string;
-  species: "oak" | "conifer" | "willow" | "acacia";
   quote: number;
   label: string;
   you?: boolean;
@@ -145,22 +140,20 @@ function Bidder({
     >
       <span
         className={cn(
-          "mb-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium type-data",
+          "mb-2 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold type-data",
           you ? "bg-ink text-paper" : "bg-surface-muted text-ink-soft",
         )}
       >
         {label}
       </span>
-      <div className={you ? "w-12 sm:w-[4.5rem]" : "w-10 sm:w-16"}>
-        <Treeling
-          seed={seed}
-          species={species}
-          pose={highlighted ? "raised" : "rest"}
-          lantern={highlighted}
-          stature={0.6}
-          fluid
-        />
-      </div>
+      <span aria-hidden="true" className={cn("w-px", you ? "h-24 bg-ink" : "h-16 bg-line-control")} />
+      <span
+        aria-hidden="true"
+        className={cn(
+          "-mb-1.5 size-3 rounded-full ring-4 ring-surface",
+          highlighted ? "bg-ember-400" : you ? "bg-ink" : "bg-ink-faint",
+        )}
+      />
     </div>
   );
 }

@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { buttonClasses } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill, type PillTone } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
-import { statureFromReputation } from "@/lib/grove/treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { formatMoney, formatScore } from "@/lib/utils";
 import { Check, Sparkle, CircleNotch, Lightning } from "@phosphor-icons/react";
 
@@ -289,7 +288,6 @@ function DiscoveryPrompt({
 }) {
   return (
     <div className="mt-4 flex animate-fade-up items-start gap-4 rounded-control bg-warning-50 p-4 text-sm text-ink">
-      <Treeling seed="no-strong-match" asleep alive={false} size={56} />
       <div>
         <p className="font-medium">
           No strong match in the current roster.
@@ -418,13 +416,7 @@ function SourceBadge({
 function SuggestionRow({ item }: { item: SuggestionItem }) {
   return (
     <li className="flex animate-fade-up items-start gap-3 py-3 text-sm">
-      <Treeling
-        seed={item.agent_id}
-        capabilities={item.capabilities}
-        name={item.display_name}
-        alive={false}
-        size={40}
-      />
+      <AgentAvatar seed={item.agent_id} name={item.display_name} size={24} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2 text-ink">
           <span className="font-medium">{item.display_name}</span>

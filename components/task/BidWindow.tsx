@@ -2,7 +2,7 @@
 
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import type {
   TaskDoc,
   LifecycleEventDoc,
@@ -63,7 +63,6 @@ export function BidWindow({ task, events }: Props) {
       </p>
       {bidEvents.length === 0 && !closed && (
         <div className="flex items-center gap-3 rounded-control bg-surface-muted p-4 text-sm text-ink-muted">
-          <Treeling seed={task._id} size={44} asleep alive={false} />
           Waiting for offers
         </div>
       )}
@@ -85,7 +84,7 @@ function BidderTile({ bid }: { bid: BidReceivedPayload }) {
       className="flex animate-fade-up flex-col items-center rounded-control bg-surface-subtle px-2 pb-3 pt-4 text-center"
       title={`${bid.sponsor}: ${bid.capability_claim}`}
     >
-      <Treeling seed={bid.agent_id} name={bid.agent_id} pose="raised" size={56} alive={false} />
+      <AgentAvatar seed={bid.agent_id} name={bid.agent_id} size={34} />
       <span className="type-data mt-2 w-full truncate text-[0.8125rem] text-ink">{bid.agent_id}</span>
       <span className="w-full truncate text-xs text-ink-muted">{bid.sponsor}</span>
       <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-surface-muted px-2 py-0.5 text-xs text-ink-soft">
@@ -106,7 +105,7 @@ function DeclinedList({ declines }: { declines: Array<{ agent_id: string; reason
       <ul className="space-y-2 px-4 pb-4">
         {declines.map((decline, index) => (
           <li key={`${decline.agent_id}-${index}`} className="flex items-start gap-3 text-[0.8125rem]">
-            <Treeling seed={decline.agent_id} name={decline.agent_id} size={28} asleep alive={false} />
+            <AgentAvatar seed={decline.agent_id} name={decline.agent_id} size={20} muted />
             <div className="min-w-0">
               <span className="type-data text-ink-soft">{decline.agent_id}</span>
               <p className="break-words text-ink-muted">{decline.reason}</p>

@@ -2,8 +2,7 @@
 
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
-import { statureFromReputation } from "@/lib/grove/treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ReputationChart } from "./ReputationChart";
@@ -11,6 +10,7 @@ import { formatMoney, formatScore, cn } from "@/lib/utils";
 import type { SpecialistConfig } from "@/lib/types";
 import {
   Broadcast,
+  CaretDown,
   CheckCircle,
   Plug,
   ShieldWarning,
@@ -148,75 +148,60 @@ export function SpecialistCard({
 
   return (
     <Card className="flex h-full flex-col gap-4">
-      <div className="flex items-end gap-4">
-        <Treeling
-          seed={spec.agent_id}
-          capabilities={spec.capabilities}
-          name={spec.display_name}
-          stature={statureFromReputation(score)}
-          asleep={SLEEPING.has(kind)}
-          alive={false}
-          size={hasTrackRecord ? 76 : 64}
-        />
-        <div className="min-w-0 flex-1 pb-1">
-          <h3 className="type-subheading break-words text-ink">{spec.display_name}</h3>
+      <div className="flex items-center gap-3">
+        <AgentAvatar seed={spec.agent_id} name={spec.display_name} muted={SLEEPING.has(kind)} size={40} />
+        <div className="min-w-0 flex-1">
+          <h3 className="break-words text-[0.9375rem] font-bold leading-snug text-ink">
+            {spec.display_name}
+          </h3>
           <p className="truncate text-[0.8125rem] text-ink-muted" title={spec.sponsor}>
             {spec.sponsor}
           </p>
         </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
         <IntegrationPill spec={spec} kind={kind} />
-        {spec.mcp_endpoint && (
-          <code
-            className="type-data min-w-0 truncate text-xs text-ink-muted"
-            title={spec.mcp_endpoint}
-          >
-            {endpointHost(spec.mcp_endpoint)}
-          </code>
-        )}
       </div>
 
-      <p className="text-sm text-ink-soft">{spec.one_liner}</p>
+      <p className="line-clamp-3 text-sm leading-6 text-ink-soft">{spec.one_liner}</p>
 
-      {hasTrackRecord && (
-        <TrackRecord
-          spec={spec}
-          dims={dims}
-          events={events}
-          completed={completed}
-          disputes={disputes}
-          total={total}
-        />
+      <CapabilityChips capabilities={spec.capabilities} />
+
+      <dl className="mt-auto grid grid-cols-3 gap-3 border-t border-line pt-4 text-[0.8125rem]">
+        <div>
+          <dt className="text-ink-muted">Reputation</dt>
+          <dd className="font-display text-xl text-ink">{formatScore(score)}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-muted">Per task</dt>
+          <dd className="font-display text-xl text-ink">{formatMoney(spec.cost_baseline)}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-muted">Judged</dt>
+          <dd className="font-display text-xl text-ink">{total}</dd>
+        </div>
+      </dl>
+
+      {hasTrackRecord ? (
+        <details className="group -mx-1 rounded-control">
+          <summary className="flex cursor-pointer list-none items-center justify-between rounded-control px-1 text-[0.8125rem] font-semibold text-ink-muted hover:text-ink [&::-webkit-details-marker]:hidden">
+            Track record
+            <CaretDown size={12} weight="bold" aria-hidden="true" className="transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="mt-4 px-1">
+            <TrackRecord
+              spec={spec}
+              dims={dims}
+              events={events}
+              completed={completed}
+              disputes={disputes}
+              total={total}
+            />
+          </div>
+        </details>
+      ) : (
+        <p className="text-[0.8125rem] text-ink-muted">No judged work yet</p>
       )}
-
-      <div className="mt-auto flex flex-col gap-4 pt-1">
-        <CapabilityChips capabilities={spec.capabilities} />
-        <dl className="grid grid-cols-2 gap-3 border-t border-line pt-3 text-[0.8125rem]">
-          <div>
-            <dt className="text-ink-muted">Reputation</dt>
-            <dd className="type-data text-base text-ink">{formatScore(score)}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Cost baseline</dt>
-            <dd className="type-data text-base text-ink">{formatMoney(spec.cost_baseline)}</dd>
-          </div>
-        </dl>
-        {!hasTrackRecord && (
-          <p className="-mt-2 text-[0.8125rem] text-ink-muted">No judged work yet</p>
-        )}
-      </div>
     </Card>
   );
-}
-
-function endpointHost(endpoint: string): string {
-  try {
-    return new URL(endpoint).host;
-  } catch {
-    return endpoint;
-  }
 }
 
 function CapabilityChips({ capabilities }: { capabilities: string[] }) {

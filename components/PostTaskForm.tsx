@@ -141,7 +141,7 @@ export function PostTaskForm() {
     }
   }, [finalDraft, intake?.final_prompt]);
 
-  // The landing hero (AgoraHero) hands its prompt off here before
+  // The landing hero (LandingHero) hands its prompt off here before
   // scrolling down, so the visitor lands on the full form pre-filled.
   useEffect(() => {
     const handler = (e: Event) => {

@@ -83,6 +83,7 @@ const config: Config = {
           faint: token("ink-faint"),
         },
         paper: token("paper"),
+        island: { DEFAULT: token("island"), ink: token("island-ink") },
         line: {
           DEFAULT: token("line"),
           strong: token("line-strong"),
@@ -114,7 +115,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        display: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       borderRadius: {
@@ -131,16 +132,16 @@ const config: Config = {
       boxShadow: {
         // Ring + tinted lift. The 0 0 0 1px ring replaces a border on rounded
         // surfaces so corners anti-alias cleanly.
-        card: "0 0 0 1px oklch(var(--ink) / 0.07), 0 1px 2px oklch(var(--ink) / 0.05)",
+        card: "0 1px 2px oklch(var(--ink) / 0.04), 0 12px 32px -18px oklch(var(--ink) / 0.16)",
         "card-hover":
-          "0 0 0 1px oklch(var(--ink) / 0.1), 0 12px 32px -12px oklch(var(--leaf-1) / 0.35), 0 2px 4px oklch(var(--ink) / 0.05)",
+          "0 1px 2px oklch(var(--ink) / 0.05), 0 22px 44px -20px oklch(var(--ink) / 0.24)",
         hairline: "0 0 0 1px oklch(var(--ink) / 0.09)",
         "hairline-strong": "0 0 0 1px oklch(var(--ink) / 0.18)",
         control: "0 0 0 1px oklch(var(--line-control))",
         ring: "0 0 0 4px oklch(var(--brand-500) / 0.25)",
         lantern: "0 0 24px 2px oklch(var(--glow) / 0.45)",
         float:
-          "0 0 0 1px oklch(var(--ink) / 0.06), 0 24px 48px -20px oklch(var(--leaf-1) / 0.45)",
+          "0 1px 2px oklch(var(--ink) / 0.05), 0 30px 60px -28px oklch(var(--ink) / 0.3)",
       },
       keyframes: {
         "fade-in": { "0%": { opacity: "0" }, "100%": { opacity: "1" } },

@@ -9,9 +9,8 @@ import { ReputationChart } from "@/components/agents/ReputationChart";
 import { Check } from "@phosphor-icons/react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Treeling } from "@/components/grove/Treeling";
+import { AgentAvatar } from "@/components/ui/AgentAvatar";
 import { EmptyState, SkeletonRows, prettyAgent } from "@/components/dashboard/DashboardParts";
-import { statureFromReputation } from "@/lib/grove/treeling";
 import { currentPeriod } from "@/lib/hive/settlement-core";
 import { formatMoney, formatScore } from "@/lib/utils";
 import { readableError } from "@/lib/readable-error";
@@ -104,12 +103,7 @@ function PayoutRowView({ row }: { row: PayoutRow }) {
     <tr>
       <td className="py-2.5 pr-3">
         <div className="flex items-center gap-2.5">
-          <Treeling
-            seed={row.agent_id}
-            stature={statureFromReputation(row.reputation_end)}
-            alive={false}
-            size={32}
-          />
+          <AgentAvatar seed={row.agent_id} name={prettyAgent(row.agent_id)} size={20} />
           <span className="font-medium text-ink">{prettyAgent(row.agent_id)}</span>
         </div>
       </td>
@@ -176,7 +170,6 @@ function PayoutsCard({
         <SkeletonRows count={4} />
       ) : payouts.length === 0 ? (
         <EmptyState
-          seed="hive-no-payouts"
           message="No settled tasks this period yet. Payouts accrue when a delivery is accepted."
           action={
             <Link href="/tasks" className={buttonClasses({ variant: "secondary", size: "sm" })}>
@@ -230,7 +223,6 @@ function ReviewQueueBody({ escalations }: { escalations: EscalationRow[] | undef
   if (escalations.length === 0) {
     return (
       <EmptyState
-        seed="hive-empty-review"
         message="Nothing awaiting review. Low-confidence and tied judgments land here."
       />
     );

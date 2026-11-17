@@ -18,9 +18,9 @@ export const NAV_LINKS: Array<{ label: string; href: string }> = [
 ];
 
 /**
- * One navigation bar for the whole site. `overlay` floats over the landing
- * forest's sky and gains a surface once the page scrolls; `bar` is the solid
- * sticky header on product pages.
+ * One navigation bar for the whole site. `overlay` sits on the landing page
+ * and gains a surface once the page scrolls; `bar` is the solid sticky header
+ * on product pages.
  */
 export function SiteNav({ variant = "bar" }: { variant?: "overlay" | "bar" }) {
   const pathname = usePathname();
@@ -46,7 +46,7 @@ export function SiteNav({ variant = "bar" }: { variant?: "overlay" | "bar" }) {
       <header
         className={cn(
           "sticky top-0 z-40 transition-[background-color,box-shadow] duration-300",
-          variant === "overlay" && "-mb-16",
+          variant === "overlay" && "-mb-[4.5rem]",
           solid
             ? "bg-surface-subtle/80 shadow-[0_1px_0_oklch(var(--ink)/0.07)] backdrop-blur-xl backdrop-saturate-150"
             : "bg-transparent",
@@ -54,7 +54,7 @@ export function SiteNav({ variant = "bar" }: { variant?: "overlay" | "bar" }) {
       >
         <nav
           aria-label="Main"
-          className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6"
+          className="mx-auto flex h-[4.5rem] max-w-6xl items-center justify-between gap-6 px-4 sm:px-6"
         >
           <ArborMark as="link" />
           <ul className="hidden items-center gap-1 md:flex">
@@ -66,7 +66,7 @@ export function SiteNav({ variant = "bar" }: { variant?: "overlay" | "bar" }) {
           </ul>
           <div className="flex items-center gap-2">
             {clerkEnabled() && <AuthControls />}
-            <Link href="/#post-task" className={buttonClasses({ size: "sm", className: "hidden sm:inline-flex" })}>
+            <Link href="/#post-task" className={buttonClasses({ variant: "secondary", size: "sm", className: "hidden sm:inline-flex" })}>
               Post a task
             </Link>
             <button
@@ -116,7 +116,7 @@ function NavLink({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex items-center rounded-full px-3.5 text-sm font-medium",
+        "relative flex items-center rounded-control px-3.5 text-sm font-medium",
         block ? "h-11 text-base" : "h-9",
         active ? "bg-ink/[0.07] text-ink" : "text-ink-muted hover:bg-ink/[0.05] hover:text-ink",
       )}
