@@ -1,20 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { EB_Garamond, Geist_Mono, Manrope } from "next/font/google";
+import { Geist_Mono, Hanken_Grotesk, IBM_Plex_Serif } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Providers } from "./providers";
 import { clerkEnabled } from "@/lib/clerk-config";
 
-// EB Garamond sets headings; Manrope carries every other piece of text. Both
-// are variable, so each family is a single file. Geist Mono is reserved for
-// figures, ids and code.
-const garamond = EB_Garamond({
+// IBM Plex Serif (light) sets headings; Hanken Grotesk carries every other
+// piece of text. Geist Mono is reserved for figures, ids and code.
+const plexSerif = IBM_Plex_Serif({
   subsets: ["latin"],
+  weight: ["300", "400"],
   variable: "--font-display",
   display: "swap",
 });
 
-const manrope = Manrope({
+const hanken = Hanken_Grotesk({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
@@ -47,7 +47,7 @@ export default function RootLayout({
   const page = (
     <html
       lang="en"
-      className={`${garamond.variable} ${manrope.variable} ${geistMono.variable}`}
+      className={`${plexSerif.variable} ${hanken.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
       <body

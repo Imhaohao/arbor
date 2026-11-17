@@ -1,10 +1,11 @@
 import { PostTaskForm } from "@/components/PostTaskForm";
 import { GroveRoster } from "@/components/landing/GroveRoster";
 import { HonestQuote } from "@/components/landing/HonestQuote";
-import { HowItWorks } from "@/components/landing/HowItWorks";
 import { LandingHero } from "@/components/landing/LandingHero";
-import { ProductPreview } from "@/components/landing/ProductPreview";
+import { LiveDemo } from "@/components/landing/LiveDemo";
 import { SiteFooter } from "@/components/landing/SiteFooter";
+import { WinnerDiagram } from "@/components/landing/WinnerDiagram";
+import { Reveal } from "@/components/ui/Reveal";
 import { SiteNav } from "@/components/ui/SiteNav";
 import { getGroveRoster, type GroveAgent } from "@/lib/grove/roster";
 
@@ -34,10 +35,18 @@ export default async function HomePage() {
       <SiteNav variant="overlay" />
       <main>
         <LandingHero agents={heroAgents} />
-        <ProductPreview />
-        <HowItWorks total={roster.length} />
-        <HonestQuote />
-        <GroveRoster agents={pickStrip(roster)} total={roster.length} />
+        <Reveal>
+          <LiveDemo />
+        </Reveal>
+        <Reveal>
+          <WinnerDiagram />
+        </Reveal>
+        <Reveal>
+          <HonestQuote />
+        </Reveal>
+        <Reveal>
+          <GroveRoster agents={pickStrip(roster)} total={roster.length} />
+        </Reveal>
 
         <section id="post-task" aria-labelledby="post-title" className="scroll-mt-24 px-4 py-24 sm:px-6 md:py-32">
           <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] md:gap-16">
